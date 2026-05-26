@@ -1,0 +1,114 @@
+import { createContext, useState } from 'react';
+import api from '../api';
+import { toast } from 'react-toastify';
+
+export const RoomContext = createContext();
+
+export const RoomProvider = ({ children }) => {
+  const [currentRoom, setCurrentRoom] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
+
+  const createRoom = async (name, options, category, priceRange, timeLimit) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/rooms', { name, options, category, priceRange, timeLimit });
+      setCurrentRoom(data);
+      toast.success('Oda başarıyla kuruldu!');
+      return { success: true, roomId: data._id };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Oda kurulamadı';
+      toast.error(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const joinRoom = async (roomId) => {
+    setLoading(true);
+    try {
+      const { data } = await api.put(`/rooms/${roomId}/join`);
+      setCurrentRoom(data);
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Odaya katılınamadı';
+      toast.error(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMyRooms = async () => {
+    try {
+      const { data } = await api.get('/rooms');
+      return data;
+    } catch (error) {
+      console.error("Fetch rooms error", error);
+      return [];
+    }
+  };
+
+  const deleteRoom = async (roomId) => {
+    try {
+      await api.delete(`/rooms/${roomId}`);
+      toast.success('Oda silindi');
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Silinemedi');
+      return false;
+    }
+  };
+
+  const startRoom = async (roomId) => {
+    try {
+      const { data } = await api.put(`/rooms/${roomId}/start`);
+      setCurrentRoom(data);
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Oda başlatılamadı');
+      return false;
+    }
+  };
+
+  const fetchRoomStatus = async (roomId) => {
+    try {
+      const { data } = await api.get(`/rooms/${roomId}`);
+      setCurrentRoom(data);
+      if (data.status === 'finished') {
+        setMatchResult(data.matchResult);
+      }
+      return data;
+    } catch (error) {
+      console.error("Room status error", error);
+    }
+  };
+
+  const swipe = async (roomId, optionId, decision) => {
+    try {
+      const { data } = await api.post(`/swipes`, { roomId, optionId, decision });
+      if (data.match) {
+        setMatchResult(data.matchedOption);
+      }
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Kaydırma işlemi başarısız');
+      return false;
+    }
+  };
+
+  const resetRoom = () => {
+    setCurrentRoom(null);
+    setMatchResult(null);
+  };
+
+  return (
+    <RoomContext.Provider value={{ 
+      currentRoom, loading, matchResult, 
+      createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, startRoom
+    }}>
+      {children}
+    </RoomContext.Provider>
+  );
+};

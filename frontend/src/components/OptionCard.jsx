@@ -1,0 +1,90 @@
+import { motion } from 'framer-motion';
+import { Star, MapPin, Clock, Tv } from 'lucide-react';
+
+const OptionCard = ({ option, direction, currentIndex, category }) => {
+  if (!option) return null;
+
+  const isCustom = category === 'custom';
+  const isFilm = category === 'film' || category === 'movie';
+  const isMekan = category === 'mekan' || category === 'food';
+  const isAktivite = category === 'aktivite' || category === 'activity';
+
+  return (
+    <motion.div
+      key={currentIndex}
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ 
+        scale: 1, 
+        opacity: direction !== 0 ? 0 : 1,
+        x: direction !== 0 ? direction * 300 : 0,
+        rotate: direction !== 0 ? direction * 20 : 0,
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="glass-card"
+      style={{ 
+        width: '100%', 
+        height: '480px', 
+        position: 'absolute', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        padding: '0',
+        overflow: 'hidden',
+        justifyContent: isCustom ? 'center' : 'flex-start'
+      }}
+    >
+      {!isCustom && (
+        option.imageUrl ? (
+          <div style={{ height: '55%', width: '100%', backgroundImage: `url(${option.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+             {/* Platform Badge for Films */}
+             {isFilm && option.platform && (
+               <div style={{ position: 'absolute', top: '10px', right: '10px', background: option.platform.toLowerCase() === 'netflix' ? '#E50914' : '#00A8E1', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                 <Tv size={14} /> {option.platform}
+               </div>
+             )}
+          </div>
+        ) : (
+          <div style={{ height: '55%', width: '100%', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '4rem' }}>❓</span>
+          </div>
+        )
+      )}
+      
+      <div style={{ padding: '1.5rem', flex: isCustom ? 'none' : 1, display: 'flex', flexDirection: 'column', textAlign: isCustom ? 'center' : 'left' }}>
+        
+        {isCustom ? (
+          <h1 style={{ fontSize: '2.5rem', color: 'white', margin: 0, wordBreak: 'break-word' }}>{option.name}</h1>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.6rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{option.name}</h2>
+              
+              {(option.rating || option.imdbScore) && (
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '0.3rem 0.6rem', borderRadius: '12px', flexShrink: 0, marginLeft: '0.5rem' }}>
+                  <Star size={16} color="#fbbf24" fill="#fbbf24" style={{ marginRight: '4px' }} />
+                  <span style={{ fontWeight: 'bold' }}>{option.imdbScore || option.rating}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Info Row: Duration or Location or Budget */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+               {option.duration && (
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Clock size={16} /> {option.duration}</div>
+               )}
+               {option.location && (
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={16} /> {option.location}</div>
+               )}
+               {option.budget && (
+                 <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{option.budget}</span>
+               )}
+            </div>
+
+            {option.description && <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginTop: 'auto' }}>{option.description}</p>}
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+export default OptionCard;
