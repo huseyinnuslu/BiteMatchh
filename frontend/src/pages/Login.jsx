@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
@@ -7,12 +7,16 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const { login, guestLogin } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Ziyaret edilmek istenen asıl sayfa (örn: davet linki) yoksa varsayılan olarak dashboard'a git
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(email, password);
     if (result.success) {
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     }
   };
 
@@ -54,7 +58,7 @@ const Login = () => {
             type="button" 
             onClick={async () => {
               const res = await guestLogin();
-              if (res.success) navigate('/dashboard');
+              if (res.success) navigate(from, { replace: true });
             }} 
             className="btn btn-outline" 
             style={{ width: '100%' }}

@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -13,6 +13,9 @@ const Register = () => {
 
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   // Validasyon Kuralları
   const validateUsername = (val) => {
@@ -108,7 +111,7 @@ const Register = () => {
 
     const result = await register(username, email, password);
     if (result.success) {
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     }
   };
 
