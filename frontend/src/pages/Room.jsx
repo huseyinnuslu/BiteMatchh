@@ -149,7 +149,7 @@ const Room = () => {
       )}
 
       {/* Swipe Area */}
-      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: '480px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <AnimatePresence mode="wait">
           {showResults ? (
             <motion.div 
@@ -227,7 +227,7 @@ const Room = () => {
 
       {/* Controls */}
       {!optionsFinished && !isFinished && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '1.5rem' }}>
           <button 
             onClick={() => handleSwipe('dislike')}
             className="btn"
@@ -259,7 +259,7 @@ const Room = () => {
 
       {/* Participants List Bottom */}
       {!optionsFinished && !isFinished && (
-         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Katılımcı Durumları</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {currentRoom.participantStatuses ? currentRoom.participantStatuses.map((p, idx) => (
