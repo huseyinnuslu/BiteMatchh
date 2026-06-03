@@ -48,19 +48,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const guestLogin = async () => {
-    try {
-      const { data } = await api.post('/auth/guest');
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success('Misafir olarak giriş yapıldı!');
-      return { success: true };
-    } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Misafir girişi başarısız';
-      toast.error(msg);
-      return { success: false, message: msg };
-    }
-  };
 
   const logout = () => {
     localStorage.removeItem('userInfo');
@@ -82,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, guestLogin, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
