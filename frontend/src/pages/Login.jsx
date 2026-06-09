@@ -20,7 +20,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex-center animate-slide-up" style={{ minHeight: '60vh' }}>
+    <div className="flex-center animate-slide-up" style={{ minHeight: '80vh' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '400px' }}>
         <h2 className="text-gradient" style={{ textAlign: 'center', marginBottom: '2rem' }}>Giriş Yap</h2>
         <form onSubmit={handleSubmit}>

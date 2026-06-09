@@ -101,7 +101,7 @@ const ForgotPassword = () => {
   const stepLabels = ['E-posta', 'Güvenlik Sorusu', 'Yeni Şifre'];
 
   return (
-    <div className="flex-center animate-slide-up" style={{ minHeight: '60vh' }}>
+    <div className="flex-center animate-slide-up" style={{ minHeight: '80vh' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '440px' }}>
 
         {/* Başlık */}

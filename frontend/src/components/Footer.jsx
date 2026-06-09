@@ -18,9 +18,6 @@ const Footer = () => {
       }}>
         <span>Created by Hüseyin Uslu. All rights reserved. 2026</span>
       </div>
-      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.7 }}>
-        BLG330 – Web Programlama Dönem Projesi
-      </div>
     </footer>
   );
 };

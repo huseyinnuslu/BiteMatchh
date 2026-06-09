@@ -104,7 +104,7 @@ const Register = () => {
     ) : null;
 
   return (
-    <div className="flex-center animate-slide-up" style={{ minHeight: '70vh', padding: '2rem 0' }}>
+    <div className="flex-center animate-slide-up" style={{ minHeight: '80vh', padding: '2rem 0' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '440px' }}>
         <h2 className="text-gradient" style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Kayıt Ol</h2>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '2rem' }}>
