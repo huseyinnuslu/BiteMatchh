@@ -48,6 +48,45 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const guestLogin = async () => {
+    try {
+      const { data } = await api.post('/auth/guest');
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success('Misafir olarak giriş yapıldı!');
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Misafir girişi başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    try {
+      const { data } = await api.post('/auth/forgot-password', { email });
+      toast.success(data.message || 'Email gönderildi!');
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'İşlem başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const resetPassword = async (token, password) => {
+    try {
+      const { data } = await api.put(`/auth/reset-password/${token}`, { password });
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success('Şifreniz başarıyla güncellendi!');
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Şifre sıfırlama başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem('userInfo');
@@ -69,7 +108,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, guestLogin, logout, updateProfile, forgotPassword, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -25,3 +25,12 @@ export const protect = async (req, res, next) => {
     next(new Error('Yetkisiz erişim, token bulunamadı'));
   }
 };
+
+export const adminOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'Admin') {
+    next();
+  } else {
+    res.status(403);
+    next(new Error('Bu işlem için Admin yetkisi gereklidir'));
+  }
+};

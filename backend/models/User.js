@@ -31,8 +31,14 @@ const userSchema = mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['Host', 'Guest'],
+      enum: ['Host', 'Guest', 'Admin'],
       default: 'Host',
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpire: {
+      type: Date,
     },
   },
   {

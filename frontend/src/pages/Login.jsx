@@ -5,11 +5,10 @@ import { AuthContext } from '../context/AuthContext';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useContext(AuthContext);
+  const { login, guestLogin } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Ziyaret edilmek istenen asıl sayfa (örn: davet linki) yoksa varsayılan olarak dashboard'a git
   const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
@@ -45,10 +44,31 @@ const Login = () => {
               required 
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+          <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+            <Link to="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.85rem' }}>
+              Şifremi Unuttum?
+            </Link>
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
             Giriş Yap
           </button>
           
+          <div style={{ position: 'relative', textAlign: 'center', margin: '1.5rem 0' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)' }} />
+            <span style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', padding: '0 10px', color: 'var(--text-muted)' }}>veya</span>
+          </div>
+
+          <button 
+            type="button" 
+            onClick={async () => {
+              const res = await guestLogin();
+              if (res.success) navigate(from, { replace: true });
+            }} 
+            className="btn btn-outline" 
+            style={{ width: '100%' }}
+          >
+            👤 Misafir Olarak Devam Et
+          </button>
         </form>
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)' }}>
           Hesabın yok mu? <Link to="/register" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Kayıt Ol</Link>

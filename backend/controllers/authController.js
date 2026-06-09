@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 
@@ -162,6 +164,116 @@ export const updateUserProfile = async (req, res, next) => {
       res.status(404);
       throw new Error('Kullanıcı bulunamadı');
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Şifre sıfırlama emaili gönder
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404);
+      throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
+    }
+
+    // Sıfırlama token'ı üret
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 dakika
+    await user.save({ validateBeforeSave: false });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+    // Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"BiteMatch" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'BiteMatch - Şifre Sıfırlama',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #eee; padding: 40px; border-radius: 12px;">
+          <h1 style="color: #ff6b6b; text-align: center;">🍽️ BiteMatch</h1>
+          <h2 style="text-align: center;">Şifre Sıfırlama</h2>
+          <p>Merhaba <strong>${user.username}</strong>,</p>
+          <p>Şifrenizi sıfırlamak için aşağıdaki butona tıklayın. Bu link <strong>15 dakika</strong> süreyle geçerlidir.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold;">
+              Şifremi Sıfırla
+            </a>
+          </div>
+          <p style="color: #aaa; font-size: 13px;">Bu isteği siz yapmadıysanız bu emaili görmezden gelebilirsiniz.</p>
+          <p style="color: #aaa; font-size: 13px;">Link çalışmıyorsa şu adresi kopyalayın: ${resetUrl}</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Şifre sıfırlama emaili gönderildi! Lütfen gelen kutunuzu kontrol edin.' });
+  } catch (error) {
+    // Hata olursa token'ları temizle
+    if (error.name !== 'Error') {
+      const user = await User.findOne({ email: req.body.email });
+      if (user) {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save({ validateBeforeSave: false });
+      }
+    }
+    next(error);
+  }
+};
+
+// @desc    Şifreyi sıfırla
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+export const resetPassword = async (req, res, next) => {
+  try {
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      res.status(400);
+      throw new Error('Geçersiz veya süresi dolmuş token. Lütfen yeni bir şifre sıfırlama isteği gönderin.');
+    }
+
+    // Yeni şifreyi kaydet
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(req.body.password)) {
+      res.status(400);
+      throw new Error('Şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     next(error);
   }
