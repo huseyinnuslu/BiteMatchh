@@ -1,5 +1,3 @@
-import { Heart } from 'lucide-react';
-
 const Footer = () => {
   return (
     <footer style={{
@@ -18,11 +16,7 @@ const Footer = () => {
         gap: '0.5rem',
         fontSize: '0.9rem'
       }}>
-        <span>BiteMatch &copy; {new Date().getFullYear()}</span>
-        <span>•</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-          Made with <Heart size={14} color="var(--primary)" style={{ fill: 'var(--primary)' }} /> by Hüseyin Uslu
-        </span>
+        <span>Created by Hüseyin Uslu. All rights reserved. 2026</span>
       </div>
       <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.7 }}>
         BLG330 – Web Programlama Dönem Projesi
