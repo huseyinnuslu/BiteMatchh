@@ -20,7 +20,17 @@ const Navbar = () => {
               {user.role === 'Admin' && (
                 <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', borderColor: '#ff6b6b', color: '#ff6b6b' }}>🛡️ Admin</Link>
               )}
-              <button onClick={logout} className="btn" style={{ background: 'transparent', color: 'var(--text-muted)' }}>Çıkış</button>
+              <button 
+                onClick={() => {
+                  if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
+                    logout();
+                  }
+                }} 
+                className="btn" 
+                style={{ background: 'transparent', color: 'var(--text-muted)' }}
+              >
+                Çıkış
+              </button>
             </>
           ) : (
             <>
