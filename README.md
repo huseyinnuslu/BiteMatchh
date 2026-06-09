@@ -29,20 +29,27 @@ Proje hem backend hem de frontend içerir. Projeyi ayağa kaldırmak için termi
    npm run dev
    ```
 
+## 📸 Ekran Görüntüleri
+
+*Not: Proje canlıya alındığında veya teste açıldığında ekran görüntüleri eklenecektir.*
+- **Dashboard:** `(Ekran Görüntüsü)`
+- **Admin Paneli:** `(Ekran Görüntüsü)`
+- **Oda & Oylama Ekranı:** `(Ekran Görüntüsü)`
+
 ## 📐 Tasarım ve UML Diyagramları
 
 Projenin tasarım mimarisi ve bileşenleri aşağıdaki UML diyagramlarında gösterilmiştir:
 
 ### 1. Use-Case Diyagramı
 ```mermaid
-usecaseDiagram
-    actor Kullanıcı
-    Kullanıcı --> (Sisteme Kayıt Ol)
-    Kullanıcı --> (Sisteme Giriş Yap)
-    Kullanıcı --> (Yeni Oda Kur)
-    Kullanıcı --> (Davet Linkiyle Odaya Katıl)
-    Kullanıcı --> (Seçenekleri Sağa/Sola Kaydır)
-    (Seçenekleri Sağa/Sola Kaydır) --> (Eşleşme Sonucunu Gör)
+flowchart LR
+    Kullanici([Kullanıcı])
+    Kullanici --> Kayit(Sisteme Kayıt Ol)
+    Kullanici --> Giris(Sisteme Giriş Yap)
+    Kullanici --> OdaKur(Yeni Oda Kur)
+    Kullanici --> DavetKatil(Davet Linkiyle Odaya Katıl)
+    Kullanici --> Kaydir(Seçenekleri Sağa/Sola Kaydır)
+    Kaydir --> Sonuc(Eşleşme Sonucunu Gör)
 ```
 
 ### 2. Activity Diyagramı

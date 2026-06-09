@@ -4,50 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
 import { Shield, Users, Home, BarChart3, Trash2, Save, X } from 'lucide-react';
-
-// ---- Onay Modali ----
-const ConfirmModal = ({ title, message, confirmText, confirmColor = '#ef4444', onConfirm, onCancel, icon }) => (
-  <div style={{
-    position: 'fixed', inset: 0, zIndex: 9999,
-    background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  }}>
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.99) 0%, rgba(30,27,75,0.99) 100%)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '20px', padding: '2rem',
-      width: '100%', maxWidth: '380px', margin: '1rem',
-      boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-    }}>
-      <div style={{
-        width: '56px', height: '56px', borderRadius: '50%', margin: '0 auto 1.25rem',
-        background: `${confirmColor}18`,
-        border: `2px solid ${confirmColor}44`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1.5rem',
-      }}>
-        {icon}
-      </div>
-      <h3 style={{ textAlign: 'center', margin: '0 0 0.5rem', fontSize: '1.05rem', fontWeight: 700 }}>{title}</h3>
-      <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 1.75rem', lineHeight: 1.6 }}>{message}</p>
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <button onClick={onCancel} style={{
-          flex: 1, padding: '0.7rem', borderRadius: '10px',
-          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-          color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
-        }}>İptal</button>
-        <button onClick={onConfirm} style={{
-          flex: 1, padding: '0.7rem', borderRadius: '10px',
-          background: confirmColor === '#ef4444'
-            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-            : 'linear-gradient(135deg, #ff6b6b, #c0392b)',
-          border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-          boxShadow: `0 4px 15px ${confirmColor}44`,
-        }}>{confirmText}</button>
-      </div>
-    </div>
-  </div>
-);
+import StatCard from '../components/StatCard';
+import ConfirmModal from '../components/ConfirmModal';
 
 // ---- Admin Panel ----
 const AdminPanel = () => {
@@ -160,13 +118,6 @@ const AdminPanel = () => {
     );
   };
 
-  const StatCard = ({ icon, label, value, color }) => (
-    <div className="glass-card" style={{ textAlign: 'center', padding: '1.5rem' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>{icon}</div>
-      <div style={{ fontSize: '2rem', fontWeight: 800, color: color || 'var(--primary)', lineHeight: 1 }}>{value ?? '—'}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.35rem' }}>{label}</div>
-    </div>
-  );
 
   const tabStyle = (tab) => ({
     padding: '0.55rem 1.3rem', borderRadius: '8px', border: 'none',

@@ -18,6 +18,7 @@ const app = express();
 // CORS Ayarları (Local ve Vercel Canlı Ortamları İçin Dinamik)
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000'
 ];
 

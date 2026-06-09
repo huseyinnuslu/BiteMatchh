@@ -1,7 +1,9 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
-import { Plus, Trash2, Loader, LogIn, Utensils, Film, Tent, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3 } from 'lucide-react';
+import RoomCard from '../components/RoomCard';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
@@ -283,69 +285,27 @@ const Dashboard = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {myRooms.map(room => (
-              <div key={room._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-                <div>
-                  <h4 style={{ margin: 0, textTransform: 'capitalize' }}>{room.name}</h4>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--surface)', borderRadius: '4px', textTransform: 'uppercase', color: 'var(--primary)' }}>{room.category}</span>
-                    <small style={{ color: 'var(--text-muted)' }}>{room.status === 'voting' ? 'Oylamada' : room.status === 'finished' ? 'Tamamlandı' : 'Beklemede'}</small>
-                    {room.status === 'finished' && room.matchResult && (
-                      <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--success)', borderRadius: '4px', color: 'var(--success)' }}>
-                        🏆 Kazanan: {room.matchResult.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => navigate(`/room/${room._id}`)} className="btn" style={{ padding: '0.5rem', background: 'var(--primary)', color: 'black' }} title="Odaya Git">
-                    <LogIn size={18} />
-                  </button>
-                  <button onClick={() => handleDeleteClick(room._id)} className="btn btn-outline" style={{ padding: '0.5rem', borderColor: 'var(--danger)', color: 'var(--danger)' }} title="Odayı Sil">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
+              <RoomCard
+                key={room._id}
+                room={room}
+                onDelete={handleDeleteClick}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* ConfirmModal bileşeni kullanıldı */}
       {isDeleteModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div className="glass-card animate-slide-up" style={{ width: '90%', maxWidth: '400px', textAlign: 'center', padding: '2rem' }}>
-            <Trash2 size={48} color="var(--danger)" style={{ marginBottom: '1rem' }} />
-            <h3 style={{ marginBottom: '1rem', color: 'white' }}>Emin misiniz?</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-              Bu odayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button 
-                onClick={cancelDelete} 
-                className="btn btn-outline" 
-                style={{ flex: 1, padding: '0.75rem' }}
-              >
-                İptal
-              </button>
-              <button 
-                onClick={confirmDelete} 
-                className="btn" 
-                style={{ flex: 1, padding: '0.75rem', background: 'var(--danger)', color: 'white', border: 'none' }}
-              >
-                Evet, Sil
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          icon="🗑️"
+          title="Odayı Sil"
+          message="Bu odayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+          confirmText="Evet, Sil"
+          confirmColor="#ef4444"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       )}
     </div>
   );
