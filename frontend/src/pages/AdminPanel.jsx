@@ -235,19 +235,19 @@ const AdminPanel = () => {
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '0.9rem 1.2rem', fontWeight: 600 }}>🏠 {r.roomName || r.name || 'İsimsiz Oda'}</td>
-                    <td style={{ padding: '0.9rem 1.2rem', color: 'var(--text-muted)' }}>{r.creator?.username || '—'}</td>
+                    <td style={{ padding: '0.9rem 1.2rem', fontWeight: 600 }}>🏠 {r.name || 'İsimsiz Oda'}</td>
+                    <td style={{ padding: '0.9rem 1.2rem', color: 'var(--text-muted)' }}>{r.host?.username || '—'}</td>
                     <td style={{ padding: '0.9rem 1.2rem' }}>
                       <span style={{
-                        background: r.status === 'active' ? 'rgba(74,222,128,0.15)' : 'rgba(148,163,184,0.15)',
-                        color: r.status === 'active' ? '#4ade80' : '#94a3b8',
-                        border: `1px solid ${r.status === 'active' ? 'rgba(74,222,128,0.3)' : 'rgba(148,163,184,0.3)'}`,
+                        background: r.status === 'finished' ? 'rgba(148,163,184,0.15)' : 'rgba(74,222,128,0.15)',
+                        color: r.status === 'finished' ? '#94a3b8' : '#4ade80',
+                        border: `1px solid ${r.status === 'finished' ? 'rgba(148,163,184,0.3)' : 'rgba(74,222,128,0.3)'}`,
                         borderRadius: '6px',
                         padding: '2px 10px',
                         fontSize: '0.78rem',
                         fontWeight: 600,
                       }}>
-                        {r.status === 'active' ? '🟢 Aktif' : '⚪ Tamamlandı'}
+                        {r.status === 'waiting' ? '⏳ Bekleniyor' : r.status === 'voting' ? '🗳️ Oylama' : '✅ Tamamlandı'}
                       </span>
                     </td>
                     <td style={{ padding: '0.9rem 1.2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -255,7 +255,7 @@ const AdminPanel = () => {
                     </td>
                     <td style={{ padding: '0.9rem 1.2rem' }}>
                       <button
-                        onClick={() => handleDeleteRoom(r._id, r.roomName || r.name || 'Bu oda')}
+                        onClick={() => handleDeleteRoom(r._id, r.name || 'Bu oda')}
                         style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: '6px', padding: '4px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
                       >
                         🗑️ Sil

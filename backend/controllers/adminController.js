@@ -62,7 +62,7 @@ export const updateUserRole = async (req, res, next) => {
 // @access  Admin
 export const getAllRooms = async (req, res, next) => {
   try {
-    const rooms = await Room.find({}).populate('creator', 'username email').sort({ createdAt: -1 });
+    const rooms = await Room.find({}).populate('host', 'username email').sort({ createdAt: -1 });
     res.json(rooms);
   } catch (error) {
     next(error);
@@ -96,8 +96,9 @@ export const getStats = async (req, res, next) => {
     const guestUsers = await User.countDocuments({ role: 'Guest' });
     const hostUsers = await User.countDocuments({ role: 'Host' });
     const adminUsers = await User.countDocuments({ role: 'Admin' });
-    const activeRooms = await Room.countDocuments({ status: 'active' });
-    const completedRooms = await Room.countDocuments({ status: 'completed' });
+    // waiting = katılım bekleniyor, voting = oylama sürüyor → ikisi de 'aktif' sayılır
+    const activeRooms = await Room.countDocuments({ status: { $in: ['waiting', 'voting'] } });
+    const completedRooms = await Room.countDocuments({ status: 'finished' });
 
     // Son 7 günde kayıt olanlar
     const sevenDaysAgo = new Date();
