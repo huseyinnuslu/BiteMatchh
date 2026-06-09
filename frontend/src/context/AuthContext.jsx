@@ -34,9 +34,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, securityQuestion, securityAnswer) => {
     try {
-      const { data } = await api.post('/auth/register', { username, email, password });
+      const { data } = await api.post('/auth/register', { username, email, password, securityQuestion, securityAnswer });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       toast.success('Kayıt başarılı!');
@@ -88,6 +88,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Güvenlik sorusunu getir (email ile)
+  const getSecurityQuestion = async (email) => {
+    try {
+      const { data } = await api.post('/auth/security-question', { email });
+      return { success: true, securityQuestion: data.securityQuestion, username: data.username };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Hesap bulunamadı';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  // Güvenlik sorusu cevabıyla şifre sıfırla
+  const resetPasswordWithAnswer = async (email, securityAnswer, newPassword) => {
+    try {
+      const { data } = await api.post('/auth/reset-with-answer', { email, securityAnswer, newPassword });
+      toast.success('Şifreniz başarıyla güncellendi! Giriş yapılıyor...');
+      return { success: true, data };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Şifre sıfırlama başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('userInfo');
     setUser(null);
@@ -108,7 +133,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, guestLogin, logout, updateProfile, forgotPassword, resetPassword }}>
+    <AuthContext.Provider value={{ user, loading, login, register, guestLogin, logout, updateProfile, forgotPassword, resetPassword, getSecurityQuestion, resetPasswordWithAnswer }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,54 +8,70 @@ import generateToken from '../utils/generateToken.js';
 // @access  Public
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, username, email, password, role } = req.body;
+    const { name, username, email, password, role, securityQuestion, securityAnswer } = req.body;
 
     if (!username || !email || !password) {
       res.status(400);
       throw new Error('Lütfen tüm alanları doldurun');
     }
 
-    // 1. Kullanıcı adı regex kontrolü
+    // 1. Güvenlik sorusu kontrolü
+    if (!securityQuestion || !securityAnswer) {
+      res.status(400);
+      throw new Error('Güvenlik sorusu ve cevabı zorunludur');
+    }
+
+    if (securityAnswer.trim().length < 2) {
+      res.status(400);
+      throw new Error('Güvenlik cevabı en az 2 karakter olmalıdır');
+    }
+
+    // 2. Kullanıcı adı regex kontrolü
     const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
     if (!usernameRegex.test(username)) {
       res.status(400);
       throw new Error('Kullanıcı adı 3-15 karakter arasında olmalı, sadece harf, rakam, alt çizgi (_) veya nokta (.) içerebilir.');
     }
 
-    // 2. Kullanıcı adı benzersizlik kontrolü
+    // 3. Kullanıcı adı benzersizlik kontrolü
     const usernameExists = await User.findOne({ username });
     if (usernameExists) {
       res.status(400);
       throw new Error('Bu kullanıcı adı zaten alınmış!');
     }
 
-    // 3. E-posta regex kontrolü
+    // 4. E-posta regex kontrolü
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       res.status(400);
       throw new Error('Lütfen geçerli bir e-posta adresi girin (örn: ornek@domain.com)');
     }
 
-    // 4. E-posta benzersizlik kontrolü
+    // 5. E-posta benzersizlik kontrolü
     const emailExists = await User.findOne({ email });
     if (emailExists) {
       res.status(400);
       throw new Error('Bu e-posta adresi ile zaten bir hesap mevcut!');
     }
 
-    // 5. Şifre güçlülük kontrolü
+    // 6. Şifre güçlülük kontrolü
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(password)) {
       res.status(400);
       throw new Error('Şifre en az 8 karakter uzunluğunda olmalı, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
     }
 
+    // Güvenlik cevabını küçük harfe normalize et (büyük/küçük harf duyarsız)
+    const normalizedAnswer = securityAnswer.trim().toLowerCase();
+
     const user = await User.create({
       name: name || username,
       username,
       email,
       password,
-      role: role || 'Host'
+      role: role || 'Host',
+      securityQuestion,
+      securityAnswer: normalizedAnswer,
     });
 
     if (user) {
@@ -164,6 +180,82 @@ export const updateUserProfile = async (req, res, next) => {
       res.status(404);
       throw new Error('Kullanıcı bulunamadı');
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    E-postaya ait güvenlik sorusunu getir
+// @route   POST /api/auth/security-question
+// @access  Public
+export const getSecurityQuestion = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400);
+      throw new Error('E-posta adresi zorunludur');
+    }
+
+    const user = await User.findOne({ email }).select('securityQuestion username');
+    if (!user) {
+      res.status(404);
+      throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
+    }
+
+    if (!user.securityQuestion) {
+      res.status(400);
+      throw new Error('Bu hesap için güvenlik sorusu tanımlanmamış');
+    }
+
+    res.json({ securityQuestion: user.securityQuestion, username: user.username });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Güvenlik sorusu ile şifre sıfırla
+// @route   POST /api/auth/reset-with-answer
+// @access  Public
+export const resetPasswordWithAnswer = async (req, res, next) => {
+  try {
+    const { email, securityAnswer, newPassword } = req.body;
+
+    if (!email || !securityAnswer || !newPassword) {
+      res.status(400);
+      throw new Error('Tüm alanlar zorunludur');
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404);
+      throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
+    }
+
+    // Güvenlik cevabını karşılaştır (normalize ederek)
+    const normalizedInput = securityAnswer.trim().toLowerCase();
+    if (normalizedInput !== user.securityAnswer) {
+      res.status(401);
+      throw new Error('Güvenlik sorusu cevabı yanlış!');
+    }
+
+    // Yeni şifre güçlülük kontrolü
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      res.status(400);
+      throw new Error('Yeni şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      message: 'Şifreniz başarıyla güncellendi!',
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     next(error);
   }
