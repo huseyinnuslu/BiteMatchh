@@ -48,9 +48,11 @@ const userSchema = mongoose.Schema(
 );
 
 // Şifreyi kaydetmeden önce hashle
-userSchema.pre('save', async function (next) {
+// NOT: Mongoose 9'da async pre hook'larda next parametresi kullanılmaz.
+// Password değişmemişse (örn. token kaydı) düz return yapılır.
+userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    return next();
+    return; // next() yerine sadece return — Mongoose 9 uyumlu
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
