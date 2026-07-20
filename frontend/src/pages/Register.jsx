@@ -4,6 +4,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
+// Google butonu sadece Client ID tanımlıysa gösterilir
+const GOOGLE_ENABLED = !!(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -111,8 +114,8 @@ const Register = () => {
           Hesap oluşturmak için formu doldurun
         </p>
 
-        {/* Google ile Hızlı Kayıt */}
-        <button
+        {/* Google ile Hızlı Kayıt – sadece Client ID varsa göster */}
+        {GOOGLE_ENABLED && <button
           type="button"
           onClick={() => handleGoogleLogin()}
           disabled={googleLoading}
@@ -145,10 +148,10 @@ const Register = () => {
             <path fill="none" d="M0 0h48v48H0z"/>
           </svg>
           {googleLoading ? 'Devam ediliyor...' : 'Google ile Devam Et'}
-        </button>
+        </button>}
 
-        {/* Ayırıcı */}
-        <div style={{ position: 'relative', textAlign: 'center', margin: '0 0 1.5rem' }}>
+        {/* Ayırıcı – sadece Google butonu varsa göster */}
+        {GOOGLE_ENABLED && <div style={{ position: 'relative', textAlign: 'center', margin: '0 0 1.5rem' }}>
           <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)' }} />
           <span style={{
             position: 'absolute', top: '-10px', left: '50%',
@@ -156,7 +159,7 @@ const Register = () => {
             background: 'var(--surface)', padding: '0 10px',
             color: 'var(--text-muted)', fontSize: '0.82rem',
           }}>veya e-posta ile</span>
-        </div>
+        </div>}
 
         <form onSubmit={handleSubmit}>
           {/* Kullanıcı Adı */}

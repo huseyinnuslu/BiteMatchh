@@ -3,6 +3,9 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
 
+// Google butonu sadece Client ID tanımlıysa gösterilir
+const GOOGLE_ENABLED = !!(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,8 +95,8 @@ const Login = () => {
           }}>veya</span>
         </div>
 
-        {/* Google ile Giriş Yap */}
-        <button
+        {/* Google ile Giriş Yap – sadece Client ID varsa göster */}
+        {GOOGLE_ENABLED && <button
           type="button"
           onClick={() => handleGoogleLogin()}
           disabled={googleLoading}
@@ -127,7 +130,7 @@ const Login = () => {
             <path fill="none" d="M0 0h48v48H0z"/>
           </svg>
           {googleLoading ? 'Giriş yapılıyor...' : 'Google ile Giriş Yap'}
-        </button>
+        </button>}
 
         {/* Misafir girişi */}
         <button
