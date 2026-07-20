@@ -74,6 +74,16 @@ const roomSchema = mongoose.Schema(
   }
 );
 
+// ─── İndeksler ──────────────────────────────────────────────────────────────
+// getMyRooms: { host, createdAt } → host'a göre filtrele + createdAt'e göre sırala
+roomSchema.index({ host: 1, createdAt: -1 });
+
+// Admin / dashboard: status'e göre filtrele (waiting, voting, finished)
+roomSchema.index({ status: 1 });
+
+// participants dizisinde belirli bir user'ı ara (joinRoom kontrolü)
+roomSchema.index({ participants: 1 });
+
 const Room = mongoose.model('Room', roomSchema);
 
 export default Room;

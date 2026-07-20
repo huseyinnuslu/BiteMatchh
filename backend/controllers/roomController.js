@@ -1,5 +1,4 @@
 import Room from '../models/Room.js';
-import User from '../models/User.js';
 import Swipe from '../models/Swipe.js';
 import { mockOptions } from '../data/mockOptions.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
@@ -10,42 +9,26 @@ import { finishRoomCalculation } from '../utils/roomHelper.js';
 export const createRoom = async (req, res, next) => {
   try {
     const { name, category, options, priceRange, timeLimit } = req.body;
-    
+
     let roomOptions = options || [];
     const cleanCategory = category ? category.toLowerCase() : 'custom';
     const activePriceRange = priceRange || [];
 
-    // Eğer kategori seçildiyse ve manuel opsiyon girilmediyse mock verileri al
     if (cleanCategory && cleanCategory !== 'custom' && mockOptions[cleanCategory] && roomOptions.length === 0) {
       let sourcePool = mockOptions[cleanCategory];
-      
-      // Bütçe sınırlaması varsa ve kategori bütçe içeren bir kategoriyse filtrele
+
       if (activePriceRange.length > 0 && sourcePool.some(item => item.budget)) {
         sourcePool = sourcePool.filter(item => {
           const b = item.budget ? item.budget.trim() : '';
-          
-          let matches = false;
-          if (activePriceRange.includes('₺') && (b === '₺' || b.toLowerCase() === 'bedava')) {
-            matches = true;
-          }
-          if (activePriceRange.includes('₺₺') && b === '₺₺') {
-            matches = true;
-          }
-          if (activePriceRange.includes('₺₺₺') && (b === '₺₺₺' || b === '₺₺₺₺')) {
-            matches = true;
-          }
-          return matches;
+          if (activePriceRange.includes('₺') && (b === '₺' || b.toLowerCase() === 'bedava')) return true;
+          if (activePriceRange.includes('₺₺') && b === '₺₺') return true;
+          if (activePriceRange.includes('₺₺₺') && (b === '₺₺₺' || b === '₺₺₺₺')) return true;
+          return false;
         });
-
-        // Eğer filtreleme sonucu hiç eleman kalmazsa, boş kalmaması için orijinal havuza geri dön
-        if (sourcePool.length === 0) {
-          sourcePool = mockOptions[cleanCategory];
-        }
+        if (sourcePool.length === 0) sourcePool = mockOptions[cleanCategory];
       }
 
-      // Havuzdaki verileri karıştır (shuffling)
       const shuffled = [...sourcePool].sort(() => 0.5 - Math.random());
-      // Rastgele 10-15 adet kartı al
       const count = Math.min(shuffled.length, Math.floor(Math.random() * 4) + 10);
       roomOptions = shuffled.slice(0, count);
     }
@@ -58,7 +41,7 @@ export const createRoom = async (req, res, next) => {
       category: cleanCategory,
       priceRange: activePriceRange,
       timeLimit: Number(timeLimit) || 0,
-      status: 'waiting' // Oda artık direkt başlamıyor, bekleme salonuna düşüyor
+      status: 'waiting',
     });
 
     res.status(201).json(room);
@@ -70,78 +53,94 @@ export const createRoom = async (req, res, next) => {
 // @desc    Kullanıcının kurduğu odaları getir
 // @route   GET /api/rooms
 // @access  Private
+// Optimizasyon: sadece liste için gereken alanlar .select() ile çekilir
 export const getMyRooms = async (req, res, next) => {
   try {
-    const rooms = await Room.find({ host: req.user._id }).sort({ createdAt: -1 });
+    const rooms = await Room.find({ host: req.user._id })
+      .select('name status category createdAt participants timeLimit matchResult')
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(rooms);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Oda detayını ve durumunu getir (Polling için)
+// @desc    Oda detayını ve durumunu getir (Polling / Socket fallback için)
 // @route   GET /api/rooms/:id
 // @access  Private
+// Optimizasyon:
+//   - populate sadece zorunlu alanlar (username)
+//   - N ayrı countDocuments yerine tek aggregate ile katılımcı durumu
 export const getRoomById = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id)
-      .populate('host', 'username email')
-      .populate('participants', 'username email');
+    const roomId = req.params.id;
+
+    const room = await Room.findById(roomId)
+      .populate('host', 'username')
+      .populate('participants', 'username');
 
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
     }
 
-    // Oylama Durum Kontrolü: Kullanıcının mevcut kararlarını bul (SwipeDecisions)
-    const userSwipes = await Swipe.find({ room: req.params.id, user: req.user._id });
+    // Kullanıcının kendi swipe'larını çek (sadece optionId alanı yeterli)
+    const userSwipes = await Swipe.find({ room: roomId, user: req.user._id })
+      .select('optionId')
+      .lean();
 
-    // Eğer oda oylama aşamasındaysa ve süre sınırı varsa, sürenin dolup dolmadığını kontrol et
+    // ── Süre kontrolü ─────────────────────────────────────────────────────
     if (room.status === 'voting' && room.timeLimit > 0 && room.votingStartedAt) {
-      const now = new Date();
-      const elapsedSeconds = Math.floor((now - new Date(room.votingStartedAt)) / 1000);
-      
-      if (elapsedSeconds >= room.timeLimit) {
-        // Süre dolmuş! Odayı bitir
+      const elapsed = Math.floor((Date.now() - new Date(room.votingStartedAt)) / 1000);
+
+      if (elapsed >= room.timeLimit) {
         await finishRoomCalculation(room._id);
-        
-        // Odayı veritabanından güncel haliyle yeniden yükle
-        const updatedRoom = await Room.findById(req.params.id)
-          .populate('host', 'username email')
-          .populate('participants', 'username email');
-          
-        const participantStatuses = await Promise.all(
-          updatedRoom.participants.map(async (participant) => {
-            return {
-              user: participant,
-              status: 'finished' // Süre bittiği için herkes finished kabul edilsin
-            };
-          })
-        );
+
+        const updatedRoom = await Room.findById(roomId)
+          .populate('host', 'username')
+          .populate('participants', 'username')
+          .lean();
+
+        // Süre bitince herkes "finished" kabul edilir — ek DB sorgusu gerekmez
+        const participantStatuses = updatedRoom.participants.map(p => ({
+          user: p,
+          status: 'finished',
+        }));
 
         return res.json({
-          ...updatedRoom.toObject(),
+          ...updatedRoom,
           userSwipes: userSwipes.map(s => s.optionId.toString()),
-          participantStatuses
+          participantStatuses,
         });
       }
     }
 
-    // Katılımcıların canlı durumu
-    const participantStatuses = await Promise.all(
-      room.participants.map(async (participant) => {
-        const swipedCount = await Swipe.countDocuments({ room: req.params.id, user: participant._id });
-        return {
-          user: participant,
-          status: swipedCount === room.options.length && room.options.length > 0 ? 'finished' : 'voting'
-        };
-      })
+    // ── Katılımcı durumu: N ayrı countDocuments yerine tek aggregate ─────
+    // Her katılımcının kaç swipe yaptığını TEK sorguda hesapla
+    const swipeCounts = await Swipe.aggregate([
+      { $match: { room: room._id } },
+      { $group: { _id: '$user', count: { $sum: 1 } } },
+    ]);
+
+    // userId → count map'i kur (O(1) lookup)
+    const swipeCountMap = new Map(
+      swipeCounts.map(s => [s._id.toString(), s.count])
     );
+
+    const participantStatuses = room.participants.map(p => ({
+      user: p,
+      status:
+        room.options.length > 0 &&
+        (swipeCountMap.get(p._id.toString()) || 0) >= room.options.length
+          ? 'finished'
+          : 'voting',
+    }));
 
     res.json({
       ...room.toObject(),
       userSwipes: userSwipes.map(s => s.optionId.toString()),
-      participantStatuses
+      participantStatuses,
     });
   } catch (error) {
     next(error);
@@ -151,19 +150,18 @@ export const getRoomById = async (req, res, next) => {
 // @desc    Odaya katıl
 // @route   PUT /api/rooms/:id/join
 // @access  Private
+// Optimizasyon: findOneAndUpdate ile tek sorguda güncelle (find + save = 2 sorgu yerine 1)
 export const joinRoom = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id);
+    const room = await Room.findOneAndUpdate(
+      { _id: req.params.id },
+      { $addToSet: { participants: req.user._id } }, // addToSet: zaten varsa eklemez
+      { new: true }
+    ).populate('host', 'username').populate('participants', 'username');
 
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
-    }
-
-    // Katılımcı zaten var mı kontrol et
-    if (!room.participants.includes(req.user._id)) {
-      room.participants.push(req.user._id);
-      await room.save();
     }
 
     res.json(room);
@@ -177,21 +175,23 @@ export const joinRoom = async (req, res, next) => {
 // @access  Private
 export const deleteRoom = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id);
+    const room = await Room.findById(req.params.id).select('host _id');
 
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
     }
 
-    // Sadece host silebilir
     if (room.host.toString() !== req.user._id.toString()) {
       res.status(401);
       throw new Error('Bu odayı silme yetkiniz yok');
     }
 
-    await Room.deleteOne({ _id: room._id });
-    await Swipe.deleteMany({ room: room._id });
+    // Paralel silme: oda ve swipe'ları aynı anda sil
+    await Promise.all([
+      Room.deleteOne({ _id: room._id }),
+      Swipe.deleteMany({ room: room._id }),
+    ]);
 
     res.json({ message: 'Oda başarıyla silindi' });
   } catch (error) {
@@ -202,23 +202,32 @@ export const deleteRoom = async (req, res, next) => {
 // @desc    Odayı başlat (Sadece host)
 // @route   PUT /api/rooms/:id/start
 // @access  Private
+// Optimizasyon: findOneAndUpdate ile tek sorguda güncelle
 export const startRoom = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id);
+    const room = await Room.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        host: req.user._id,   // host kontrolü sorguda yapılır
+        status: 'waiting',    // zaten başlatılmışsa tekrar başlatma
+      },
+      {
+        status: 'voting',
+        votingStartedAt: new Date(),
+      },
+      { new: true }
+    );
 
     if (!room) {
-      res.status(404);
-      throw new Error('Oda bulunamadı');
-    }
-
-    if (room.host.toString() !== req.user._id.toString()) {
+      // findOneAndUpdate null döndüyse: ya oda yok ya yetki yok ya da zaten başladı
+      const exists = await Room.exists({ _id: req.params.id });
+      if (!exists) {
+        res.status(404);
+        throw new Error('Oda bulunamadı');
+      }
       res.status(401);
-      throw new Error('Odayı sadece kurucu başlatabilir');
+      throw new Error('Odayı sadece kurucu başlatabilir veya oda zaten başladı');
     }
-
-    room.status = 'voting';
-    room.votingStartedAt = Date.now();
-    await room.save();
 
     res.json(room);
   } catch (error) {

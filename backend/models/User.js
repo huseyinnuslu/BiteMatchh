@@ -47,6 +47,15 @@ const userSchema = mongoose.Schema(
   }
 );
 
+// ─── İndeksler ──────────────────────────────────────────────────────────────
+// email ve username zaten schema seviyesinde unique: true ile tanımlı
+// (Mongoose bunları otomatik unique index olarak oluşturur)
+
+// resetPasswordToken: OTP sıfırlama sorgularını hızlandırır (sparse: sadece değeri olanlarda)
+userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
+
+
+
 // Şifreyi kaydetmeden önce hashle
 // NOT: Mongoose 9'da async pre hook'larda next parametresi kullanılmaz.
 // Password değişmemişse (örn. token kaydı) düz return yapılır.

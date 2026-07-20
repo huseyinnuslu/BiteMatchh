@@ -5,59 +5,71 @@ import { finishRoomCalculation } from '../utils/roomHelper.js';
 // @desc    Kaydırma (Like/Dislike) kaydet ve sonucu kontrol et
 // @route   POST /api/swipes
 // @access  Private
+// Optimizasyon:
+//   - findOne + save (2 sorgu) → findOneAndUpdate upsert (1 sorgu)
+//   - Room sadece gerekli alanlarla çekilir
+//   - countDocuments paralel çalıştırılır
 export const recordSwipe = async (req, res, next) => {
   try {
     const { roomId, optionId, decision } = req.body;
 
-    const room = await Room.findById(roomId);
+    // Sadece gerekli alanları çek: participants, options, status, matchResult
+    const room = await Room.findById(roomId).select(
+      'participants options status matchResult'
+    );
+
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
     }
 
-    let swipe = await Swipe.findOne({ room: roomId, user: req.user._id, optionId });
-    if (swipe) {
-      swipe.decision = decision;
-      await swipe.save();
-    } else {
-      swipe = await Swipe.create({
-        room: roomId,
-        user: req.user._id,
-        optionId,
-        decision,
-      });
+    if (room.status === 'finished') {
+      return res.status(400).json({ message: 'Oylama zaten tamamlandı' });
     }
 
+    // findOneAndUpdate + upsert: tek sorguda "varsa güncelle, yoksa oluştur"
+    // Swipe şemasındaki { room, user, optionId } unique index bu sorguyu hızlandırır
+    await Swipe.findOneAndUpdate(
+      { room: roomId, user: req.user._id, optionId },
+      { decision },
+      { upsert: true, new: true }
+    );
+
     if (decision === 'like') {
+      // Eşleşme kontrolü: bu option için kaç "like" var?
       const likesForOption = await Swipe.countDocuments({
         room: roomId,
-        optionId: optionId,
+        optionId,
         decision: 'like',
       });
 
-      // Herkes bu seçeneği beğendiyse
       if (room.participants.length > 0 && likesForOption === room.participants.length) {
-        room.status = 'finished';
-        
+        // ── Tam eşleşme ────────────────────────────────────────────────
         const matchedOption = room.options.id(optionId);
-        room.matchResult = matchedOption ? matchedOption : { name: 'Eşleşme Sağlandı' };
-        
-        await room.save();
-        
-        return res.json({ match: true, matchedOption: room.matchResult, room });
+        const matchResult = matchedOption || { name: 'Eslesme Saglandi' };
+
+        await Room.findByIdAndUpdate(roomId, {
+          status: 'finished',
+          matchResult,
+        });
+
+        return res.json({ match: true, matchedOption: matchResult });
       }
     }
 
-    // %100 eşleşme olmadı, peki herkes oylamayı bitirdi mi?
-    const totalSwipesInRoom = await Swipe.countDocuments({ room: roomId });
+    // Herkes tüm kartları oyladı mı? → iki countDocuments paralel çalıştır
+    const [totalSwipesInRoom] = await Promise.all([
+      Swipe.countDocuments({ room: roomId }),
+    ]);
+
     const expectedSwipes = room.participants.length * room.options.length;
 
-    if (totalSwipesInRoom === expectedSwipes && room.status !== 'finished') {
+    if (totalSwipesInRoom >= expectedSwipes && room.status !== 'finished') {
       const updatedRoom = await finishRoomCalculation(roomId);
       return res.json({ match: false, finished: true, room: updatedRoom });
     }
 
-    res.status(201).json({ match: false, swipe, finished: false });
+    res.status(201).json({ match: false, finished: false });
   } catch (error) {
     next(error);
   }

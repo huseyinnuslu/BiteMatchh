@@ -60,9 +60,14 @@ export const updateUserRole = async (req, res, next) => {
 // @desc    Tüm odaları listele
 // @route   GET /api/admin/rooms
 // @access  Admin
+// Optimizasyon: populate sadece zorunlu alanlar, .lean() ile bellek tasarrufu
 export const getAllRooms = async (req, res, next) => {
   try {
-    const rooms = await Room.find({}).populate('host', 'username email').sort({ createdAt: -1 });
+    const rooms = await Room.find({})
+      .populate('host', 'username')
+      .select('name status category createdAt host participants timeLimit')
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(rooms);
   } catch (error) {
     next(error);
@@ -74,7 +79,7 @@ export const getAllRooms = async (req, res, next) => {
 // @access  Admin
 export const deleteRoom = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id);
+    const room = await Room.findById(req.params.id).select('_id');
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
@@ -89,30 +94,61 @@ export const deleteRoom = async (req, res, next) => {
 // @desc    Sistem istatistiklerini getir
 // @route   GET /api/admin/stats
 // @access  Admin
+// Optimizasyon: 7 ayrı countDocuments → 2 aggregate ile 2 DB round-trip'e indirildi
 export const getStats = async (req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalRooms = await Room.countDocuments();
-    const guestUsers = await User.countDocuments({ role: 'Guest' });
-    const hostUsers = await User.countDocuments({ role: 'Host' });
-    const adminUsers = await User.countDocuments({ role: 'Admin' });
-    // waiting = katılım bekleniyor, voting = oylama sürüyor → ikisi de 'aktif' sayılır
-    const activeRooms = await Room.countDocuments({ status: { $in: ['waiting', 'voting'] } });
-    const completedRooms = await Room.countDocuments({ status: 'finished' });
-
-    // Son 7 günde kayıt olanlar
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const newUsersThisWeek = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
+
+    // Paralel: User istatistikleri + Room istatistikleri aynı anda
+    const [userStats, roomStats] = await Promise.all([
+      // Tek aggregate ile tüm user metriklerini hesapla
+      User.aggregate([
+        {
+          $facet: {
+            byRole: [{ $group: { _id: '$role', count: { $sum: 1 } } }],
+            newThisWeek: [
+              { $match: { createdAt: { $gte: sevenDaysAgo } } },
+              { $count: 'count' },
+            ],
+            total: [{ $count: 'count' }],
+          },
+        },
+      ]),
+      // Tek aggregate ile tüm room metriklerini hesapla
+      Room.aggregate([
+        {
+          $facet: {
+            byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+            total: [{ $count: 'count' }],
+          },
+        },
+      ]),
+    ]);
+
+    // User sonuçlarını parse et
+    const uData = userStats[0];
+    const roleMap = Object.fromEntries(
+      uData.byRole.map(r => [r._id, r.count])
+    );
+    const totalUsers = uData.total[0]?.count || 0;
+    const newUsersThisWeek = uData.newThisWeek[0]?.count || 0;
+
+    // Room sonuçlarını parse et
+    const rData = roomStats[0];
+    const statusMap = Object.fromEntries(
+      rData.byStatus.map(s => [s._id, s.count])
+    );
+    const totalRooms = rData.total[0]?.count || 0;
 
     res.json({
       totalUsers,
       totalRooms,
-      guestUsers,
-      hostUsers,
-      adminUsers,
-      activeRooms,
-      completedRooms,
+      guestUsers: roleMap['Guest'] || 0,
+      hostUsers: roleMap['Host'] || 0,
+      adminUsers: roleMap['Admin'] || 0,
+      activeRooms: (statusMap['waiting'] || 0) + (statusMap['voting'] || 0),
+      completedRooms: statusMap['finished'] || 0,
       newUsersThisWeek,
     });
   } catch (error) {

@@ -27,6 +27,19 @@ const swipeSchema = mongoose.Schema(
   }
 );
 
+// ─── İndeksler ──────────────────────────────────────────────────────────────
+// findOne({ room, user, optionId }) → tekrar swipe kontrolü için (en sık çalışan sorgu)
+swipeSchema.index({ room: 1, user: 1, optionId: 1 }, { unique: true });
+
+// countDocuments({ room, optionId, decision: 'like' }) → eşleşme kontrolü
+swipeSchema.index({ room: 1, optionId: 1, decision: 1 });
+
+// countDocuments({ room }) → toplam swipe sayısı kontrolü
+swipeSchema.index({ room: 1 });
+
+// countDocuments({ room, user }) → kullanıcının kaç swipe yaptığı
+swipeSchema.index({ room: 1, user: 1 });
+
 const Swipe = mongoose.model('Swipe', swipeSchema);
 
 export default Swipe;
