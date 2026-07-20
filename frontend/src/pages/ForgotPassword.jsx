@@ -1,20 +1,17 @@
 import { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-// 3 adımlı akış:
-// Step 1 → Email gir
-// Step 2 → Güvenlik sorusu göster, cevap gir
-// Step 3 → Yeni şifre belirle
+// ─── Adım 1: E-posta gir → Kod gönder
+// ─── Adım 2: Kod + Yeni şifre → Sıfırla
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const { getSecurityQuestion, resetPasswordWithAnswer } = useContext(AuthContext);
+  const { forgotPassword, resetPassword } = useContext(AuthContext);
 
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [securityQuestion, setSecurityQuestion] = useState('');
-  const [securityAnswer, setSecurityAnswer] = useState('');
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,29 +19,19 @@ const ForgotPassword = () => {
 
   const validatePassword = (pw) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pw);
 
-  // --- ADIM 1: Email ile güvenlik sorusunu getir ---
-  const handleEmailSubmit = async (e) => {
+  // ── Adım 1: Kodu e-postaya gönder ─────────────────────────────────────────
+  const handleSendCode = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const result = await getSecurityQuestion(email);
+    const result = await forgotPassword(email);
     setLoading(false);
     if (result.success) {
-      setSecurityQuestion(result.securityQuestion);
       setStep(2);
     }
   };
 
-  // --- ADIM 2: Güvenlik cevabını doğrula ve adım 3'e geç ---
-  const handleAnswerSubmit = async (e) => {
-    e.preventDefault();
-    if (!securityAnswer.trim()) return;
-    // Cevabın doğruluğunu backend'e göndermeden önce kontrol etmiyoruz
-    // (Gerçek doğrulama adım 3'te şifre ile birlikte yapılır)
-    setStep(3);
-  };
-
-  // --- ADIM 3: Yeni şifreyi kaydet ---
-  const handlePasswordReset = async (e) => {
+  // ── Adım 2: Kodu + yeni şifreyi doğrula ───────────────────────────────────
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setPasswordError('');
 
@@ -58,37 +45,33 @@ const ForgotPassword = () => {
     }
 
     setLoading(true);
-    const result = await resetPasswordWithAnswer(email, securityAnswer, newPassword);
+    const result = await resetPassword(email, otp, newPassword);
     setLoading(false);
 
     if (result.success) {
       setTimeout(() => navigate('/login'), 2000);
-    } else {
-      // Cevap yanlışsa step 2'ye geri dön
-      setStep(2);
-      setSecurityAnswer('');
     }
   };
 
-  // --- ADIM GÖSTERGELERI ---
+  // ── Adım gösterge bileşeni ─────────────────────────────────────────────────
   const StepIndicator = () => (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-      {[1, 2, 3].map((s) => (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+      {[1, 2].map((s) => (
         <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
-            width: '32px', height: '32px', borderRadius: '50%',
+            width: '36px', height: '36px', borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.8rem', fontWeight: 700,
-            background: s < step ? 'var(--primary)' : s === step ? 'rgba(255,107,107,0.2)' : 'rgba(255,255,255,0.07)',
+            fontSize: '0.85rem', fontWeight: 700,
+            background: s < step ? 'var(--primary)' : s === step ? 'rgba(255,75,75,0.15)' : 'rgba(255,255,255,0.06)',
             border: s <= step ? '2px solid var(--primary)' : '2px solid rgba(255,255,255,0.1)',
-            color: s <= step ? (s < step ? '#fff' : 'var(--primary)') : 'var(--text-muted)',
+            color: s < step ? '#fff' : s === step ? 'var(--primary)' : 'var(--text-muted)',
             transition: 'all 0.3s ease',
           }}>
             {s < step ? '✓' : s}
           </div>
-          {s < 3 && (
+          {s < 2 && (
             <div style={{
-              width: '40px', height: '2px',
+              width: '60px', height: '2px',
               background: s < step ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
               transition: 'all 0.3s ease',
             }} />
@@ -98,7 +81,7 @@ const ForgotPassword = () => {
     </div>
   );
 
-  const stepLabels = ['E-posta', 'Güvenlik Sorusu', 'Yeni Şifre'];
+  const stepLabels = ['E-posta Doğrulama', 'Yeni Şifre Belirleme'];
 
   return (
     <div className="flex-center animate-slide-up" style={{ minHeight: '80vh' }}>
@@ -107,23 +90,24 @@ const ForgotPassword = () => {
         {/* Başlık */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-            {step === 1 ? '🔑' : step === 2 ? '🛡️' : '🔒'}
+            {step === 1 ? '📧' : '🔒'}
           </div>
           <h2 className="text-gradient" style={{ marginBottom: '0.25rem' }}>Şifremi Unuttum</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            Adım {step}/3 — {stepLabels[step - 1]}
+            Adım {step}/2 — {stepLabels[step - 1]}
           </p>
         </div>
 
         <StepIndicator />
 
-        {/* ======== ADIM 1: Email ======== */}
+        {/* ══════════ ADIM 1: E-posta ══════════ */}
         {step === 1 && (
-          <form onSubmit={handleEmailSubmit}>
+          <form onSubmit={handleSendCode}>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-              Hesabınıza kayıtlı <strong style={{ color: 'var(--text)' }}>e-posta adresinizi</strong> girin.
-              Size ait güvenlik sorusunu göstereceğiz.
+              Hesabınıza kayıtlı <strong style={{ color: 'var(--text-main)' }}>e-posta adresinizi</strong> girin.
+              Size 6 haneli bir doğrulama kodu göndereceğiz.
             </p>
+
             <div className="input-group">
               <label>E-posta Adresi</label>
               <input
@@ -136,80 +120,57 @@ const ForgotPassword = () => {
                 autoFocus
               />
             </div>
+
             <button
               type="submit"
               className="btn btn-primary"
               style={{ width: '100%', marginTop: '1.25rem' }}
               disabled={loading}
             >
-              {loading ? '⏳ Kontrol ediliyor...' : 'Devam Et →'}
+              {loading ? '⏳ Gönderiliyor...' : '📨 Doğrulama Kodu Gönder'}
             </button>
           </form>
         )}
 
-        {/* ======== ADIM 2: Güvenlik Sorusu ======== */}
+        {/* ══════════ ADIM 2: Kod + Yeni Şifre ══════════ */}
         {step === 2 && (
-          <form onSubmit={handleAnswerSubmit}>
+          <form onSubmit={handleResetPassword}>
+            {/* Bilgi bandı */}
             <div style={{
-              background: 'rgba(255,107,107,0.06)',
-              border: '1px solid rgba(255,107,107,0.2)',
-              borderRadius: '12px',
-              padding: '1rem 1.25rem',
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: '10px',
+              padding: '0.85rem 1rem',
               marginBottom: '1.5rem',
+              fontSize: '0.83rem',
+              color: '#7dd3fc',
+              lineHeight: 1.5,
             }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.4rem' }}>
-                🔐 Güvenlik Sorunuz:
-              </p>
-              <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '0.95rem', margin: 0 }}>
-                {securityQuestion}
-              </p>
+              📬 <strong>{email}</strong> adresine 6 haneli bir kod gönderdik.
+              Gelen kutunuzu (ve spam klasörünüzü) kontrol edin.
             </div>
 
+            {/* OTP giriş alanı */}
             <div className="input-group">
-              <label>Güvenlik Cevabı</label>
+              <label>6 Haneli Doğrulama Kodu</label>
               <input
                 type="text"
                 className="input-field"
-                value={securityAnswer}
-                onChange={(e) => setSecurityAnswer(e.target.value)}
-                placeholder="Cevabınızı girin (büyük/küçük harf önemsiz)"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="_ _ _ _ _ _"
+                maxLength={6}
                 required
                 autoFocus
+                style={{ letterSpacing: '0.5rem', fontSize: '1.4rem', textAlign: 'center', fontWeight: 700 }}
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.73rem', marginTop: '0.35rem', display: 'block' }}>
-                💡 Kayıt sırasında girdiğiniz cevabı hatırlayın.
+                💡 Kod 10 dakika geçerlidir.
               </small>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ flex: 1 }}
-                onClick={() => { setStep(1); setSecurityQuestion(''); setSecurityAnswer(''); }}
-              >
-                ← Geri
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ flex: 2 }}
-                disabled={!securityAnswer.trim()}
-              >
-                Doğrula →
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ======== ADIM 3: Yeni Şifre ======== */}
-        {step === 3 && (
-          <form onSubmit={handlePasswordReset}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-              Güvenlik sorunuz doğrulandı. Şimdi yeni şifrenizi belirleyin.
-            </p>
-
-            <div className="input-group">
+            {/* Yeni şifre */}
+            <div className="input-group" style={{ marginTop: '0.75rem' }}>
               <label>Yeni Şifre</label>
               <input
                 type="password"
@@ -218,13 +179,13 @@ const ForgotPassword = () => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="En az 8 karakter"
                 required
-                autoFocus
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.73rem', marginTop: '0.35rem', display: 'block' }}>
                 En az 8 karakter, 1 büyük harf, 1 küçük harf, 1 rakam içermelidir.
               </small>
             </div>
 
+            {/* Şifre tekrar */}
             <div className="input-group" style={{ marginTop: '0.75rem' }}>
               <label>Şifre Tekrar</label>
               <input
@@ -237,7 +198,7 @@ const ForgotPassword = () => {
               />
             </div>
 
-            {/* Şifre eşleşme göstergesi */}
+            {/* Şifre uyum göstergesi */}
             {newPassword && confirmPassword && (
               <div style={{
                 borderRadius: '8px', padding: '0.5rem 0.75rem', marginTop: '0.5rem', fontSize: '0.82rem',
@@ -248,10 +209,13 @@ const ForgotPassword = () => {
               }}>
                 {newPassword === confirmPassword && validatePassword(newPassword)
                   ? '✅ Şifreler eşleşiyor ve yeterince güçlü'
-                  : newPassword !== confirmPassword ? '❌ Şifreler eşleşmiyor' : '❌ Şifre yeterince güçlü değil'}
+                  : newPassword !== confirmPassword
+                    ? '❌ Şifreler eşleşmiyor'
+                    : '❌ Şifre yeterince güçlü değil'}
               </div>
             )}
 
+            {/* Hata mesajı */}
             {passwordError && (
               <div style={{
                 background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
@@ -267,7 +231,7 @@ const ForgotPassword = () => {
                 type="button"
                 className="btn btn-outline"
                 style={{ flex: 1 }}
-                onClick={() => { setStep(2); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }}
+                onClick={() => { setStep(1); setOtp(''); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }}
               >
                 ← Geri
               </button>
@@ -275,15 +239,27 @@ const ForgotPassword = () => {
                 type="submit"
                 className="btn btn-primary"
                 style={{ flex: 2 }}
-                disabled={loading}
+                disabled={loading || otp.length !== 6}
               >
-                {loading ? '⏳ Kaydediliyor...' : '✅ Şifremi Güncelle'}
+                {loading ? '⏳ Güncelleniyor...' : '✅ Şifremi Güncelle'}
               </button>
             </div>
+
+            {/* Yeniden kod gönder */}
+            <p style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              Kod gelmedi mi?{' '}
+              <button
+                type="button"
+                onClick={() => handleSendCode({ preventDefault: () => {} })}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.82rem', padding: 0, textDecoration: 'underline' }}
+              >
+                Tekrar gönder
+              </button>
+            </p>
           </form>
         )}
 
-        {/* Alt Link */}
+        {/* Alt link */}
         <p style={{ textAlign: 'center', marginTop: '1.75rem', color: 'var(--text-muted)' }}>
           <Link to="/login" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.88rem' }}>
             ← Giriş sayfasına dön

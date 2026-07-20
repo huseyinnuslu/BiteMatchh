@@ -34,19 +34,12 @@ const userSchema = mongoose.Schema(
       enum: ['Host', 'Guest', 'Admin'],
       default: 'Host',
     },
+    // E-posta ile şifre sıfırlama – 6 haneli OTP kodu
     resetPasswordToken: {
       type: String,
     },
     resetPasswordExpire: {
       type: Date,
-    },
-    securityQuestion: {
-      type: String,
-      default: '',
-    },
-    securityAnswer: {
-      type: String,
-      default: '',
     },
   },
   {
@@ -61,7 +54,7 @@ userSchema.pre('save', async function (next) {
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  
+
   if (!this.username) {
     this.username = this.name;
   }

@@ -3,26 +3,13 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
-const SECURITY_QUESTIONS = [
-  'İlk evcil hayvanınızın adı neydi?',
-  'Annenizin kızlık soyadı nedir?',
-  'İlk okulunuzun adı neydi?',
-  'Çocukluğunuzdaki en iyi arkadaşınızın adı neydi?',
-  'En sevdiğiniz filmin adı nedir?',
-  'Doğduğunuz şehrin adı nedir?',
-  'İlk arabanızın markası neydi?',
-  'En sevdiğiniz öğretmeninizin soyadı neydi?',
-];
-
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [securityQuestion, setSecurityQuestion] = useState('');
-  const [securityAnswer, setSecurityAnswer] = useState('');
 
-  const [errors, setErrors] = useState({ username: '', email: '', password: '', securityAnswer: '' });
-  const [touched, setTouched] = useState({ username: false, email: false, password: false, securityAnswer: false });
+  const [errors, setErrors] = useState({ username: '', email: '', password: '' });
+  const [touched, setTouched] = useState({ username: false, email: false, password: false });
 
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -50,12 +37,6 @@ const Register = () => {
     return '';
   };
 
-  const validateSecurityAnswer = (val) => {
-    if (!val) return 'Güvenlik cevabı boş bırakılamaz';
-    if (val.trim().length < 2) return 'Cevap en az 2 karakter olmalıdır';
-    return '';
-  };
-
   const makeChangeHandler = (setter, validator, field) => (e) => {
     const val = e.target.value;
     setter(val);
@@ -68,26 +49,23 @@ const Register = () => {
   };
 
   const isFormValid =
-    username && email && password && securityQuestion && securityAnswer &&
-    !validateUsername(username) && !validateEmail(email) &&
-    !validatePassword(password) && !validateSecurityAnswer(securityAnswer);
+    username && email && password &&
+    !validateUsername(username) && !validateEmail(email) && !validatePassword(password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const uErr = validateUsername(username);
     const eErr = validateEmail(email);
     const pErr = validatePassword(password);
-    const sErr = validateSecurityAnswer(securityAnswer);
 
-    if (!securityQuestion) { toast.error('Lütfen bir güvenlik sorusu seçin.'); return; }
-    if (uErr || eErr || pErr || sErr) {
-      setErrors({ username: uErr, email: eErr, password: pErr, securityAnswer: sErr });
-      setTouched({ username: true, email: true, password: true, securityAnswer: true });
+    if (uErr || eErr || pErr) {
+      setErrors({ username: uErr, email: eErr, password: pErr });
+      setTouched({ username: true, email: true, password: true });
       toast.error('Lütfen formdaki hataları düzeltin.');
       return;
     }
 
-    const result = await register(username, email, password, securityQuestion, securityAnswer);
+    const result = await register(username, email, password);
     if (result.success) navigate(from, { replace: true });
   };
 
@@ -140,55 +118,6 @@ const Register = () => {
               onBlur={makeBlurHandler(password, validatePassword, 'password')}
               placeholder="••••••••" style={inputStyle('password')} required />
             <ErrorMsg field="password" />
-          </div>
-
-          {/* Güvenlik Sorusu Bölüm Başlığı */}
-          <div style={{ margin: '1.5rem 0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-              🔐 Güvenlik Sorusu
-            </span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '1rem', lineHeight: 1.5 }}>
-            Şifrenizi unutursanız kimliğinizi doğrulamak için kullanılır.
-          </p>
-
-          {/* Güvenlik Sorusu Select */}
-          <div className="input-group">
-            <label>Güvenlik Sorusu</label>
-            <select
-              value={securityQuestion}
-              onChange={(e) => setSecurityQuestion(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '10px',
-                color: securityQuestion ? 'var(--text)' : 'var(--text-muted)',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="" disabled style={{ background: '#1a1a2e' }}>— Bir soru seçin —</option>
-              {SECURITY_QUESTIONS.map((q, i) => (
-                <option key={i} value={q} style={{ background: '#1a1a2e' }}>{q}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Güvenlik Cevabı */}
-          <div className="input-group">
-            <label>Güvenlik Cevabı</label>
-            <input type="text" className="input-field" value={securityAnswer}
-              onChange={makeChangeHandler(setSecurityAnswer, validateSecurityAnswer, 'securityAnswer')}
-              onBlur={makeBlurHandler(securityAnswer, validateSecurityAnswer, 'securityAnswer')}
-              placeholder="Cevabınızı girin (büyük/küçük harf önemsiz)"
-              style={inputStyle('securityAnswer')} required />
-            <ErrorMsg field="securityAnswer" />
           </div>
 
           {/* Submit */}

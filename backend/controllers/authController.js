@@ -1,68 +1,65 @@
-import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 
+// ─── Yardımcı: 6 haneli OTP üret ───────────────────────────────────────────
+const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
+
+// ─── Yardımcı: Nodemailer transporter ──────────────────────────────────────
+const createTransporter = () =>
+  nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+// ──────────────────────────────────────────────────────────────────────────────
 // @desc    Yeni kullanıcı kaydı
 // @route   POST /api/auth/register
 // @access  Public
+// ──────────────────────────────────────────────────────────────────────────────
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, username, email, password, role, securityQuestion, securityAnswer } = req.body;
+    const { name, username, email, password, role } = req.body;
 
     if (!username || !email || !password) {
       res.status(400);
       throw new Error('Lütfen tüm alanları doldurun');
     }
 
-    // 1. Güvenlik sorusu kontrolü
-    if (!securityQuestion || !securityAnswer) {
-      res.status(400);
-      throw new Error('Güvenlik sorusu ve cevabı zorunludur');
-    }
-
-    if (securityAnswer.trim().length < 2) {
-      res.status(400);
-      throw new Error('Güvenlik cevabı en az 2 karakter olmalıdır');
-    }
-
-    // 2. Kullanıcı adı regex kontrolü
+    // Kullanıcı adı regex kontrolü
     const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
     if (!usernameRegex.test(username)) {
       res.status(400);
-      throw new Error('Kullanıcı adı 3-15 karakter arasında olmalı, sadece harf, rakam, alt çizgi (_) veya nokta (.) içerebilir.');
+      throw new Error(
+        'Kullanıcı adı 3-15 karakter arasında olmalı, sadece harf, rakam, alt çizgi (_) veya nokta (.) içerebilir.'
+      );
     }
 
-    // 3. Kullanıcı adı benzersizlik kontrolü
+    // Kullanıcı adı benzersizlik
     const usernameExists = await User.findOne({ username });
     if (usernameExists) {
       res.status(400);
       throw new Error('Bu kullanıcı adı zaten alınmış!');
     }
 
-    // 4. E-posta regex kontrolü
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      res.status(400);
-      throw new Error('Lütfen geçerli bir e-posta adresi girin (örn: ornek@domain.com)');
-    }
-
-    // 5. E-posta benzersizlik kontrolü
+    // E-posta benzersizlik
     const emailExists = await User.findOne({ email });
     if (emailExists) {
       res.status(400);
       throw new Error('Bu e-posta adresi ile zaten bir hesap mevcut!');
     }
 
-    // 6. Şifre güçlülük kontrolü
+    // Şifre güçlülük kontrolü
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(password)) {
       res.status(400);
-      throw new Error('Şifre en az 8 karakter uzunluğunda olmalı, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
+      throw new Error(
+        'Şifre en az 8 karakter uzunluğunda olmalı, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir!'
+      );
     }
-
-    // Güvenlik cevabını küçük harfe normalize et (büyük/küçük harf duyarsız)
-    const normalizedAnswer = securityAnswer.trim().toLowerCase();
 
     const user = await User.create({
       name: name || username,
@@ -70,8 +67,6 @@ export const registerUser = async (req, res, next) => {
       email,
       password,
       role: role || 'Host',
-      securityQuestion,
-      securityAnswer: normalizedAnswer,
     });
 
     if (user) {
@@ -92,9 +87,11 @@ export const registerUser = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────────────────────────────
 // @desc    Kullanıcı girişi & Token alma
 // @route   POST /api/auth/login
 // @access  Public
+// ──────────────────────────────────────────────────────────────────────────────
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -119,22 +116,24 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
-// @desc    Misafir girişi yap (DB'de geçici kullanıcı oluşturup JWT döner)
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Misafir girişi (geçici kullanıcı oluştur)
 // @route   POST /api/auth/guest
 // @access  Public
+// ──────────────────────────────────────────────────────────────────────────────
 export const guestLogin = async (req, res, next) => {
   try {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const username = `Misafir_${randomNum}`;
     const email = `guest_${randomNum}@bitematch.com`;
-    const password = `guest_pass_${randomNum}`; // Geçici şifre
+    const password = `guest_pass_${randomNum}`;
 
     const user = await User.create({
       name: username,
       username,
       email,
       password,
-      role: 'Guest'
+      role: 'Guest',
     });
 
     if (user) {
@@ -142,6 +141,7 @@ export const guestLogin = async (req, res, next) => {
         _id: user._id,
         username: user.username,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id),
       });
     } else {
@@ -153,9 +153,11 @@ export const guestLogin = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────────────────────────────
 // @desc    Kullanıcı profilini güncelle
 // @route   PUT /api/auth/profile
 // @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
 export const updateUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
@@ -163,7 +165,7 @@ export const updateUserProfile = async (req, res, next) => {
     if (user) {
       user.username = req.body.username || user.username;
       user.email = req.body.email || user.email;
-      
+
       if (req.body.password) {
         user.password = req.body.password;
       }
@@ -185,181 +187,132 @@ export const updateUserProfile = async (req, res, next) => {
   }
 };
 
-// @desc    E-postaya ait güvenlik sorusunu getir
-// @route   POST /api/auth/security-question
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Şifre sıfırlama – Adım 1: E-postaya 6 haneli OTP gönder
+// @route   POST /api/auth/forgot-password
 // @access  Public
-export const getSecurityQuestion = async (req, res, next) => {
+// ──────────────────────────────────────────────────────────────────────────────
+export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
+
     if (!email) {
       res.status(400);
       throw new Error('E-posta adresi zorunludur');
     }
 
-    const user = await User.findOne({ email }).select('securityQuestion username');
-    if (!user) {
-      res.status(404);
-      throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
-    }
-
-    if (!user.securityQuestion) {
-      res.status(400);
-      throw new Error('Bu hesap için güvenlik sorusu tanımlanmamış');
-    }
-
-    res.json({ securityQuestion: user.securityQuestion, username: user.username });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Güvenlik sorusu ile şifre sıfırla
-// @route   POST /api/auth/reset-with-answer
-// @access  Public
-export const resetPasswordWithAnswer = async (req, res, next) => {
-  try {
-    const { email, securityAnswer, newPassword } = req.body;
-
-    if (!email || !securityAnswer || !newPassword) {
-      res.status(400);
-      throw new Error('Tüm alanlar zorunludur');
-    }
-
     const user = await User.findOne({ email });
     if (!user) {
       res.status(404);
       throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
     }
 
-    // Güvenlik cevabını karşılaştır (normalize ederek)
-    const normalizedInput = securityAnswer.trim().toLowerCase();
-    if (normalizedInput !== user.securityAnswer) {
-      res.status(401);
-      throw new Error('Güvenlik sorusu cevabı yanlış!');
-    }
-
-    // Yeni şifre güçlülük kontrolü
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(newPassword)) {
-      res.status(400);
-      throw new Error('Yeni şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
-    }
-
-    user.password = newPassword;
-    await user.save();
-
-    res.json({
-      message: 'Şifreniz başarıyla güncellendi!',
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Şifre sıfırlama emaili gönder
-// @route   POST /api/auth/forgot-password
-// @access  Public
-export const forgotPassword = async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      res.status(404);
-      throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
-    }
-
-    // Sıfırlama token'ı üret
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 dakika
+    // 6 haneli OTP kodu üret ve hash'le
+    const otp = generateOTP();
+    const hashedOtp = otp; // Düz metin saklıyoruz (kısa süreli)
+    user.resetPasswordToken = hashedOtp;
+    user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 dakika
     await user.save({ validateBeforeSave: false });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-    // Nodemailer transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // Gmail ile gönder
+    const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"BiteMatch" <${process.env.EMAIL_USER}>`,
+      from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: 'BiteMatch - Şifre Sıfırlama',
+      subject: 'BiteMatch – Şifre Sıfırlama Kodu',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #eee; padding: 40px; border-radius: 12px;">
-          <h1 style="color: #ff6b6b; text-align: center;">🍽️ BiteMatch</h1>
-          <h2 style="text-align: center;">Şifre Sıfırlama</h2>
-          <p>Merhaba <strong>${user.username}</strong>,</p>
-          <p>Şifrenizi sıfırlamak için aşağıdaki butona tıklayın. Bu link <strong>15 dakika</strong> süreyle geçerlidir.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold;">
-              Şifremi Sıfırla
-            </a>
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; color: #f1f5f9; padding: 40px 36px; border-radius: 16px; border: 1px solid #1e293b;">
+          
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #ff4b4b; font-size: 28px; margin: 0 0 8px;">🍽️ BiteMatch</h1>
+            <p style="color: #94a3b8; margin: 0; font-size: 14px;">Grup Karar Motoru</p>
           </div>
-          <p style="color: #aaa; font-size: 13px;">Bu isteği siz yapmadıysanız bu emaili görmezden gelebilirsiniz.</p>
-          <p style="color: #aaa; font-size: 13px;">Link çalışmıyorsa şu adresi kopyalayın: ${resetUrl}</p>
+
+          <h2 style="font-size: 20px; margin: 0 0 12px; color: #f1f5f9;">Şifre Sıfırlama Kodu</h2>
+          <p style="color: #cbd5e1; font-size: 14px; line-height: 1.7; margin: 0 0 28px;">
+            Merhaba <strong style="color: #fff;">${user.username}</strong>,<br/>
+            Şifre sıfırlama talebinde bulundunuz. Aşağıdaki <strong>6 haneli kodu</strong> uygulamaya girin.
+            Bu kod <strong style="color: #ff4b4b;">10 dakika</strong> içinde geçerliliğini yitirecektir.
+          </p>
+
+          <div style="background: #1e293b; border: 2px dashed #ff4b4b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 28px;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 8px; letter-spacing: 2px; text-transform: uppercase;">Doğrulama Kodunuz</p>
+            <p style="font-size: 42px; font-weight: 900; letter-spacing: 10px; color: #ff4b4b; margin: 0; font-family: 'Courier New', monospace;">${otp}</p>
+          </div>
+
+          <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; border-top: 1px solid #1e293b; padding-top: 20px;">
+            Bu isteği siz yapmadıysanız bu e-postayı güvenle görmezden gelebilirsiniz. 
+            Hesabınız güvende olmaya devam edecektir.
+          </p>
         </div>
       `,
     };
 
     await transporter.sendMail(mailOptions);
 
-    res.json({ message: 'Şifre sıfırlama emaili gönderildi! Lütfen gelen kutunuzu kontrol edin.' });
+    res.json({
+      message: `Doğrulama kodu ${email} adresine gönderildi. 10 dakika içinde girmeniz gerekmektedir.`,
+    });
   } catch (error) {
-    // Hata olursa token'ları temizle
-    if (error.name !== 'Error') {
+    // Mail gönderilemezse token'ı temizle
+    try {
       const user = await User.findOne({ email: req.body.email });
       if (user) {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
         await user.save({ validateBeforeSave: false });
       }
-    }
+    } catch (_) {}
     next(error);
   }
 };
 
-// @desc    Şifreyi sıfırla
-// @route   PUT /api/auth/reset-password/:token
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Şifre sıfırlama – Adım 2: OTP kodunu ve yeni şifreyi doğrula
+// @route   POST /api/auth/reset-password
 // @access  Public
+// ──────────────────────────────────────────────────────────────────────────────
 export const resetPassword = async (req, res, next) => {
   try {
-    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const { email, otp, newPassword } = req.body;
 
+    if (!email || !otp || !newPassword) {
+      res.status(400);
+      throw new Error('E-posta, doğrulama kodu ve yeni şifre zorunludur');
+    }
+
+    // OTP ve süre kontrolü
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      email,
+      resetPasswordToken: otp,
       resetPasswordExpire: { $gt: Date.now() },
     });
 
     if (!user) {
       res.status(400);
-      throw new Error('Geçersiz veya süresi dolmuş token. Lütfen yeni bir şifre sıfırlama isteği gönderin.');
+      throw new Error(
+        'Doğrulama kodu hatalı veya süresi dolmuş. Lütfen yeni kod isteyin.'
+      );
     }
 
-    // Yeni şifreyi kaydet
+    // Şifre güçlülük kontrolü
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(req.body.password)) {
+    if (!passwordRegex.test(newPassword)) {
       res.status(400);
-      throw new Error('Şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir!');
+      throw new Error(
+        'Şifre en az 8 karakter, bir büyük harf, bir küçük harf ve bir rakam içermelidir!'
+      );
     }
 
-    user.password = req.body.password;
+    // Yeni şifreyi kaydet, token'ları temizle
+    user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
 
     res.json({
+      message: 'Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.',
       _id: user._id,
       username: user.username,
       email: user.email,

@@ -14,12 +14,13 @@ export const AuthProvider = ({ children }) => {
       try {
         setUser(JSON.parse(userInfo));
       } catch (e) {
-        console.error("Local storage error", e);
+        console.error('Local storage error', e);
       }
     }
     setLoading(false);
   }, []);
 
+  // ── Giriş ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
     try {
       const { data } = await api.post('/auth/login', { email, password });
@@ -34,9 +35,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password, securityQuestion, securityAnswer) => {
+  // ── Kayıt ──────────────────────────────────────────────────────────────────
+  const register = async (username, email, password) => {
     try {
-      const { data } = await api.post('/auth/register', { username, email, password, securityQuestion, securityAnswer });
+      const { data } = await api.post('/auth/register', { username, email, password });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       toast.success('Kayıt başarılı!');
@@ -48,6 +50,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ── Misafir Girişi ─────────────────────────────────────────────────────────
   const guestLogin = async () => {
     try {
       const { data } = await api.post('/auth/guest');
@@ -62,10 +65,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ── Şifre Sıfırlama – Adım 1: OTP Gönder ──────────────────────────────────
   const forgotPassword = async (email) => {
     try {
       const { data } = await api.post('/auth/forgot-password', { email });
-      toast.success(data.message || 'Email gönderildi!');
+      toast.success(data.message || 'Doğrulama kodu e-posta adresinize gönderildi!');
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'İşlem başarısız';
@@ -74,37 +78,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const resetPassword = async (token, password) => {
+  // ── Şifre Sıfırlama – Adım 2: OTP + Yeni Şifre ────────────────────────────
+  const resetPassword = async (email, otp, newPassword) => {
     try {
-      const { data } = await api.put(`/auth/reset-password/${token}`, { password });
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      const { data } = await api.post('/auth/reset-password', { email, otp, newPassword });
       toast.success('Şifreniz başarıyla güncellendi!');
-      return { success: true };
-    } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Şifre sıfırlama başarısız';
-      toast.error(msg);
-      return { success: false, message: msg };
-    }
-  };
-
-  // Güvenlik sorusunu getir (email ile)
-  const getSecurityQuestion = async (email) => {
-    try {
-      const { data } = await api.post('/auth/security-question', { email });
-      return { success: true, securityQuestion: data.securityQuestion, username: data.username };
-    } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Hesap bulunamadı';
-      toast.error(msg);
-      return { success: false, message: msg };
-    }
-  };
-
-  // Güvenlik sorusu cevabıyla şifre sıfırla
-  const resetPasswordWithAnswer = async (email, securityAnswer, newPassword) => {
-    try {
-      const { data } = await api.post('/auth/reset-with-answer', { email, securityAnswer, newPassword });
-      toast.success('Şifreniz başarıyla güncellendi! Giriş yapılıyor...');
       return { success: true, data };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Şifre sıfırlama başarısız';
@@ -113,11 +91,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ── Çıkış ──────────────────────────────────────────────────────────────────
   const logout = () => {
     localStorage.removeItem('userInfo');
     setUser(null);
   };
 
+  // ── Profil Güncelle ────────────────────────────────────────────────────────
   const updateProfile = async (username, email, password) => {
     try {
       const { data } = await api.put('/auth/profile', { username, email, password });
@@ -133,7 +113,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, guestLogin, logout, updateProfile, forgotPassword, resetPassword, getSecurityQuestion, resetPasswordWithAnswer }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        guestLogin,
+        logout,
+        updateProfile,
+        forgotPassword,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
