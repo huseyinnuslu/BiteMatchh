@@ -132,19 +132,6 @@ const Login = () => {
           {googleLoading ? 'Giriş yapılıyor...' : 'Google ile Giriş Yap'}
         </button>}
 
-        {/* Misafir girişi */}
-        <button
-          type="button"
-          onClick={async () => {
-            const res = await guestLogin();
-            if (res.success) navigate(from, { replace: true });
-          }}
-          className="btn btn-outline"
-          style={{ width: '100%' }}
-        >
-          👤 Misafir Olarak Devam Et
-        </button>
-
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)' }}>
           Hesabın yok mu? <Link to="/register" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Kayıt Ol</Link>
         </p>

@@ -23,6 +23,7 @@ const createTransporter = () =>
 // @desc    Yeni kullanıcı kaydı
 // @route   POST /api/auth/register
 // @access  Public
+// Optimizasyon: 2 ayrı findOne yerine tek $or sorgusu (1 DB round-trip tasarrufu)
 // ──────────────────────────────────────────────────────────────────────────────
 export const registerUser = async (req, res, next) => {
   try {
@@ -30,38 +31,39 @@ export const registerUser = async (req, res, next) => {
 
     if (!username || !email || !password) {
       res.status(400);
-      throw new Error('Lütfen tüm alanları doldurun');
+      throw new Error('Lutfen tum alanlari doldurun');
     }
 
-    // Kullanıcı adı regex kontrolü
+    // Kullanici adi regex kontrolu (DB'ye gitmeden once)
     const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
     if (!usernameRegex.test(username)) {
       res.status(400);
       throw new Error(
-        'Kullanıcı adı 3-15 karakter arasında olmalı, sadece harf, rakam, alt çizgi (_) veya nokta (.) içerebilir.'
+        'Kullanici adi 3-15 karakter olmali, harf/rakam/alt cizgi/nokta icermeli.'
       );
     }
 
-    // Kullanıcı adı benzersizlik
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) {
-      res.status(400);
-      throw new Error('Bu kullanıcı adı zaten alınmış!');
-    }
-
-    // E-posta benzersizlik
-    const emailExists = await User.findOne({ email });
-    if (emailExists) {
-      res.status(400);
-      throw new Error('Bu e-posta adresi ile zaten bir hesap mevcut!');
-    }
-
-    // Şifre güçlülük kontrolü
+    // Sifre guclukluk kontrolu (DB'ye gitmeden once)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(password)) {
       res.status(400);
       throw new Error(
-        'Şifre en az 8 karakter uzunluğunda olmalı, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir!'
+        'Sifre en az 8 karakter, 1 buyuk harf, 1 kucuk harf ve 1 rakam icermeli!'
+      );
+    }
+
+    // TEK sorguyla hem username hem email cakismasini kontrol et
+    const existing = await User.findOne(
+      { $or: [{ username }, { email }] },
+      'username email'
+    ).lean();
+
+    if (existing) {
+      res.status(400);
+      throw new Error(
+        existing.username === username
+          ? 'Bu kullanici adi zaten alinmis!'
+          : 'Bu e-posta adresi ile zaten bir hesap mevcut!'
       );
     }
 
@@ -73,34 +75,38 @@ export const registerUser = async (req, res, next) => {
       role: role || 'Host',
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400);
-      throw new Error('Geçersiz kullanıcı verisi');
-    }
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
   } catch (error) {
     next(error);
   }
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// @desc    Kullanıcı girişi & Token alma
+// @desc    Kullanici girisi & Token alma
 // @route   POST /api/auth/login
 // @access  Public
+// Optimizasyon: select() ile sadece gerekli alanlar cekilir
 // ──────────────────────────────────────────────────────────────────────────────
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      res.status(400);
+      throw new Error('E-posta ve sifre zorunludur');
+    }
+
+    // Sadece gerekli alanlari cek (password hash dahil, geri kalanlar gelmez)
+    const user = await User.findOne({ email }).select(
+      '_id name username email role password'
+    );
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -113,7 +119,7 @@ export const loginUser = async (req, res, next) => {
       });
     } else {
       res.status(401);
-      throw new Error('Geçersiz email veya şifre');
+      throw new Error('Gecersiz email veya sifre');
     }
   } catch (error) {
     next(error);

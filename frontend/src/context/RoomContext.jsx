@@ -106,7 +106,7 @@ export const RoomProvider = ({ children }) => {
   return (
     <RoomContext.Provider value={{ 
       currentRoom, loading, matchResult, 
-      createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, startRoom
+      createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, startRoom, setMatchResult
     }}>
       {children}
     </RoomContext.Provider>

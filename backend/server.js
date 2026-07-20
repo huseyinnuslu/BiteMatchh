@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -7,56 +9,63 @@ import roomRoutes from './routes/roomRoutes.js';
 import swipeRoutes from './routes/swipeRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import { initSocket } from './socket/socketManager.js';
 
 dotenv.config();
-
-// Veritabanına Bağlan
 connectDB();
 
 const app = express();
 
-// CORS Ayarları (Local ve Vercel Canlı Ortamları İçin Dinamik)
+// ─── CORS Ayarları ─────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'http://localhost:3000'
+  'http://localhost:3000',
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // API araçları, server-to-server veya boş origin isteklerine izin ver
+const corsOptions = {
+  origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.includes(origin) || 
-                      origin.endsWith('.vercel.app') || 
-                      (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL);
-                      
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy does not allow access from this origin'), false);
-    }
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL);
+    isAllowed
+      ? callback(null, true)
+      : callback(new Error('CORS policy: origin not allowed'), false);
   },
-  credentials: true
-}));
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Routes
+// ─── REST Routes ────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/swipes', swipeRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.get('/', (req, res) => {
-  res.send('BiteMatch API Çalışıyor...');
-});
+app.get('/', (_req, res) => res.send('BiteMatch API Çalışıyor...'));
 
-// Hata Yönetimi Middleware'leri
+// ─── Hata Middleware ────────────────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+// ─── HTTP Server + Socket.IO ────────────────────────────────────────────────
+const httpServer = createServer(app);
 
-app.listen(PORT, () => {
+const io = new Server(httpServer, {
+  cors: corsOptions,
+  // Mobil/yavaş ağlar için ping ayarları
+  pingTimeout: 30000,
+  pingInterval: 10000,
+});
+
+// Socket olaylarını ayrı modülde yönet
+initSocket(io);
+
+const PORT = process.env.PORT || 5001;
+httpServer.listen(PORT, () => {
   console.log(`Server ${PORT} portunda çalışıyor.`);
 });
