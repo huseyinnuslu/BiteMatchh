@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
+
+// ─── Google OAuth2 client ───────────────────────────────────────────────────
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ─── Yardımcı: 6 haneli OTP üret ───────────────────────────────────────────
 const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -314,6 +318,95 @@ export const resetPassword = async (req, res, next) => {
     res.json({
       message: 'Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.',
       _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Google OAuth2 ile giriş / kayıt
+// @route   POST /api/auth/google-login
+// @access  Public
+// Frontend: useGoogleLogin (access_token flow) → Google UserInfo → bu endpoint
+// ──────────────────────────────────────────────────────────────────────────────
+export const googleLogin = async (req, res, next) => {
+  try {
+    const { accessToken, userInfo } = req.body;
+
+    if (!accessToken || !userInfo) {
+      res.status(400);
+      throw new Error('Google token veya kullanıcı bilgisi eksik');
+    }
+
+    // Google access_token'ı doğrula: token'ı Google'ın tokeninfo endpoint'ine gönder
+    const tokenInfoRes = await fetch(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${accessToken}`
+    );
+    const tokenInfo = await tokenInfoRes.json();
+
+    if (tokenInfo.error) {
+      res.status(401);
+      throw new Error('Geçersiz Google token');
+    }
+
+    // userInfo'dan güvenli şekilde bilgileri al
+    const { email, name, sub: googleId } = userInfo;
+
+    if (!email) {
+      res.status(400);
+      throw new Error('Google hesabından e-posta alınamadı');
+    }
+
+    // Veritabanında bu e-posta var mı?
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // ── Mevcut kullanıcı: direkt JWT ver
+      return res.json({
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id),
+      });
+    }
+
+    // ── Yeni kullanıcı: Google bilgileriyle kayıt oluştur
+    let baseUsername = (name || email.split('@')[0])
+      .toLowerCase()
+      .replace(/[^a-z0-9._]/g, '_')
+      .slice(0, 12);
+
+    // Benzersizlik kontrolü – çakışırsa sonuna sayı ekle
+    let username = baseUsername;
+    let suffix = 1;
+    while (await User.findOne({ username })) {
+      username = `${baseUsername}${suffix}`;
+      suffix++;
+    }
+
+    // Google ile kayıt olan kullanıcılar için rastgele güçlü şifre
+    // (kullanıcı bu şifreyi bilmez; giriş sadece Google ile yapılır)
+    const uid = googleId || Math.random().toString(36).slice(2, 10);
+    const randomPassword = `Gx${uid.slice(0, 8)}!${Math.random().toString(36).slice(2, 8)}Aa1`;
+
+    user = await User.create({
+      name: name || username,
+      username,
+      email,
+      password: randomPassword,
+      role: 'Host',
+    });
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
       username: user.username,
       email: user.email,
       role: user.role,

@@ -6,6 +6,7 @@ import {
   updateUserProfile,
   forgotPassword,
   resetPassword,
+  googleLogin,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -18,9 +19,10 @@ router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
 
 // Şifre sıfırlama – Gmail OTP akışı
-// Adım 1: E-postaya 6 haneli kod gönder
 router.post('/forgot-password', forgotPassword);
-// Adım 2: Kodu ve yeni şifreyi doğrula
 router.post('/reset-password', resetPassword);
+
+// Google OAuth2 ile giriş / kayıt
+router.post('/google-login', googleLogin);
 
 export default router;

@@ -91,6 +91,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ── Google OAuth2 ile Giriş / Kayıt ───────────────────────────────────────
+  const googleLogin = async (accessToken, userInfo) => {
+    try {
+      const { data } = await api.post('/auth/google-login', { accessToken, userInfo });
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success(`Hoş geldin, ${data.name || data.username}! 🎉`);
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Google girişi başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+
   // ── Çıkış ──────────────────────────────────────────────────────────────────
   const logout = () => {
     localStorage.removeItem('userInfo');
@@ -124,6 +140,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         forgotPassword,
         resetPassword,
+        googleLogin,
       }}
     >
       {children}
