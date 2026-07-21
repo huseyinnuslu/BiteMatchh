@@ -1,9 +1,10 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
-import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3, Calendar, MapPin, Zap } from 'lucide-react';
 import RoomCard from '../components/RoomCard';
 import ConfirmModal from '../components/ConfirmModal';
+import api from '../api';
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
@@ -13,8 +14,9 @@ const Dashboard = () => {
   const [myRooms, setMyRooms] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
-  const [timeLimit, setTimeLimit] = useState(0); // 0 means unlimited
-  
+  const [timeLimit, setTimeLimit] = useState(0);
+  const [liveEvents, setLiveEvents] = useState([]);
+
   const { createRoom, loading, getMyRooms, deleteRoom } = useContext(RoomContext);
   const navigate = useNavigate();
 
@@ -32,6 +34,11 @@ const Dashboard = () => {
       setMyRooms(rooms);
     };
     fetchRooms();
+
+    // Canlı etkinlikleri çek
+    api.get('/events?limit=6')
+      .then(r => setLiveEvents(r.data))
+      .catch(() => {});  // sessizce hata yut (etkinlik yoksa normal)
   }, []);
 
   const handleOptionChange = (index, value) => {
@@ -87,6 +94,86 @@ const Dashboard = () => {
 
   return (
     <div className="animate-slide-up" style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '4rem' }}>
+
+      {/* ── Yaklaşan Canlı Etkinlikler ──────────────────────────────── */}
+      {liveEvents.length > 0 && (
+        <div style={{ marginBottom: '2rem' }}>
+          <h3 style={{
+            marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'livePulse 1.2s ease-in-out infinite' }} />
+              Yaklaşan Etkinlikler
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>— aktivite odası kurduğunda dahil edilir</span>
+          </h3>
+          <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            {liveEvents.map(ev => {
+              const d = new Date(ev.eventDate);
+              const dateLabel = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short' });
+              const timeLabel = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+              const diffDays  = Math.floor((d - new Date()) / (1000 * 60 * 60 * 24));
+              const urgency   = diffDays === 0 ? '#ef4444' : diffDays <= 2 ? '#f59e0b' : 'var(--accent)';
+              return (
+                <div key={ev._id} style={{
+                  minWidth: 200, maxWidth: 200, flexShrink: 0,
+                  background: 'rgba(30,41,59,0.8)',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: '14px', overflow: 'hidden',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                  transition: 'transform 0.2s',
+                  cursor: 'default',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {/* Görsel */}
+                  <div style={{
+                    height: 100,
+                    backgroundImage: ev.imageUrl ? `url(${ev.imageUrl})` : 'none',
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                    background: ev.imageUrl ? undefined : 'var(--surface)',
+                    position: 'relative',
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: 6, left: 6,
+                      background: 'rgba(220,38,38,0.9)', backdropFilter: 'blur(4px)',
+                      color: 'white', padding: '0.15rem 0.5rem',
+                      borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800,
+                      display: 'flex', alignItems: 'center', gap: '0.25rem',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', display: 'inline-block', animation: 'livePulse 1.2s ease-in-out infinite' }} />
+                      CANLI
+                    </div>
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'linear-gradient(to top, rgba(15,23,42,0.95), transparent)',
+                      height: 40,
+                    }} />
+                  </div>
+                  {/* İçerik */}
+                  <div style={{ padding: '0.75rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.3,
+                      overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {ev.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: urgency, fontWeight: 600, marginBottom: '0.25rem' }}>
+                      <Calendar size={11} />
+                      {dateLabel} {timeLabel}
+                    </div>
+                    {ev.location && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        <MapPin size={10} /> {ev.location}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="glass-card" style={{ marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Yeni Oda Kur</h2>
         <form onSubmit={handleSubmit}>

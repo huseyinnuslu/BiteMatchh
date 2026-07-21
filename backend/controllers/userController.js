@@ -3,12 +3,13 @@
  * BiteMatch – Kullanıcı profil ve arkadaş yönetimi
  *
  * Arkadaşlık akışı:
- *   A → POST /api/users/friends/:B_id    → B'nin pendingFriendRequests'ine A eklenir
+ *   A → POST /api/users/friends/:B_id         → B'nin pendingFriendRequests'ine A eklenir
  *   B → PUT  /api/users/friends/:A_id/accept  → friends karşılıklı eklenir, pending temizlenir
  *   B → DEL  /api/users/friends/:A_id/decline → pending'den silinir
  *   A → DEL  /api/users/friends/:B_id         → friends'ten karşılıklı çıkarılır
  */
 
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Swipe from '../models/Swipe.js';
 import Room from '../models/Room.js';
@@ -24,15 +25,45 @@ import {
 // ──────────────────────────────────────────────────────────────────────────────
 export const getProfile = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = mongoose.Types.ObjectId.createFromHexString
+      ? mongoose.Types.ObjectId.createFromHexString(req.user._id.toString())
+      : new mongoose.Types.ObjectId(req.user._id.toString());
 
-    const user = await User.findById(userId)
-      .select('-password -resetPasswordToken -resetPasswordExpire')
-      .populate('friends', 'username name createdAt')          // nested alan seçimi kaldırıldı
-      .populate('pendingFriendRequests', 'username name createdAt')
-      .lean();
+    // ── User + friends + pendingRequests aggregation (tek sorgu) ─────────
+    const [userAgg] = await User.aggregate([
+      { $match: { _id: userId } },
+      {
+        $lookup: {
+          from: 'users',
+          let: { friendIds: '$friends' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$friendIds', []] }] } } },
+            { $project: { username: 1, name: 1, createdAt: 1 } },
+          ],
+          as: 'friendDocs',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: { reqIds: '$pendingFriendRequests' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$reqIds', []] }] } } },
+            { $project: { username: 1, name: 1, createdAt: 1 } },
+          ],
+          as: 'pendingDocs',
+        },
+      },
+      {
+        $project: {
+          password: 0,
+          resetPasswordToken: 0,
+          resetPasswordExpire: 0,
+        },
+      },
+    ]);
 
-    if (!user) {
+    if (!userAgg) {
       res.status(404);
       throw new Error('Kullanıcı bulunamadı');
     }
@@ -65,8 +96,8 @@ export const getProfile = async (req, res, next) => {
             as: 'roomInfo',
           },
         },
-        { $unwind: '$roomInfo' },
-        { $group: { _id: '$roomInfo.category', count: { $sum: 1 } } },
+        { $unwind: { path: '$roomInfo', preserveNullAndEmptyArrays: true } },
+        { $group: { _id: { $ifNull: ['$roomInfo.category', 'custom'] }, count: { $sum: 1 } } },
       ]),
     ]);
 
@@ -79,23 +110,27 @@ export const getProfile = async (req, res, next) => {
       categoryData.map(c => [c._id || 'custom', c.count])
     );
 
-    // Arkadaş uyum skorları
-    const friendIds = (user.friends || []).map(f => f._id);
-    const compatibilityScores = await calculateFriendCompatibilities(userId, friendIds);
-    const scoreMap = Object.fromEntries(compatibilityScores.map(s => [s.friendId, s.score]));
+    // ── Arkadaş uyum skorları ──────────────────────────────────────────────
+    const friendDocs = userAgg.friendDocs || [];
+    const friendIds  = friendDocs.map(f => f._id);
+    const scores     = await calculateFriendCompatibilities(userId, friendIds);
+    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s.score]));
 
-    const friendsWithScores = (user.friends || []).map(f => ({
-      ...f,
+    const friendsWithScores = friendDocs.map(f => ({
+      _id:      f._id,
+      username: f.username,
+      name:     f.name,
+      createdAt: f.createdAt,
       compatibilityScore: scoreMap[f._id.toString()] || 0,
     }));
 
     res.json({
-      _id:       user._id,
-      name:      user.name,
-      username:  user.username,
-      email:     user.email,
-      role:      user.role,
-      createdAt: user.createdAt,
+      _id:       userAgg._id,
+      name:      userAgg.name,
+      username:  userAgg.username,
+      email:     userAgg.email,
+      role:      userAgg.role,
+      createdAt: userAgg.createdAt,
 
       stats: {
         totalSwipes,
@@ -104,15 +139,14 @@ export const getProfile = async (req, res, next) => {
         categoryDistribution,
         totalRooms: Object.values(roomStatusMap).reduce((a, b) => a + b, 0),
         completedRooms: roomStatusMap['finished'] || 0,
-        averageDecisionTime: user.stats?.averageDecisionTime || 0,
+        averageDecisionTime: userAgg.stats?.averageDecisionTime || 0,
       },
 
-      friends:    friendsWithScores,
+      friends:     friendsWithScores,
       friendCount: friendsWithScores.length,
 
-      // Gelen bekleyen istekler
-      pendingFriendRequests: user.pendingFriendRequests || [],
-      pendingCount: (user.pendingFriendRequests || []).length,
+      pendingFriendRequests: userAgg.pendingDocs || [],
+      pendingCount: (userAgg.pendingDocs || []).length,
     });
   } catch (error) {
     next(error);
@@ -129,7 +163,6 @@ export const searchUsers = async (req, res, next) => {
     const q = req.query.q?.trim();
     if (!q || q.length < 2) return res.json([]);
 
-    // Arama yapanın kendi bilgilerini al (arkadaş/istek durumunu göster)
     const me = await User.findById(req.user._id)
       .select('friends pendingFriendRequests')
       .lean();
@@ -142,18 +175,22 @@ export const searchUsers = async (req, res, next) => {
       .limit(10)
       .lean();
 
-    const myFriendIds   = (me.friends || []).map(id => id.toString());
-    const mySentIds     = users
-      .filter(u => (u.pendingFriendRequests || []).map(id => id.toString()).includes(req.user._id.toString()))
-      .map(u => u._id.toString());
+    const myFriendIds = (me.friends || []).map(id => id.toString());
 
-    const result = users.map(u => ({
-      _id:      u._id,
-      username: u.username,
-      name:     u.name,
-      isFriend: myFriendIds.includes(u._id.toString()),
-      isPending: mySentIds.includes(u._id.toString()), // istek zaten gönderildi mi?
-    }));
+    const result = users.map(u => {
+      // karşı tarafın pending listesinde ben var mıyım? → istek gönderdim demektir
+      const isPending = (u.pendingFriendRequests || [])
+        .map(id => id.toString())
+        .includes(req.user._id.toString());
+
+      return {
+        _id:       u._id,
+        username:  u.username,
+        name:      u.name,
+        isFriend:  myFriendIds.includes(u._id.toString()),
+        isPending,
+      };
+    });
 
     res.json(result);
   } catch (error) {
@@ -169,17 +206,17 @@ export const searchUsers = async (req, res, next) => {
 export const sendFriendRequest = async (req, res, next) => {
   try {
     const toId   = req.params.id;
-    const fromId = req.user._id;
+    const fromId = req.user._id.toString();
 
-    if (toId === fromId.toString()) {
+    if (toId === fromId) {
       res.status(400);
       throw new Error('Kendinize istek gönderemezsiniz');
     }
 
     // Hedef kullanıcı + kendi bilgilerimi paralel çek
     const [target, me] = await Promise.all([
-      User.findById(toId).select('friends pendingFriendRequests'),
-      User.findById(fromId).select('friends'),
+      User.findById(toId).select('friends pendingFriendRequests username'),
+      User.findById(fromId).select('friends pendingFriendRequests'),
     ]);
 
     if (!target) {
@@ -187,14 +224,13 @@ export const sendFriendRequest = async (req, res, next) => {
       throw new Error('Kullanıcı bulunamadı');
     }
 
-    const targetFriendIds = target.friends.map(id => id.toString());
-    const myFriendIds     = me.friends.map(id => id.toString());
+    const targetFriendIds = (target.friends || []).map(id => id.toString());
+    const myFriendIds     = (me.friends || []).map(id => id.toString());
     const toIdStr         = toId.toString();
-    const fromIdStr       = fromId.toString();
 
-    // Her iki yönde arkadaş kontrolü (eski tek yönlü kayıtları da yakalar)
-    if (targetFriendIds.includes(fromIdStr) || myFriendIds.includes(toIdStr)) {
-      // Eski sistemden kalma tek yönlü arkadaşlığı otomatik çift yönlü yap
+    // Her iki yönde arkadaş kontrolü — eski tek yönlü kayıtları da yakalar
+    if (targetFriendIds.includes(fromId) || myFriendIds.includes(toIdStr)) {
+      // Tek yönlü eski kaydı çift yönlü yap
       await Promise.all([
         User.findByIdAndUpdate(toId,   { $addToSet: { friends: fromId } }),
         User.findByIdAndUpdate(fromId, { $addToSet: { friends: toId   } }),
@@ -204,17 +240,20 @@ export const sendFriendRequest = async (req, res, next) => {
     }
 
     // İstek zaten gönderilmiş mi?
-    if (target.pendingFriendRequests.map(id => id.toString()).includes(fromIdStr)) {
+    const alreadySent = (target.pendingFriendRequests || [])
+      .map(id => id.toString()).includes(fromId);
+    if (alreadySent) {
       res.status(400);
       throw new Error('Arkadaşlık isteği zaten gönderildi');
     }
 
-    // Karşı tarafın bize zaten istek göndermiş olması — direkt kabul et
-    const me2 = await User.findById(fromId).select('pendingFriendRequests');
-    if (me2.pendingFriendRequests.map(id => id.toString()).includes(toIdStr)) {
+    // Karşı taraf bize zaten istek göndermişse — direkt kabul et
+    const theyRequestedMe = (me.pendingFriendRequests || [])
+      .map(id => id.toString()).includes(toIdStr);
+    if (theyRequestedMe) {
       await Promise.all([
         User.findByIdAndUpdate(fromId, {
-          $addToSet: { friends: toId },
+          $addToSet: { friends: toId   },
           $pull:     { pendingFriendRequests: toId },
         }),
         User.findByIdAndUpdate(toId, {
@@ -242,18 +281,18 @@ export const sendFriendRequest = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const acceptFriendRequest = async (req, res, next) => {
   try {
-    const fromId = req.params.id;   // isteği gönderenin id'si
-    const toId   = req.user._id;    // kabul eden (biz)
+    const fromId = req.params.id;
+    const toId   = req.user._id.toString();
 
-    // İstek gerçekten var mı?
     const me = await User.findById(toId).select('pendingFriendRequests');
-    const hasPending = me.pendingFriendRequests.map(id => id.toString()).includes(fromId);
+    const hasPending = (me.pendingFriendRequests || [])
+      .map(id => id.toString()).includes(fromId);
+
     if (!hasPending) {
       res.status(400);
       throw new Error('Bu kullanıcıdan bekleyen bir istek yok');
     }
 
-    // Karşılıklı friends'e ekle + pending'den sil (paralel)
     await Promise.all([
       User.findByIdAndUpdate(toId, {
         $addToSet: { friends: fromId },
@@ -264,7 +303,6 @@ export const acceptFriendRequest = async (req, res, next) => {
       }),
     ]);
 
-    // Uyum skorunu hesapla
     const score = await calculateCompatibility(toId, fromId);
 
     res.json({
@@ -279,12 +317,12 @@ export const acceptFriendRequest = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 // @desc    Arkadaşlık isteğini reddet
 // @route   DELETE /api/users/friends/:id/decline
-// @access  Private   (req.user = reddeden, :id = isteği gönderen)
+// @access  Private
 // ──────────────────────────────────────────────────────────────────────────────
 export const declineFriendRequest = async (req, res, next) => {
   try {
     const fromId = req.params.id;
-    const toId   = req.user._id;
+    const toId   = req.user._id.toString();
 
     await User.findByIdAndUpdate(toId, {
       $pull: { pendingFriendRequests: fromId },
@@ -304,9 +342,8 @@ export const declineFriendRequest = async (req, res, next) => {
 export const removeFriend = async (req, res, next) => {
   try {
     const friendId = req.params.id;
-    const userId   = req.user._id;
+    const userId   = req.user._id.toString();
 
-    // Karşılıklı çıkar
     await Promise.all([
       User.findByIdAndUpdate(userId,   { $pull: { friends: friendId } }),
       User.findByIdAndUpdate(friendId, { $pull: { friends: userId   } }),
@@ -325,17 +362,39 @@ export const removeFriend = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const getFriends = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select('friends')
-      .populate('friends', 'username name createdAt')
-      .lean();
+    const userId = mongoose.Types.ObjectId.createFromHexString
+      ? mongoose.Types.ObjectId.createFromHexString(req.user._id.toString())
+      : new mongoose.Types.ObjectId(req.user._id.toString());
 
-    const friendIds = (user.friends || []).map(f => f._id);
-    const scores    = await calculateFriendCompatibilities(req.user._id, friendIds);
-    const scoreMap  = Object.fromEntries(scores.map(s => [s.friendId, s.score]));
+    const [userAgg] = await User.aggregate([
+      { $match: { _id: userId } },
+      {
+        $lookup: {
+          from: 'users',
+          let: { friendIds: '$friends' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$friendIds', []] }] } } },
+            { $project: { username: 1, name: 1, createdAt: 1 } },
+          ],
+          as: 'friendDocs',
+        },
+      },
+      { $project: { friendDocs: 1 } },
+    ]);
 
-    const friends = (user.friends || [])
-      .map(f => ({ ...f, compatibilityScore: scoreMap[f._id.toString()] || 0 }))
+    const friendDocs = userAgg?.friendDocs || [];
+    const friendIds  = friendDocs.map(f => f._id);
+    const scores     = await calculateFriendCompatibilities(userId, friendIds);
+    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s.score]));
+
+    const friends = friendDocs
+      .map(f => ({
+        _id:      f._id,
+        username: f.username,
+        name:     f.name,
+        createdAt: f.createdAt,
+        compatibilityScore: scoreMap[f._id.toString()] || 0,
+      }))
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 
     res.json(friends);

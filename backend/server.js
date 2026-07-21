@@ -12,6 +12,7 @@ import userRoutes from './routes/userRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 import { startEventCron } from './services/eventFetcherService.js';
+import eventRoutes from './routes/eventRoutes.js';
 
 dotenv.config();
 connectDB().then(() => {
@@ -52,6 +53,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/swipes', swipeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/events', eventRoutes);
 
 app.get('/', (_req, res) => res.send('BiteMatch API Çalışıyor...'));
 
