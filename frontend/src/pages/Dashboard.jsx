@@ -1,19 +1,22 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
-import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3, CalendarDays, MapPin, Zap } from 'lucide-react';
 import RoomCard from '../components/RoomCard';
 import ConfirmModal from '../components/ConfirmModal';
+import api from '../api';
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
-  const [category, setCategory] = useState('mekan'); // Default
+  const [category, setCategory] = useState('mekan');
   const [options, setOptions] = useState([{ name: '' }, { name: '' }]);
-  const [priceRange, setPriceRange] = useState([]); // Empty = no filter by default
+  const [priceRange, setPriceRange] = useState([]);
   const [myRooms, setMyRooms] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
   const [timeLimit, setTimeLimit] = useState(0);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   const { createRoom, loading, getMyRooms, deleteRoom } = useContext(RoomContext);
   const navigate = useNavigate();
@@ -27,12 +30,27 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchAll = async () => {
       const rooms = await getMyRooms();
       setMyRooms(rooms);
+      try {
+        const { data } = await api.get('/events/live');
+        setLiveEvents(data);
+      } catch {
+        setLiveEvents([]);
+      } finally {
+        setEventsLoading(false);
+      }
     };
-    fetchRooms();
+    fetchAll();
   }, []);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('tr-TR', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  };
 
   const handleOptionChange = (index, value) => {
     const newOptions = [...options];
@@ -87,6 +105,22 @@ const Dashboard = () => {
 
   return (
     <div className="animate-slide-up" style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '4rem' }}>
+
+      {/* ── Keşfet Başlık ──────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '12px',
+          background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+        }}>
+          <Zap size={22} color="white" fill="white" />
+        </div>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.7rem', background: 'linear-gradient(135deg, #fff 40%, var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Keşfet</h2>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Yeni bir oda kur, etkinliklere göz at</p>
+        </div>
+      </div>
       <div className="glass-card" style={{ marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Yeni Oda Kur</h2>
         <form onSubmit={handleSubmit}>
@@ -277,6 +311,85 @@ const Dashboard = () => {
           </button>
         </form>
       </div>
+
+      {/* ── Canlı Etkinlikler Widget ──────────────────────────────────── */}
+      {(eventsLoading || liveEvents.length > 0) && (
+        <div className="glass-card" style={{ marginBottom: '2rem', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', boxShadow: '0 0 8px #ef4444', animation: 'pulse 1.5s infinite' }} />
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>Yaklaşan Etkinlikler</h3>
+            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Her gece güncellenir</span>
+          </div>
+
+          {eventsLoading ? (
+            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+              {[1,2,3].map(i => (
+                <div key={i} style={{ minWidth: 200, height: 120, borderRadius: '14px', background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.75rem', scrollbarWidth: 'thin' }}>
+              {liveEvents.map((ev, i) => (
+                <div key={i} style={{
+                  minWidth: 210, maxWidth: 210,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '14px', padding: '1rem',
+                  display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                  cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s',
+                  flexShrink: 0,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                >
+                  {/* Etkinlik adı */}
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'white', lineHeight: 1.3,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {ev.name}
+                  </p>
+
+                  {/* Tarih */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: 'var(--primary)' }}>
+                    <CalendarDays size={13} />
+                    {formatDate(ev.eventDate)}
+                  </div>
+
+                  {/* Konum */}
+                  {ev.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <MapPin size={13} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location}</span>
+                    </div>
+                  )}
+
+                  {/* Kaynak badge */}
+                  {ev.eventSource && (
+                    <span style={{ fontSize: '0.7rem', background: 'rgba(99,102,241,0.2)', color: 'var(--primary)', padding: '0.2rem 0.5rem', borderRadius: '6px', alignSelf: 'flex-start' }}>
+                      {ev.eventSource}
+                    </span>
+                  )}
+
+                  {/* Harita butonu */}
+                  {ev.mapsQuery && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.mapsQuery)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                        padding: '0.4rem', borderRadius: '8px', background: 'rgba(66,133,244,0.15)',
+                        color: '#93c5fd', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none',
+                        transition: 'background 0.2s',
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <MapPin size={13} /> Haritada Gör
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="glass-card">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>Geçmiş Odalarım</h3>

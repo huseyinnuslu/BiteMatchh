@@ -28,7 +28,7 @@ const Navbar = () => {
             {user ? (
               <>
                 <Link to="/dashboard" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <LayoutDashboard size={15} /> Dashboard
+                  <LayoutDashboard size={15} /> Keşfet
                 </Link>
                 <Link to="/profile" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
                   <UserCircle size={15} /> Profilim
