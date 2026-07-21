@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3, CalendarDays, MapPin, Zap } from 'lucide-react';
@@ -17,6 +17,13 @@ const Dashboard = () => {
   const [timeLimit, setTimeLimit] = useState(0);
   const [liveEvents, setLiveEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+
+  // Yatay scroll drag-to-scroll ref'leri
+  const scrollRef   = useRef(null);
+  const isDragging  = useRef(false);
+  const dragStartX  = useRef(0);
+  const scrollStart = useRef(0);
+  const didDrag     = useRef(false); // drag mi yoksa click mi?
 
   const { createRoom, loading, getMyRooms, deleteRoom } = useContext(RoomContext);
   const navigate = useNavigate();
@@ -345,41 +352,55 @@ const Dashboard = () => {
             </div>
           ) : (
             /* Kartlar */
-            <div style={{
-              display: 'flex', gap: '0.85rem',
-              overflowX: 'auto', overflowY: 'visible',
-              paddingBottom: '1rem', paddingTop: '0.5rem',
-              paddingLeft: '2px', paddingRight: '16px',
-              scrollSnapType: 'x mandatory',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              cursor: 'grab',
-            }}>
+            <div
+              ref={scrollRef}
+              style={{
+                display: 'flex', gap: '0.85rem',
+                overflowX: 'auto', overflowY: 'visible',
+                paddingBottom: '1rem', paddingTop: '0.5rem',
+                paddingLeft: '2px', paddingRight: '16px',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                cursor: 'grab',
+                userSelect: 'none',
+              }}
+              onMouseDown={e => {
+                isDragging.current  = true;
+                didDrag.current     = false;
+                dragStartX.current  = e.pageX - scrollRef.current.offsetLeft;
+                scrollStart.current = scrollRef.current.scrollLeft;
+                scrollRef.current.style.cursor = 'grabbing';
+              }}
+              onMouseMove={e => {
+                if (!isDragging.current) return;
+                e.preventDefault();
+                const x    = e.pageX - scrollRef.current.offsetLeft;
+                const walk = (x - dragStartX.current) * 1.4;
+                if (Math.abs(walk) > 4) didDrag.current = true;
+                scrollRef.current.scrollLeft = scrollStart.current - walk;
+              }}
+              onMouseUp={()    => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
+              onMouseLeave={()  => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
+            >
               {liveEvents.map((ev, i) => (
                 <div
                   key={ev._id || i}
-                  onClick={() => {
-                    const url = ev.ticketUrl || (ev.mapsQuery && `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.mapsQuery)}`);
-                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => e.key === 'Enter' && e.currentTarget.click()}
                   style={{
-                    minWidth: 175, maxWidth: 175, height: 250,
+                    minWidth: 185, maxWidth: 185, height: 270,
                     borderRadius: '18px',
                     overflow: 'hidden',
                     flexShrink: 0,
                     scrollSnapAlign: 'start',
                     position: 'relative',
-                    cursor: 'pointer',
                     transition: 'transform 0.22s ease, box-shadow 0.22s ease',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                     WebkitTapHighlightColor: 'transparent',
                     userSelect: 'none',
                   }}
                   onMouseEnter={e => {
+                    if (didDrag.current) return;
                     e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)';
                     e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5)';
                   }}
@@ -388,7 +409,7 @@ const Dashboard = () => {
                     e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
                   }}
                   onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
-                  onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onTouchEnd={e   => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
                   {/* Görsel arka plan */}
                   <div style={{
@@ -479,20 +500,67 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    {/* CTA butonu */}
-                    <div style={{
-                      marginTop: '0.3rem',
-                      padding: '0.45rem',
-                      borderRadius: '10px',
-                      background: ev.ticketUrl
-                        ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
-                        : 'rgba(66,133,244,0.3)',
-                      color: 'white',
-                      fontSize: '0.75rem', fontWeight: 800,
-                      textAlign: 'center',
-                      boxShadow: ev.ticketUrl ? '0 2px 10px rgba(99,102,241,0.5)' : 'none',
-                    }}>
-                      {ev.ticketUrl ? '🎟 Bilet Al' : '📍 Haritada Gör'}
+                    {/* CTA: Bilet Al + Haritada Gör — ayrı butonlar */}
+                    <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.3rem' }}>
+                      {ev.ticketUrl && (
+                        <button
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (!didDrag.current) window.open(ev.ticketUrl, '_blank', 'noopener,noreferrer');
+                          }}
+                          style={{
+                            flex: 1, padding: '0.45rem 0.25rem',
+                            borderRadius: '10px', border: 'none',
+                            background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                            color: 'white', fontSize: '0.7rem', fontWeight: 800,
+                            cursor: 'pointer', textAlign: 'center',
+                            boxShadow: '0 2px 10px rgba(99,102,241,0.5)',
+                            transition: 'opacity 0.15s',
+                            whiteSpace: 'nowrap',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                          onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                        >
+                          🎟 Bilet Al
+                        </button>
+                      )}
+                      {ev.mapsQuery && (
+                        <button
+                          onMouseDown={e => e.stopPropagation()}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (!didDrag.current) {
+                              const q = encodeURIComponent(ev.mapsQuery);
+                              window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
+                            }
+                          }}
+                          style={{
+                            flex: 1, padding: '0.45rem 0.25rem',
+                            borderRadius: '10px', border: 'none',
+                            background: ev.ticketUrl ? 'rgba(66,133,244,0.25)' : 'rgba(66,133,244,0.4)',
+                            color: 'white', fontSize: '0.7rem', fontWeight: 800,
+                            cursor: 'pointer', textAlign: 'center',
+                            transition: 'opacity 0.15s',
+                            whiteSpace: 'nowrap',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
+                          onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                        >
+                          📍 Harita
+                        </button>
+                      )}
+                      {!ev.ticketUrl && !ev.mapsQuery && (
+                        <div style={{
+                          flex: 1, padding: '0.45rem',
+                          borderRadius: '10px',
+                          background: 'rgba(255,255,255,0.1)',
+                          color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem',
+                          textAlign: 'center',
+                        }}>
+                          Detay Yok
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
