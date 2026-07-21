@@ -101,7 +101,7 @@ export const getProfile = async (req, res, next) => {
       ]),
     ]);
 
-    const totalSwipes = swipeStats[0]?.totalSwipes || 0;
+        const totalSwipes = swipeStats[0]?.totalSwipes || 0;
     const totalLikes  = swipeStats[0]?.totalLikes  || 0;
     const likeRatio   = totalSwipes > 0 ? Math.round((totalLikes / totalSwipes) * 100) : 0;
 
@@ -109,6 +109,13 @@ export const getProfile = async (req, res, next) => {
     const categoryDistribution = Object.fromEntries(
       categoryData.map(c => [c._id || 'custom', c.count])
     );
+
+    const categoryBreakdown = {};
+    if (totalLikes > 0) {
+      for (const [cat, count] of Object.entries(categoryDistribution)) {
+        categoryBreakdown[cat] = Math.round((count / totalLikes) * 100);
+      }
+    }
 
     // ── Arkadaş uyum skorları ──────────────────────────────────────────────
     const friendDocs = userAgg.friendDocs || [];
@@ -130,6 +137,7 @@ export const getProfile = async (req, res, next) => {
       username:  userAgg.username,
       email:     userAgg.email,
       role:      userAgg.role,
+      isStatsPublic: userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true,
       createdAt: userAgg.createdAt,
 
       stats: {
@@ -137,6 +145,7 @@ export const getProfile = async (req, res, next) => {
         totalLikes,
         likeRatio,
         categoryDistribution,
+        categoryBreakdown,
         totalRooms: Object.values(roomStatusMap).reduce((a, b) => a + b, 0),
         completedRooms: roomStatusMap['finished'] || 0,
         averageDecisionTime: userAgg.stats?.averageDecisionTime || 0,

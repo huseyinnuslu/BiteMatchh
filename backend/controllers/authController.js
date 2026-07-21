@@ -178,6 +178,10 @@ export const updateUserProfile = async (req, res, next) => {
       user.username = req.body.username || user.username;
       user.email = req.body.email || user.email;
 
+      if (req.body.isStatsPublic !== undefined) {
+        user.isStatsPublic = req.body.isStatsPublic;
+      }
+
       if (req.body.password) {
         user.password = req.body.password;
       }
@@ -188,6 +192,7 @@ export const updateUserProfile = async (req, res, next) => {
         _id: updatedUser._id,
         username: updatedUser.username,
         email: updatedUser.email,
+        isStatsPublic: updatedUser.isStatsPublic,
         token: generateToken(updatedUser._id),
       });
     } else {

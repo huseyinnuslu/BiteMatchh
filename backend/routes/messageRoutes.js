@@ -89,8 +89,8 @@ router.get('/dm/:userId', protect, async (req, res, next) => {
 // Socket müsait değilse REST üzerinden DM gönder.
 router.post('/dm/:userId', protect, async (req, res, next) => {
   try {
-    const { text } = req.body;
-    if (!text?.trim()) { res.status(400); throw new Error('Mesaj boş olamaz'); }
+    const { text, sharedEvent } = req.body;
+    if (!text?.trim() && !sharedEvent) { res.status(400); throw new Error('Mesaj boş olamaz'); }
 
     const otherId = req.params.userId;
     if (!mongoose.isValidObjectId(otherId)) {
@@ -105,7 +105,8 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
       sender:     req.user._id,
       senderName: req.user.username,
       recipient:  otherId,
-      text:       text.slice(0, 500),
+      text:       text?.trim() || '',
+      sharedEvent,
     });
 
     res.status(201).json(msg);

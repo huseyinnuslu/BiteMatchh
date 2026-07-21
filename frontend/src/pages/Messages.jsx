@@ -20,8 +20,9 @@ import { toast } from 'react-toastify';
 import {
   Send, Search, MessageCircle, ArrowLeft,
   Plus, X, MoreVertical, ShieldBan, ShieldCheck,
-  CheckCheck, Circle, ChevronDown, ChevronUp,
+  CheckCheck, Circle, ChevronDown, ChevronUp, ExternalLink,
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 /* ─── Yardımcılar ─────────────────────────────────────────────────────────── */
 
@@ -237,6 +238,10 @@ const Messages = () => {
   const [mobileView, setMobileView]     = useState('list');
   const [isMobile, setIsMobile]         = useState(window.innerWidth <= 768);
 
+  // Engelleme onay modalı state'leri
+  const [showConfirmBlock, setShowConfirmBlock] = useState(false);
+  const [blockTarget, setBlockTarget]           = useState(null); // { userId, username, action: 'block' | 'unblock' }
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -373,44 +378,55 @@ const Messages = () => {
     });
   }, [input, activeUser, user]);
 
-  /* ─── Engelle / Engeli Kaldır (aktif sohbetten) ── */
-  const handleBlock = useCallback(async () => {
-    if (!activeUser) return;
-    setShowMenu(false);
-    const isBlocked = blockedIds.has(activeUser._id?.toString());
-    try {
-      if (isBlocked) {
-        await api.delete(`/users/block/${activeUser._id}`);
-        setBlockedIds(prev => { const n = new Set(prev); n.delete(activeUser._id?.toString()); return n; });
-        setBlockedUsers(prev => prev.filter(b => b._id?.toString() !== activeUser._id?.toString()));
-        toast.success(`@${activeUser.username} engeli kaldırıldı`);
-      } else {
-        await api.post(`/users/block/${activeUser._id}`);
-        setBlockedIds(prev => new Set([...prev, activeUser._id?.toString()]));
-        setBlockedUsers(prev => [...prev, { _id: activeUser._id, username: activeUser.username }]);
-        toast.info(`@${activeUser.username} engellendi`);
-        setConversations(prev => prev.filter(c => c.user?._id?.toString() !== activeUser._id?.toString()));
-        setActiveUser(null);
-        setMobileView('list');
-      }
-    } catch { toast.error('Bir hata oluştu'); }
-  }, [activeUser, blockedIds]);
-
-  /* ─── Engeli kaldır (engellenenler listesinden) ── */
-  const handleUnblockFromList = useCallback(async (userId, username) => {
-    try {
-      await api.delete(`/users/block/${userId}`);
-      setBlockedIds(prev => { const n = new Set(prev); n.delete(userId?.toString()); return n; });
-      setBlockedUsers(prev => prev.filter(b => b._id?.toString() !== userId?.toString()));
-      toast.success(`@${username} engeli kaldırıldı`);
-    } catch { toast.error('Bir hata oluştu'); }
-  }, []);
-
   /* ─── Konuşma + Arkadaş birleştirilmiş listesi ── */
   const convUserIds  = new Set(conversations.map(c => c.user?._id?.toString()));
   const otherFriends = friends.filter(f => !convUserIds.has(f._id?.toString()) && !blockedIds.has(f._id?.toString()));
 
   const isActiveBlocked = activeUser && blockedIds.has(activeUser._id?.toString());
+
+  /* ─── Engelleme/Engel Kaldırma Aksiyonunu Başlat ── */
+  const requestBlockAction = useCallback((userId, username, action) => {
+    setBlockTarget({ userId, username, action });
+    setShowConfirmBlock(true);
+  }, []);
+
+  const handleBlockMenuClick = useCallback(() => {
+    if (!activeUser) return;
+    requestBlockAction(activeUser._id, activeUser.username, isActiveBlocked ? 'unblock' : 'block');
+    setShowMenu(false);
+  }, [activeUser, isActiveBlocked, requestBlockAction]);
+
+  const handleUnblockFromListClick = useCallback((userId, username) => {
+    requestBlockAction(userId, username, 'unblock');
+  }, [requestBlockAction]);
+
+  const confirmBlockAction = useCallback(async () => {
+    if (!blockTarget) return;
+    const { userId, username, action } = blockTarget;
+    try {
+      if (action === 'unblock') {
+        await api.delete(`/users/block/${userId}`);
+        setBlockedIds(prev => { const n = new Set(prev); n.delete(userId?.toString()); return n; });
+        setBlockedUsers(prev => prev.filter(b => b._id?.toString() !== userId?.toString()));
+        toast.success(`@${username} engeli kaldırıldı`);
+      } else {
+        await api.post(`/users/block/${userId}`);
+        setBlockedIds(prev => new Set([...prev, userId?.toString()]));
+        setBlockedUsers(prev => [...prev, { _id: userId, username }]);
+        toast.info(`@${username} engellendi`);
+        setConversations(prev => prev.filter(c => c.user?._id?.toString() !== userId?.toString()));
+        if (activeUser && activeUser._id?.toString() === userId?.toString()) {
+          setActiveUser(null);
+          setMobileView('list');
+        }
+      }
+    } catch {
+      toast.error('İşlem sırasında bir hata oluştu');
+    } finally {
+      setShowConfirmBlock(false);
+      setBlockTarget(null);
+    }
+  }, [blockTarget, activeUser]);
 
   /* ─── RENDER ───────────────────────────────────────────────────────── */
   return (
@@ -425,13 +441,17 @@ const Messages = () => {
 
       <div style={{
         display: 'flex',
-        height: 'calc(100vh - 80px)',
-        borderRadius: 18,
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.07)',
-        background: '#0d1424',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+        width: isMobile ? '100vw' : '94vw',
+        maxWidth: isMobile ? 'none' : '1440px',
         position: 'relative',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        height: isMobile ? 'calc(100vh - 72px)' : 'calc(100vh - 120px)',
+        borderRadius: isMobile ? 0 : 18,
+        overflow: 'hidden',
+        border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
+        background: '#0d1424',
+        boxShadow: isMobile ? 'none' : '0 8px 40px rgba(0,0,0,0.5)',
       }}>
 
         {/* ════════════════════════ SOL PANEL ════════════════════════ */}
@@ -566,7 +586,7 @@ const Messages = () => {
                         <Avatar username={b.username || '?'} size={34} />
                         <span style={{ flex: 1, fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>@{b.username}</span>
                         <button
-                          onClick={() => handleUnblockFromList(b._id, b.username)}
+                          onClick={() => handleUnblockFromListClick(b._id, b.username)}
                           title="Engeli Kaldır"
                           style={{
                             padding: '4px 8px', borderRadius: 8, border: 'none',
@@ -625,7 +645,7 @@ const Messages = () => {
               {/* ── Chat header ── */}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 18px',
+                padding: isMobile ? '10px 12px' : '12px 18px',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
                 flexShrink: 0, background: '#0b1120',
               }}>
@@ -671,7 +691,7 @@ const Messages = () => {
                       boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                     }}>
                       <button
-                        onClick={handleBlock}
+                        onClick={handleBlockMenuClick}
                         style={{
                           width: '100%', padding: '11px 16px',
                           background: 'none', border: 'none', cursor: 'pointer',
@@ -695,7 +715,7 @@ const Messages = () => {
 
               {/* ── Mesajlar ── */}
               <div style={{
-                flex: 1, overflowY: 'auto', padding: '16px 20px',
+                flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '16px 20px',
                 display: 'flex', flexDirection: 'column', gap: 4,
                 scrollbarWidth: 'thin',
               }}>
@@ -745,20 +765,96 @@ const Messages = () => {
                         {!isMine && sameAsPrev && <div style={{ width: 36 }} />}
 
                         <div style={{
-                          maxWidth: '68%',
+                          maxWidth: '75%',
+                          minWidth: msg.sharedEvent ? (isMobile ? '240px' : '290px') : 'auto',
                           background: isMine
                             ? 'linear-gradient(135deg, #6366f1, #7c3aed)'
                             : 'rgba(255,255,255,0.07)',
                           borderRadius: isMine
                             ? (sameAsPrev ? '14px 4px 4px 14px' : '14px 4px 14px 14px')
                             : (sameAsPrev ? '4px 14px 14px 14px' : '4px 14px 14px 14px'),
-                          padding: '8px 12px',
+                          padding: '10px 14px',
                           boxShadow: isMine ? '0 2px 12px rgba(99,102,241,0.3)' : 'none',
                           position: 'relative',
+                          overflow: 'hidden',
                         }}>
-                          <div style={{ fontSize: '0.87rem', color: '#fff', lineHeight: 1.5, wordBreak: 'break-word' }}>
-                            {msg.text}
-                          </div>
+                          {/* Paylaşılan Etkinlik Ön İzleme Kartı */}
+                          {msg.sharedEvent && (
+                            <div style={{
+                              background: 'rgba(15, 23, 42, 0.45)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '14px',
+                              overflow: 'hidden',
+                              marginBottom: msg.text ? '0.6rem' : '0',
+                              width: '100%',
+                              boxSizing: 'border-box',
+                            }}>
+                              <div style={{ position: 'relative', width: '100%', height: isMobile ? '100px' : '120px' }}>
+                                <img 
+                                  src={msg.sharedEvent.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300'} 
+                                  alt="" 
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                />
+                                <div style={{
+                                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                                  background: 'linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent)',
+                                  padding: '0.5rem 0.75rem',
+                                }}>
+                                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'white', fontWeight: 700, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {msg.sharedEvent.name}
+                                  </h4>
+                                </div>
+                              </div>
+                              <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {msg.sharedEvent.location && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                    <span style={{ flexShrink: 0 }}>📍</span>
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {msg.sharedEvent.location}
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Yönlendirme Düğmeleri */}
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                  {msg.sharedEvent.ticketUrl && (
+                                    <button
+                                      onClick={() => window.open(msg.sharedEvent.ticketUrl, '_blank', 'noopener,noreferrer')}
+                                      style={{
+                                        flex: 1, padding: '0.45rem', borderRadius: '8px', border: 'none',
+                                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                                        color: 'white', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
+                                        transition: 'opacity 0.2s',
+                                      }}
+                                    >
+                                      🎟 Bilet Al
+                                    </button>
+                                  )}
+                                  {(msg.sharedEvent.mapsQuery || msg.sharedEvent.location) && (
+                                    <button
+                                      onClick={() => {
+                                        const q = encodeURIComponent(msg.sharedEvent.mapsQuery || msg.sharedEvent.location);
+                                        window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
+                                      }}
+                                      style={{
+                                        flex: 1, padding: '0.45rem', borderRadius: '8px', border: 'none',
+                                        background: 'rgba(255, 255, 255, 0.08)', color: 'white', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                      }}
+                                    >
+                                      📍 Harita
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {msg.text && (
+                            <div style={{ fontSize: '0.87rem', color: '#fff', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                              {msg.text}
+                            </div>
+                          )}
                           <div style={{
                             fontSize: '0.62rem', color: isMine ? 'rgba(255,255,255,0.5)' : 'var(--text-muted)',
                             marginTop: 3, display: 'flex', alignItems: 'center', gap: 4,
@@ -787,7 +883,7 @@ const Messages = () => {
                 </div>
               ) : (
                 <div style={{
-                  display: 'flex', gap: 10, padding: '12px 18px',
+                  display: 'flex', gap: 10, padding: isMobile ? '8px 12px' : '12px 18px',
                   borderTop: '1px solid rgba(255,255,255,0.06)',
                   background: '#0b1120', flexShrink: 0, alignItems: 'flex-end',
                 }}>
@@ -833,6 +929,18 @@ const Messages = () => {
           )}
         </div>
       </div>
+      {/* Engelleme/Engel kaldırma onay modalı */}
+      {showConfirmBlock && blockTarget && (
+        <ConfirmModal
+          icon="🛡️"
+          title={blockTarget.action === 'block' ? 'Kullanıcıyı Engelle' : 'Engeli Kaldır'}
+          message={`@${blockTarget.username} kullanıcısını ${blockTarget.action === 'block' ? 'engellemek' : 'engeli kaldırmak'} istediğinize emin misiniz?`}
+          confirmText={blockTarget.action === 'block' ? 'Evet, Engelle' : 'Evet, Engeli Kaldır'}
+          confirmColor={blockTarget.action === 'block' ? '#ef4444' : '#22c55e'}
+          onConfirm={confirmBlockAction}
+          onCancel={() => { setShowConfirmBlock(false); setBlockTarget(null); }}
+        />
+      )}
     </>
   );
 };

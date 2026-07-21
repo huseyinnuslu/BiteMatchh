@@ -39,8 +39,12 @@ const roomSchema = mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ['waiting', 'voting', 'finished'],
+      enum: ['waiting', 'voting', 'finished', 'expired'],
       default: 'waiting',
+    },
+    inviteExpiresAt: {
+      type: Date,
+      default: null,
     },
     matchResult: {
       name: String,

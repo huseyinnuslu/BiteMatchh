@@ -87,6 +87,18 @@ const Profile = () => {
 
   useEffect(() => { loadProfile(); }, []);
 
+  // ── Gizlilik Ayarı Toggle ────────────────────────────────────────────────
+  const handleTogglePrivacy = async () => {
+    const newValue = !profile.isStatsPublic;
+    try {
+      await api.put('/auth/profile', { isStatsPublic: newValue });
+      setProfile(prev => ({ ...prev, isStatsPublic: newValue }));
+      toast.success(`İstatistikleriniz artık ${newValue ? 'herkese açık' : 'gizli'}!`);
+    } catch {
+      toast.error('Gizlilik ayarı güncellenemedi.');
+    }
+  };
+
   // ── Kullanıcı arama (debounce 400ms) ─────────────────────────────────────
   useEffect(() => {
     if (searchQuery.length < 2) { setSearchResults([]); return; }
@@ -170,7 +182,7 @@ const Profile = () => {
 
   const { stats, friends, pendingFriendRequests, pendingCount } = profile;
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
-  const categoryEntries = Object.entries(stats?.categoryDistribution || {}).sort((a, b) => b[1] - a[1]);
+  const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
   const topCategory = categoryEntries[0];
 
   return (
@@ -256,54 +268,96 @@ const Profile = () => {
         {/* ══ İstatistikler ═══════════════════════════════════════════════ */}
         {activeTab === 'stats' && (
           <motion.div key="stats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              {[
-                { icon: '👆', label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
-                { icon: '❤️', label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
-                { icon: '📊', label: 'Beğeni Oranı', value: `%${stats.likeRatio}`, color: 'var(--accent)' },
-                { icon: '🏠', label: 'Oda',          value: stats.totalRooms,  color: 'gold' },
-                { icon: '✅', label: 'Tamamlanan',   value: stats.completedRooms, color: 'var(--success)' },
-              ].map(s => (
-                <motion.div key={s.label} whileHover={{ y: -3 }} className="glass-card" style={{ textAlign: 'center', padding: '1.2rem 0.8rem' }}>
-                  <div style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>{s.icon}</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value ?? '—'}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>{s.label}</div>
-                </motion.div>
-              ))}
+            
+            {/* Gizlilik Ayarı Toggle Kartı */}
+            <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', marginBottom: '1.2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>İstatistiklerimi Profilimde Göster</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>İstatistiklerinizi profilinizde herkese görünür kılın.</span>
+              </div>
+              <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', cursor: 'pointer', flexShrink: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={profile.isStatsPublic}
+                  onChange={handleTogglePrivacy}
+                  style={{ opacity: 0, width: 0, height: 0 }} 
+                />
+                <span style={{
+                  position: 'absolute', inset: 0, borderRadius: '24px',
+                  background: profile.isStatsPublic ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                  transition: 'background-color 0.2s',
+                }}>
+                  <span style={{
+                    position: 'absolute', bottom: '3px', left: profile.isStatsPublic ? '27px' : '3px',
+                    width: '18px', height: '18px', borderRadius: '50%',
+                    background: 'white', transition: 'left 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  }} />
+                </span>
+              </label>
             </div>
 
-            {categoryEntries.length > 0 ? (
-              <div className="glass-card">
-                <h3 style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Trophy size={18} color="gold" /> Kategori Dağılımı
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                  {categoryEntries.map(([cat, count]) => {
-                    const pct = Math.round((count / categoryEntries[0][1]) * 100);
-                    return (
-                      <div key={cat}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.88rem' }}>
-                          <span>{CATEGORY_ICONS[cat] || '📦'} {cat}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{count} beğeni</span>
-                        </div>
-                        <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
-                            style={{ height: '100%', background: 'linear-gradient(135deg,var(--primary),var(--secondary))', borderRadius: '4px' }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+            {!profile.isStatsPublic ? (
+              <div className="glass-card" style={{ textAlign: 'center', padding: '3.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,75,75,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
+                <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem', fontWeight: 800 }}>İstatistikleriniz Gizlidir</h3>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.82rem', maxWidth: '340px', lineHeight: 1.5 }}>
+                  Profilinizde istatistiklerin gösterilmesini kapattınız. Tekrar görüntülemek için yukarıdaki seçeneği aktif edebilirsiniz.
+                </p>
               </div>
             ) : (
-              <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-                <p style={{ color: 'var(--text-muted)' }}>Oda katıl ve kaydırmaya başla!</p>
-              </div>
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  {[
+                    { icon: '👆', label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
+                    { icon: '❤️', label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
+                    { icon: '📊', label: 'Beğeni Oranı', value: `%${stats.likeRatio}`, color: 'var(--accent)' },
+                    { icon: '🏠', label: 'Oda',          value: stats.totalRooms,  color: 'gold' },
+                    { icon: '✅', label: 'Tamamlanan',   value: stats.completedRooms, color: 'var(--success)' },
+                  ].map(s => (
+                    <motion.div key={s.label} whileHover={{ y: -3 }} className="glass-card" style={{ textAlign: 'center', padding: '1.2rem 0.8rem' }}>
+                      <div style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>{s.icon}</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value ?? '—'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>{s.label}</div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {categoryEntries.length > 0 ? (
+                  <div className="glass-card">
+                    <h3 style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Trophy size={18} color="gold" /> Kategori Dağılımı
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                      {categoryEntries.map(([cat, pct]) => {
+                        return (
+                          <div key={cat}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.88rem' }}>
+                              <span>{CATEGORY_ICONS[cat] || '📦'} {cat}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>%{pct}</span>
+                            </div>
+                            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden' }}>
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
+                                style={{ height: '100%', background: 'linear-gradient(135deg,var(--primary),var(--secondary))', borderRadius: '4px' }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                    <p style={{ color: 'var(--text-muted)' }}>Oda katıl ve kaydırmaya başla!</p>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         )}

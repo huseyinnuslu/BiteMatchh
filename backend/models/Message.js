@@ -34,6 +34,14 @@ const messageSchema = new mongoose.Schema(
     },
     senderName: { type: String, required: true },
     text:       { type: String, required: true, maxlength: 500 },
+    // DM event sharing
+    sharedEvent: {
+      name:        { type: String },
+      imageUrl:    { type: String },
+      location:    { type: String },
+      ticketUrl:   { type: String },
+      mapsQuery:   { type: String },
+    },
     // Oda mesajları 7 gün, DM'ler 90 gün saklanır
     expireAt: {
       type:    Date,

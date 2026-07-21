@@ -91,10 +91,11 @@ export const initSocket = (io) => {
     });
 
     // send_direct_message: arkadaslar arasi DM
-    // Payload: { toUserId, text, senderName }
-    socket.on('send_direct_message', async ({ toUserId, text, senderName }) => {
+    // Payload: { toUserId, text, senderName, sharedEvent }
+    socket.on('send_direct_message', async ({ toUserId, text, senderName, sharedEvent }) => {
       const myId = socket.data.userId;
-      if (!myId || !toUserId || !text?.trim()) return;
+      if (!myId || !toUserId) return;
+      if (!text?.trim() && !sharedEvent) return;
 
       const msg = {
         _id:        Date.now().toString(),
@@ -102,7 +103,8 @@ export const initSocket = (io) => {
         sender:     myId,
         senderName: senderName || socket.data.username,
         recipient:  toUserId,
-        text:       text.slice(0, 500),
+        text:       text?.trim() || '',
+        sharedEvent,
         createdAt:  new Date().toISOString(),
       };
 
@@ -121,6 +123,7 @@ export const initSocket = (io) => {
           senderName: msg.senderName,
           recipient:  toUserId,
           text:       msg.text,
+          sharedEvent,
         });
       } catch (e) { console.error('DM kaydedilemedi:', e.message); }
     });

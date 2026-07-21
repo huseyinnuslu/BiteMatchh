@@ -129,6 +129,23 @@ const Room = () => {
     return <div className="flex-center" style={{ height: '70vh' }}>Oda Yükleniyor...</div>;
   }
 
+  if (currentRoom.status === 'expired') {
+    return (
+      <div className="flex-center animate-slide-up" style={{ minHeight: '70vh', flexDirection: 'column' }}>
+        <div className="glass-card" style={{ width: '100%', maxWidth: '500px', textAlign: 'center', padding: '2.5rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>⏰</div>
+          <h2 style={{ color: 'var(--danger)', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 800 }}>Davet Süresi Doldu</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: 1.5, fontSize: '0.95rem' }}>
+            Bu odaya katılım için tanınan 15 dakikalık süre doldu ve oda otomatik olarak kapatıldı.
+          </p>
+          <button onClick={() => navigate('/dashboard')} className="btn btn-primary" style={{ width: '100%', padding: '0.85rem' }}>
+            Keşfet Sayfasına Geri Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (currentRoom.status === 'waiting') {
     return <WaitingRoom />;
   }

@@ -2,6 +2,7 @@ import Room from '../models/Room.js';
 import Swipe from '../models/Swipe.js';
 import { mockOptions } from '../data/mockOptions.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
+import { sendPushToUser } from '../utils/webPush.js';
 
 // @desc    Oda oluştur
 // @route   POST /api/rooms
@@ -87,6 +88,14 @@ export const getRoomById = async (req, res, next) => {
       throw new Error('Oda bulunamadı');
     }
 
+    // ── Davet süre kontrolü ────────────────────────────────────────────────
+    if (room.status === 'waiting' && room.inviteExpiresAt) {
+      if (new Date() > new Date(room.inviteExpiresAt) && room.participants.length <= 1) {
+        room.status = 'expired';
+        await room.save();
+      }
+    }
+
     // Kullanıcının kendi swipe'larını çek (sadece optionId alanı yeterli)
     const userSwipes = await Swipe.find({ room: roomId, user: req.user._id })
       .select('optionId')
@@ -155,18 +164,29 @@ export const getRoomById = async (req, res, next) => {
 // Optimizasyon: findOneAndUpdate ile tek sorguda güncelle (find + save = 2 sorgu yerine 1)
 export const joinRoom = async (req, res, next) => {
   try {
-    const room = await Room.findOneAndUpdate(
-      { _id: req.params.id },
-      { $addToSet: { participants: req.user._id } }, // addToSet: zaten varsa eklemez
-      { new: true }
-    ).populate('host', 'username').populate('participants', 'username');
-
+    const room = await Room.findById(req.params.id);
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
     }
 
-    res.json(room);
+    // Davet süre kontrolü
+    if (room.status === 'expired' || (room.inviteExpiresAt && new Date() > new Date(room.inviteExpiresAt) && room.participants.length <= 1)) {
+      if (room.status !== 'expired') {
+        room.status = 'expired';
+        await room.save();
+      }
+      res.status(400);
+      throw new Error('Davet süresi doldu, odaya katılamazsınız.');
+    }
+
+    const updatedRoom = await Room.findOneAndUpdate(
+      { _id: req.params.id },
+      { $addToSet: { participants: req.user._id } }, // addToSet: zaten varsa eklemez
+      { new: true }
+    ).populate('host', 'username').populate('participants', 'username');
+
+    res.json(updatedRoom);
   } catch (error) {
     next(error);
   }
@@ -252,6 +272,41 @@ export const getMatchHistory = async (req, res, next) => {
       .lean();
 
     res.json(matches);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Arkadaşı odaya davet et (15 dk süreli)
+// @route   PUT /api/rooms/:id/invite
+// @access  Private
+export const inviteToRoom = async (req, res, next) => {
+  try {
+    const { friendId } = req.body;
+    const room = await Room.findById(req.params.id);
+
+    if (!room) {
+      res.status(404);
+      throw new Error('Oda bulunamadı');
+    }
+
+    if (room.host.toString() !== req.user._id.toString()) {
+      res.status(401);
+      throw new Error('Sadece oda sahibi davet gönderebilir');
+    }
+
+    // 15 dakika süre belirle
+    room.inviteExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await room.save();
+
+    // Push notification gönder (fire-and-forget)
+    sendPushToUser(friendId, {
+      title: 'BiteMatch Oda Daveti',
+      body: `${req.user.username} sizi odaya davet etti! Katılmak için 15 dakikanız var.`,
+      url: `/room/${room._id}`,
+    }).catch(() => {});
+
+    res.json(room);
   } catch (error) {
     next(error);
   }

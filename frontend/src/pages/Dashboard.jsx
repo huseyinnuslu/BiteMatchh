@@ -1,10 +1,13 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
-import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3, CalendarDays, MapPin, Zap } from 'lucide-react';
+import { Plus, Trash2, Loader, Utensils, Film, Tent, Edit3, CalendarDays, MapPin, Zap, Send } from 'lucide-react';
 import RoomCard from '../components/RoomCard';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
+import { AuthContext } from '../context/AuthContext';
+import { getSocket } from '../socket/socketClient';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
@@ -26,7 +29,55 @@ const Dashboard = () => {
   const didDrag     = useRef(false); // drag mi yoksa click mi?
 
   const { createRoom, loading, getMyRooms, deleteRoom } = useContext(RoomContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Paylaşım/Gönderim state'leri
+  const [shareModalOpen, setShareModalOpen]   = useState(false);
+  const [eventToShare, setEventToShare]       = useState(null);
+  const [friends, setFriends]                 = useState([]);
+  const [loadingFriends, setLoadingFriends]   = useState(false);
+  const [shareMessage, setShareMessage]       = useState('');
+  const [selectedFriendId, setSelectedFriendId] = useState(null);
+
+  const handleShareClick = async (ev) => {
+    setEventToShare(ev);
+    setShareModalOpen(true);
+    setLoadingFriends(true);
+    try {
+      const { data } = await api.get('/users/friends');
+      setFriends(data);
+    } catch {
+      toast.error('Arkadaşlar yüklenemedi.');
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  const handleSendShare = () => {
+    if (!selectedFriendId || !eventToShare) return;
+    const socket = getSocket();
+    if (!socket) {
+      toast.error('Socket bağlantısı aktif değil.');
+      return;
+    }
+    socket.emit('send_direct_message', {
+      toUserId: selectedFriendId,
+      text: shareMessage,
+      senderName: user.username,
+      sharedEvent: {
+        name: eventToShare.name,
+        imageUrl: eventToShare.imageUrl,
+        location: eventToShare.location,
+        ticketUrl: eventToShare.ticketUrl,
+        mapsQuery: eventToShare.mapsQuery || eventToShare.location,
+      }
+    });
+    toast.success('Etkinlik DM üzerinden paylaşıldı! ✈️');
+    setShareModalOpen(false);
+    setShareMessage('');
+    setSelectedFriendId(null);
+  };
 
   const handleBudgetToggle = (budgetSymbol) => {
     if (priceRange.includes(budgetSymbol)) {
@@ -457,6 +508,26 @@ const Dashboard = () => {
                     </div>
                   )}
 
+                  {/* Share/Send Button — sağ üst */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShareClick(ev);
+                    }}
+                    style={{
+                      position: 'absolute', top: 10, right: ev.ticketUrl ? 65 : 10,
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', cursor: 'pointer', zIndex: 10,
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={el => { el.currentTarget.style.background = 'var(--primary)'; el.currentTarget.style.color = 'black'; }}
+                    onMouseLeave={el => { el.currentTarget.style.background = 'rgba(0,0,0,0.6)'; el.currentTarget.style.color = 'white'; }}
+                  >
+                    <Send size={13} />
+                  </button>
+
                   {/* Alt içerik */}
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -567,6 +638,101 @@ const Dashboard = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Paylaşım Modalı */}
+      {shareModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1100,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20
+        }} onClick={() => setShareModalOpen(false)}>
+          <div style={{
+            width: '100%', maxWidth: '440px', borderRadius: '20px',
+            background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)', overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h3 style={{ margin: 0, color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                ✈️ Etkinliği Paylaş
+              </h3>
+              <button onClick={() => setShareModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.4rem' }}>×</button>
+            </div>
+            {/* Body */}
+            <div style={{ padding: '1.25rem', maxHeight: '350px', overflowY: 'auto' }}>
+              {/* Event preview */}
+              <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <img src={eventToShare?.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200'} alt="" style={{ width: 60, height: 60, borderRadius: '8px', objectFit: 'cover' }} />
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.88rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eventToShare?.name}</h4>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eventToShare?.location}</p>
+                </div>
+              </div>
+
+              {/* Message Input */}
+              <div className="input-group" style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.8rem' }}>Mesajın (Opsiyonel)</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder="Örn: Buna gidelim mi? 🥳" 
+                  value={shareMessage}
+                  onChange={e => setShareMessage(e.target.value)}
+                />
+              </div>
+
+              {/* Friend list */}
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Gönderilecek Arkadaş Seçin</label>
+              {loadingFriends ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Loader className="spin" size={20} /></div>
+              ) : friends.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', padding: '1rem 0' }}>Henüz arkadaşınız yok.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {friends.map(f => (
+                    <div 
+                      key={f._id} 
+                      onClick={() => setSelectedFriendId(f._id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: '0.75rem',
+                        padding: '0.6rem 0.8rem', borderRadius: '10px',
+                        background: selectedFriendId === f._id ? 'rgba(255, 75, 75, 0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${selectedFriendId === f._id ? 'var(--primary)' : 'rgba(255,255,255,0.05)'}`,
+                        cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.85rem', fontWeight: 'bold', color: 'white'
+                      }}>
+                        {f.username?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={{ flex: 1, fontSize: '0.88rem', color: 'white' }}>@{f.username}</span>
+                      {selectedFriendId === f._id && <span style={{ color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 'bold' }}>✓ Seçildi</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Footer */}
+            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShareModalOpen(false)} style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: 'white', cursor: 'pointer', fontSize: '0.85rem' }}>İptal</button>
+              <button 
+                onClick={handleSendShare} 
+                disabled={!selectedFriendId} 
+                className="btn btn-primary"
+                style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', opacity: selectedFriendId ? 1 : 0.5, cursor: selectedFriendId ? 'pointer' : 'not-allowed', fontSize: '0.85rem' }}
+              >
+                Gönder ✈️
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

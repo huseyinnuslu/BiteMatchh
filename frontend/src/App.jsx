@@ -17,7 +17,7 @@ import Messages from './pages/Messages';
 import MatchHistory from './pages/MatchHistory';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
@@ -46,13 +46,40 @@ function App() {
         .catch(() => {});
     };
 
+    const handleRoomInvitation = ({ roomId, inviterName, message }) => {
+      toast.info(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Oda Daveti! 📬</div>
+          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{message}</div>
+          <button
+            onClick={() => window.location.href = `/room/${roomId}`}
+            style={{
+              marginTop: '0.5rem', padding: '0.35rem 0.6rem',
+              background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+              border: 'none', borderRadius: '6px',
+              color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem',
+              boxShadow: '0 2px 8px rgba(255,75,75,0.3)',
+            }}
+          >
+            Katıl
+          </button>
+        </div>,
+        { autoClose: 15000, closeOnClick: false }
+      );
+    };
+
+    socket.on('room_invitation', handleRoomInvitation);
+
     if (socket.connected) {
       emitOnline();
     } else {
       socket.once('connect', emitOnline);
     }
 
-    return () => { socket.off('connect', emitOnline); };
+    return () => { 
+      socket.off('connect', emitOnline); 
+      socket.off('room_invitation', handleRoomInvitation);
+    };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────
   return (

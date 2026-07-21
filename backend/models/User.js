@@ -72,6 +72,11 @@ const userSchema = mongoose.Schema(
       default: null,
     },
 
+    isStatsPublic: {
+      type: Boolean,
+      default: true,
+    },
+
     // ── Kullanıcı İstatistikleri ───────────────────────────────────────────
     stats: {
       // Toplam kaydırma sayısı (like + dislike)
