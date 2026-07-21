@@ -39,14 +39,14 @@ const RoomCard = ({ room, onDelete }) => {
           {room.name}
         </h4>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Kategori etiketi */}
+          {/* Kategori etiketi — boş veya 'custom' ise 'Özel' göster */}
           <span style={{
             fontSize: '0.73rem', padding: '0.2rem 0.6rem',
             background: 'var(--surface)', borderRadius: '4px',
             textTransform: 'uppercase', color: 'var(--primary)',
             fontWeight: 600,
           }}>
-            {room.category}
+            {room.category && room.category !== 'custom' ? room.category : 'Özel'}
           </span>
           {/* Durum etiketi */}
           <span style={{
