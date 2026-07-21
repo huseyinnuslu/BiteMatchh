@@ -28,7 +28,7 @@ export const getProfile = async (req, res, next) => {
 
     const user = await User.findById(userId)
       .select('-password -resetPasswordToken -resetPasswordExpire')
-      .populate('friends', 'username name stats.totalSwipes createdAt')
+      .populate('friends', 'username name createdAt')          // nested alan seçimi kaldırıldı
       .populate('pendingFriendRequests', 'username name createdAt')
       .lean();
 
@@ -176,26 +176,55 @@ export const sendFriendRequest = async (req, res, next) => {
       throw new Error('Kendinize istek gönderemezsiniz');
     }
 
-    // Hedef kullanıcı var mı?
-    const target = await User.findById(toId).select('friends pendingFriendRequests');
+    // Hedef kullanıcı + kendi bilgilerimi paralel çek
+    const [target, me] = await Promise.all([
+      User.findById(toId).select('friends pendingFriendRequests'),
+      User.findById(fromId).select('friends'),
+    ]);
+
     if (!target) {
       res.status(404);
       throw new Error('Kullanıcı bulunamadı');
     }
 
-    // Zaten arkadaş mı?
-    if (target.friends.map(id => id.toString()).includes(fromId.toString())) {
+    const targetFriendIds = target.friends.map(id => id.toString());
+    const myFriendIds     = me.friends.map(id => id.toString());
+    const toIdStr         = toId.toString();
+    const fromIdStr       = fromId.toString();
+
+    // Her iki yönde arkadaş kontrolü (eski tek yönlü kayıtları da yakalar)
+    if (targetFriendIds.includes(fromIdStr) || myFriendIds.includes(toIdStr)) {
+      // Eski sistemden kalma tek yönlü arkadaşlığı otomatik çift yönlü yap
+      await Promise.all([
+        User.findByIdAndUpdate(toId,   { $addToSet: { friends: fromId } }),
+        User.findByIdAndUpdate(fromId, { $addToSet: { friends: toId   } }),
+      ]);
       res.status(400);
       throw new Error('Bu kullanıcı zaten arkadaşınız');
     }
 
     // İstek zaten gönderilmiş mi?
-    if (target.pendingFriendRequests.map(id => id.toString()).includes(fromId.toString())) {
+    if (target.pendingFriendRequests.map(id => id.toString()).includes(fromIdStr)) {
       res.status(400);
       throw new Error('Arkadaşlık isteği zaten gönderildi');
     }
 
-    // B'nin pending listesine A'yı ekle ($addToSet: tekrar ekleme)
+    // Karşı tarafın bize zaten istek göndermiş olması — direkt kabul et
+    const me2 = await User.findById(fromId).select('pendingFriendRequests');
+    if (me2.pendingFriendRequests.map(id => id.toString()).includes(toIdStr)) {
+      await Promise.all([
+        User.findByIdAndUpdate(fromId, {
+          $addToSet: { friends: toId },
+          $pull:     { pendingFriendRequests: toId },
+        }),
+        User.findByIdAndUpdate(toId, {
+          $addToSet: { friends: fromId },
+        }),
+      ]);
+      return res.json({ message: 'Karşılıklı istek vardı — arkadaş olundu! 🎉', autoAccepted: true });
+    }
+
+    // Normal akış: B'nin pending listesine A'yı ekle
     await User.findByIdAndUpdate(toId, {
       $addToSet: { pendingFriendRequests: fromId },
     });
@@ -298,7 +327,7 @@ export const getFriends = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
       .select('friends')
-      .populate('friends', 'username name stats.totalSwipes createdAt')
+      .populate('friends', 'username name createdAt')
       .lean();
 
     const friendIds = (user.friends || []).map(f => f._id);
