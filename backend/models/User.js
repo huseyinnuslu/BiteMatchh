@@ -41,6 +41,34 @@ const userSchema = mongoose.Schema(
     resetPasswordExpire: {
       type: Date,
     },
+
+    // ── Arkadaş Listesi ────────────────────────────────────────────────────
+    friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+
+    // ── Kullanıcı İstatistikleri ───────────────────────────────────────────
+    stats: {
+      // Toplam kaydırma sayısı (like + dislike)
+      totalSwipes: {
+        type: Number,
+        default: 0,
+      },
+      // Kategori bazlı sağa kaydırma dağılımı: { yemek: 12, aktivite: 7, ... }
+      categoryDistribution: {
+        type: Map,
+        of: Number,
+        default: {},
+      },
+      // Kart başı ortalama karar hızı (saniye cinsinden)
+      averageDecisionTime: {
+        type: Number,
+        default: 0,
+      },
+    },
   },
   {
     timestamps: true,
