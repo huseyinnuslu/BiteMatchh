@@ -1,6 +1,5 @@
 import Room from '../models/Room.js';
 import Swipe from '../models/Swipe.js';
-import Candidate from '../models/Candidate.js';
 import { mockOptions } from '../data/mockOptions.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
 
@@ -32,26 +31,6 @@ export const createRoom = async (req, res, next) => {
       const shuffled = [...sourcePool].sort(() => 0.5 - Math.random());
       const count = Math.min(shuffled.length, Math.floor(Math.random() * 4) + 10);
       roomOptions = shuffled.slice(0, count);
-
-      // ── Canlı Etkinlik Enjeksiyonu ────────────────────────────────────
-      // Kategori ile eşleşen, tarihi geçmemiş canlı etkinlikleri DB'den çek
-      // ve kart havuzunun ÖNÜNE ekle (öncelikli görünüm)
-      const now = new Date();
-      const liveEvents = await Candidate.find({
-        isLiveEvent: true,
-        category: cleanCategory,
-        eventDate: { $gt: now },     // tarihi geçmemiş
-        expireAt: { $gt: now },      // süresi dolmamış
-      })
-        .sort({ eventDate: 1 })      // en yakın etkinlik önce
-        .limit(3)                    // oda başı max 3 canlı etkinlik
-        .lean();
-
-      if (liveEvents.length > 0) {
-        // Canlı etkinlikleri mock kartlarla birleştir (önce canlı, sonra mock)
-        roomOptions = [...liveEvents, ...roomOptions];
-        console.log(`🎫 ${liveEvents.length} canlı etkinlik oda kart havuzuna eklendi`);
-      }
     }
 
     const room = await Room.create({
@@ -70,6 +49,7 @@ export const createRoom = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 // @desc    Kullanıcının kurduğu odaları getir
