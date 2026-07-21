@@ -1,160 +1,131 @@
 /**
- * mockOptions.js
- * BiteMatch – Kart havuzu
+ * mockOptions.js – BiteMatch Kart Havuzu
  *
- * Mekan: Gerçek İstanbul restoranları (Google Maps'te bulunur)
- * Film:  Gerçek film/dizi adları
- * Aktivite: Genel aktiviteler — mapsQuery ile doğru arama terimi
+ * MEKAN  → "Nereye Gidelim?" — yemek TÜRÜ seçilir, Maps o türdeki gerçek restoranları gösterir
+ * FİLM   → Film/dizi adları
+ * AKTİVİTE → Aktivite türleri, gerçek mekan isimleriyle veya tür aramasıyla
  *
- * mapsQuery: Maps'te bu metin aranır. Tanımlı değilse name + " İstanbul" kullanılır.
+ * mapsQuery: Maps'te bu metin aranır → gerçek sonuçlar döner
+ * imageUrl : konuyla birebir eşleşen Unsplash fotoğrafı
  */
 
 export const mockOptions = {
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // MEKAN — Gerçek İstanbul restoranları
-  // ─────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
+  // MEKAN — Yemek TÜRÜ seçimi ("Ne Yiyelim?")
+  // Maps'te o türdeki restoranlar listelenir → gerçek, yakın, puanlı sonuçlar
+  // ──────────────────────────────────────────────────────────────────────────
   mekan: [
     {
-      name: 'Nusr-Et Steakhouse',
-      mapsQuery: 'Nusr-Et Steakhouse Etiler İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1594046243098-0fceea9d451e?w=600&q=80',
-      rating: 4.6,
-      budget: '₺₺₺₺',
-      location: 'Etiler',
-      description: 'Ünlü şef Salt Bae\'nin dünyaca tanınan et restoranı. Özel kesimleri ve muhteşem sunumuyla eşsiz bir deneyim.'
-    },
-    {
-      name: 'Çiya Sofrası',
-      mapsQuery: 'Çiya Sofrası Kadıköy İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80',
-      rating: 4.7,
+      name: 'Hamburger',
+      mapsQuery: 'en iyi hamburger İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
       budget: '₺₺',
-      location: 'Kadıköy',
-      description: 'Anadolu\'nun unutulmuş lezzetlerini sofrasına taşıyan, Dünya\'nın en iyi 100 restoranına giren efsanevi mekan.'
+      description: 'Juicy, çıtır ve doyurucu. Hangi hamburgerciye gidelim kararını Maps\'e bırakıyoruz.'
     },
     {
-      name: 'Hamdi Restaurant',
-      mapsQuery: 'Hamdi Restaurant Eminönü İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=600&q=80',
-      rating: 4.6,
-      budget: '₺₺₺',
-      location: 'Eminönü',
-      description: 'Altın Boynuz manzarası eşliğinde 50 yıllık tarihi olan meşhur Güneydoğu kebapları ve lahmacun.'
-    },
-    {
-      name: 'Karaköy Lokantası',
-      mapsQuery: 'Karaköy Lokantası İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=80',
-      rating: 4.5,
-      budget: '₺₺₺',
-      location: 'Karaköy',
-      description: 'Art Deco tasarımı ve geleneksel Türk mutfağını modernleştiren İstanbul\'un en prestijli lokantalarından.'
-    },
-    {
-      name: 'Balıkçı Sabahattin',
-      mapsQuery: 'Balıkçı Sabahattin Sultanahmet İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=80',
-      rating: 4.7,
-      budget: '₺₺₺',
-      location: 'Sultanahmet',
-      description: '1927\'den bu yana hizmet veren, Boğaz manzaralı balıkçı köyü atmosferinde taze deniz ürünleri.'
-    },
-    {
-      name: 'Mikla Restaurant',
-      mapsQuery: 'Mikla Restaurant Beyoğlu İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
-      rating: 4.8,
-      budget: '₺₺₺₺',
-      location: 'Beyoğlu',
-      description: 'Marmara Oteli\'nin tepesinde İstanbul panoramasıyla Türk-İskandinav füzyon mutfağı. Dünya\'nın en iyi restoranları listesinde.'
-    },
-    {
-      name: 'Develi Kebap',
-      mapsQuery: 'Develi Kebap Samatya İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
-      rating: 4.6,
+      name: 'Pizza',
+      mapsQuery: 'en iyi pizza İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80',
       budget: '₺₺',
-      location: 'Samatya',
-      description: '1912\'den bu yana Gaziantep mutfağının başkenti. İç yağlı Beyti kebabı ve fıstıklı baklavayla ünlü.'
+      description: 'İnce hamur mu, kalın mı? Odun fırını mı, İtalyan mı? Seç, Maps yakınındakileri göstersin.'
     },
     {
-      name: 'Hünkar Restaurant',
-      mapsQuery: 'Hünkar Restaurant Nişantaşı İstanbul',
+      name: 'Sushi & Japon',
+      mapsQuery: 'sushi restaurant İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=80',
+      budget: '₺₺₺',
+      description: 'Taze somon, avokado, maki, nigiri… Şehrin en iyi sushi restoranlarına Maps\'ten bak.'
+    },
+    {
+      name: 'Adana Kebap',
+      mapsQuery: 'Adana kebap İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=600&q=80',
+      budget: '₺₺',
+      description: 'Közde pişmiş Adana kebabı, lavş, közlenmiş biber. Türk mutfağının zirvesi.'
+    },
+    {
+      name: 'Tantuni',
+      mapsQuery: 'tantuni İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=600&q=80',
+      budget: '₺',
+      description: 'İnce kıyma, lavaş, domates, maydanoz ve bol sumak. Hızlı ve lezzetli sokak yemeği.'
+    },
+    {
+      name: 'Döner',
+      mapsQuery: 'döner İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600&q=80',
+      budget: '₺',
+      description: 'Çıtır ekmek, bol et, közlenmiş sebze. Türkiye\'nin en sevilen fast food klasiği.'
+    },
+    {
+      name: 'Lahmacun & Pide',
+      mapsQuery: 'lahmacun pide İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=80',
+      budget: '₺',
+      description: 'Çıtır ince hamurda kıymalı lahmacun veya fırın pidesi. Rulo yapıp maydanozla ye!'
+    },
+    {
+      name: 'Deniz Ürünleri',
+      mapsQuery: 'balık restaurant İstanbul Boğaz',
+      imageUrl: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=80',
+      budget: '₺₺₺',
+      description: 'Taze çipura, levrek, kalamar tava. Boğaz veya Marmara kenarında balık keyfi.'
+    },
+    {
+      name: 'Ramen & Asya Mutfağı',
+      mapsQuery: 'ramen Asya mutfağı İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+      budget: '₺₺',
+      description: 'Sıcak et suyunda el yapımı noodle, marine yumurta ve zengin umami lezzeti.'
+    },
+    {
+      name: 'Serpme Kahvaltı',
+      mapsQuery: 'serpme kahvaltı İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80',
-      rating: 4.5,
-      budget: '₺₺₺',
-      location: 'Nişantaşı',
-      description: '1950\'lerden bu yana hizmet veren, Osmanlı saray mutfağı geleneğini yaşatan efsanevi İstanbul lokantası.'
-    },
-    {
-      name: 'Pandeli Restaurant',
-      mapsQuery: 'Pandeli Restaurant Mısır Çarşısı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
-      rating: 4.5,
-      budget: '₺₺₺',
-      location: 'Mısır Çarşısı',
-      description: '1901\'de kurulan tarihi Mısır Çarşısı\'nın üzerindeki efsanevi restoran. Osmanlı lezzetleri ve benzersiz atmosfer.'
-    },
-    {
-      name: 'Asmalı Cavit',
-      mapsQuery: 'Asmalı Cavit Beyoğlu İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=600&q=80',
-      rating: 4.4,
       budget: '₺₺',
-      location: 'Asmalımescit',
-      description: 'Beyoğlu\'nun kalbinde, meyhane kültürünü en iyi yaşatan mekânlardan biri. Mevsim mezeleri ve Türk şarapları.'
+      description: 'Bal, kaymak, peynir çeşitleri, zeytin, sıcak pişi ve demlik çay. Bol çeşitli serpme kahvaltı.'
     },
     {
-      name: 'Şükran Tantuni',
-      mapsQuery: 'Şükran Tantuni Merter İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1624462966581-bc6d768cbce5?w=600&q=80',
-      rating: 4.5,
+      name: 'Pasta & Tatlı Kafe',
+      mapsQuery: 'pastane kafe İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=600&q=80',
+      budget: '₺₺',
+      description: 'Cheesecake mi, sufle mi, tiramisu mu? Şehrin en iyi pastanelerinde tatlı mola.'
+    },
+    {
+      name: 'Tost & Sandviç',
+      mapsQuery: 'sandviç tost kafe İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&q=80',
       budget: '₺',
-      location: 'Merter',
-      description: 'İstanbul\'un en meşhur tantunisi. Mis gibi kokusu ve lavaş arası incecik doğranmış etiyle İstanbul klasiği.'
+      description: 'Sıcak ve doyurucu. Boğaz usulü balık ekmek ya da bol malzemeli bir gurme sandviç.'
     },
     {
-      name: 'Tarihi Sultanahmet Köftecisi',
-      mapsQuery: 'Tarihi Sultanahmet Köftecisi İstanbul',
+      name: 'Meksika & Taco',
+      mapsQuery: 'Meksika yemeği taco İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&q=80',
+      budget: '₺₺',
+      description: 'Guacamole, baharatlı kıyma ve çıtır nacho. İstanbul\'daki Meksika restoranlarına göz at.'
+    },
+    {
+      name: 'Makarna & İtalyan',
+      mapsQuery: 'İtalyan restaurant makarna İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1556761223-4c4282c73f77?w=600&q=80',
+      budget: '₺₺',
+      description: 'El yapımı taze makarna, carbonara, risotto. Otantik İtalyan lezzeti şehirde.'
+    },
+    {
+      name: 'Köfte',
+      mapsQuery: 'köfte restaurant İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1529042410759-befb1204b468?w=600&q=80',
-      rating: 4.4,
       budget: '₺',
-      location: 'Sultanahmet',
-      description: '1920\'den bu yana kendi suyunda eriyen o eşsiz ızgara köftesiyle İstanbul\'un simgesi olmuş tarihi lokanta.'
-    },
-    {
-      name: 'Giritli Restaurant',
-      mapsQuery: 'Giritli Restaurant Cankurtaran İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=80',
-      rating: 4.6,
-      budget: '₺₺₺',
-      location: 'Cankurtaran',
-      description: 'Girit mutfağından ilham alan deniz ürünleri ve zeytinyağlı mezeler. Tarihi Osmanlı bahçesinde romantik akşam yemeği.'
-    },
-    {
-      name: 'İnci Pastanesi',
-      mapsQuery: 'İnci Pastanesi Beyoğlu İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=600&q=80',
-      rating: 4.4,
-      budget: '₺',
-      location: 'Beyoğlu',
-      description: '1944\'ten bu yana İstiklal Caddesi\'nin simgesi olan tarihi pastane. Profiterol ve dondurması İstanbul\'un hafızasında.'
-    },
-    {
-      name: 'Konyalı Restaurant',
-      mapsQuery: 'Konyalı Restaurant Topkapı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
-      rating: 4.3,
-      budget: '₺₺₺',
-      location: 'Topkapı',
-      description: 'Topkapı Sarayı\'nın içinde konumlanan tarihi lokanta. Geleneksel Türk mutfağı ve saray manzarasıyla eşsiz bir deneyim.'
+      description: 'Izgarada çıtırdayan köfte, kavurma patates ve cacık. Türk mutfağının vazgeçilmezi.'
     },
   ],
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // FİLM — Gerçek film/dizi adları (harita yönlendirmesi yok)
-  // ─────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
+  // FİLM
+  // ──────────────────────────────────────────────────────────────────────────
   film: [
     {
       name: 'Interstellar',
@@ -213,12 +184,12 @@ export const mockOptions = {
       description: 'Ufak bir kasabada kaybolan bir çocuk ve onun peşinden ortaya çıkan doğaüstü olaylar.'
     },
     {
-      name: 'Spider-Man: Into the Spider-Verse',
-      imageUrl: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=600&q=80',
-      imdbScore: 8.4,
-      duration: '117 dk',
-      platform: 'Disney+',
-      description: 'Miles Morales\'in radyoaktif bir örümcek tarafından ısırılmasıyla çoklu evren macerası.'
+      name: 'Oppenheimer',
+      imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+      imdbScore: 8.3,
+      duration: '180 dk',
+      platform: 'Prime Video',
+      description: 'Atom bombasını geliştiren J. Robert Oppenheimer\'in trajik hikayesi.'
     },
     {
       name: 'Fight Club',
@@ -226,7 +197,7 @@ export const mockOptions = {
       imdbScore: 8.8,
       duration: '139 dk',
       platform: 'Prime Video',
-      description: 'Monoton bir hayata sahip olan anlatıcının, karizmatik Tyler Durden ile kurduğu yeraltı dövüş kulübü.'
+      description: 'Monoton bir hayata sahip olan anlatıcının kurduğu yeraltı dövüş kulübü.'
     },
     {
       name: 'Severance',
@@ -243,14 +214,6 @@ export const mockOptions = {
       duration: '57 dk',
       platform: 'HBO Max',
       description: 'Westeros\'un yedi krallığındaki taht kavgaları ve kuzeyden gelen antik tehdit.'
-    },
-    {
-      name: 'Oppenheimer',
-      imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
-      imdbScore: 8.3,
-      duration: '180 dk',
-      platform: 'Prime Video',
-      description: 'Atom bombasını geliştiren J. Robert Oppenheimer\'in trajik hikayesi ve tarihin seyrini değiştiren keşif.'
     },
     {
       name: 'Whiplash',
@@ -274,132 +237,132 @@ export const mockOptions = {
       imdbScore: 8.8,
       duration: '60 dk',
       platform: 'HBO Max',
-      description: 'Medya devi Roy ailesinin, yaşlanan babalarının ardından şirketin kontrolünü ele geçirme mücadelesi.'
-    }
+      description: 'Medya devi Roy ailesinin şirketin kontrolünü ele geçirme mücadelesi.'
+    },
+    {
+      name: 'The Bear',
+      imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&q=80',
+      imdbScore: 8.6,
+      duration: '30 dk',
+      platform: 'Disney+',
+      description: 'Michelin yıldızlı şef Carmy\'nin aile lokantasını devralmak zorunda kalması. Yüksek tempo, gerçekçi mutfak draması.'
+    },
   ],
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // AKTİVİTE — Gerçek mekan adları + akıllı mapsQuery
-  // ─────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
+  // AKTİVİTE — "Ne Yapalım?"
+  // mapsQuery → Maps'te o tür aktivite mekanları çıkar
+  // ──────────────────────────────────────────────────────────────────────────
   aktivite: [
     {
-      name: 'Cinemaximum',
-      mapsQuery: 'Cinemaximum İstanbul',
+      name: 'Sinemaya Git',
+      mapsQuery: 'sinema İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80',
       budget: '₺₺',
-      description: 'Türkiye\'nin en büyük sinema zinciri. Vizyondaki son filmleri dolby ses ve geniş perdede izleyin.'
+      description: 'Vizyondaki en yeni filmi dev perdede izlemek. Maps\'ten yakınındaki sinemaya bak.'
     },
     {
-      name: 'Strike Bowling (Akasya)',
-      mapsQuery: 'Strike Bowling Akasya AVM İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1538510121173-07e7efd2551f?w=600&q=80',
+      name: 'Bowling',
+      mapsQuery: 'bowling İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1588286492390-f4a5e7b9fa6e?w=600&q=80',
       budget: '₺₺',
-      location: 'Acıbadem',
-      description: 'Akasya AVM içindeki modern bowling merkezi. Arkadaşlarla rekabetçi ve eğlenceli bir bowling gecesi.'
+      description: 'Grev mi, spare mi? Rekabetçi ve eğlenceli bir bowling gecesi için Maps\'te yakın salonu bul.'
     },
     {
-      name: 'Vialand (Isfanbul)',
-      mapsQuery: 'Vialand Isfanbul Tema Parkı İstanbul',
+      name: 'Lunapark & Tema Parkı',
+      mapsQuery: 'lunapark tema parkı İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1534445867742-43195f401964?w=600&q=80',
       budget: '₺₺',
-      location: 'Eyüp',
-      description: 'Türkiye\'nin en büyük tema parkı. Hız treni, çarpışan arabalar ve aquaparkla unutulmaz bir gün.'
+      description: 'Hız treni, çarpışan arabalar, dönme dolap. Çocukluğa dönüş ve adrenalin keyfi.'
     },
     {
-      name: 'Sahil Yürüyüşü (Caddebostan)',
-      mapsQuery: 'Caddebostan sahil yürüyüş yolu İstanbul',
+      name: 'Sahil & Park Yürüyüşü',
+      mapsQuery: 'sahil park yürüyüş İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
       budget: 'Bedava',
-      location: 'Caddebostan',
-      description: 'Marmara Denizi kıyısında bisiklet ve yürüyüş yollarıyla donatılmış İstanbul\'un en güzel sahil şeridi.'
+      description: 'Deniz havası, müzik ve sohbet eşliğinde huzurlu bir yürüyüş. Tamamen bedava!'
     },
     {
-      name: 'DevArt Müzesi',
-      mapsQuery: 'DevArt Müzesi Beyoğlu İstanbul',
+      name: 'Canlı Konser',
+      mapsQuery: 'konser etkinlik İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=600&q=80',
+      budget: '₺₺₺',
+      description: 'Sevdiğin sanatçıyı canlı izle, coş, dans et. Biletix veya Passo\'dan yaklaşan konserlere bak.'
+    },
+    {
+      name: 'Müze & Galeri',
+      mapsQuery: 'müze sanat galerisi İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&q=80',
       budget: '₺',
-      location: 'Beyoğlu',
-      description: 'Dijital sanat ve interaktif enstalasyonlarla dolu modern müze. Her ziyarette farklı bir deneyim.'
+      description: 'İstanbul\'un tarihi veya modern sanat müzelerini gezerek kültürel bir tur.'
     },
     {
-      name: 'Emirgan Korusu Piknik',
-      mapsQuery: 'Emirgan Korusu İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1526218626217-dc65a29bb444?w=600&q=80',
-      budget: '₺',
-      location: 'Emirgan',
-      description: 'Boğaz\'a nazır, Türkiye\'nin en güzel lale bahçelerini barındıran tarihi koruluğunda piknik keyfi.'
-    },
-    {
-      name: 'Beşiktaş Çarşı Karaoke',
-      mapsQuery: 'Karaoke bar Beşiktaş İstanbul',
+      name: 'Karaoke',
+      mapsQuery: 'karaoke bar İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
       budget: '₺₺',
-      location: 'Beşiktaş',
-      description: 'Beşiktaş\'taki karaoke barlarında mikrofonu eline al ve sevdiğin şarkıları bağıra çağıra söyle!'
+      description: 'Mikrofonu eline al, en sevdiğin şarkıları bağıra çağıra söyle. Utanma, eğlen!'
     },
     {
-      name: 'Devlet Tiyatroları',
-      mapsQuery: 'İstanbul Devlet Tiyatroları',
+      name: 'Tiyatro',
+      mapsQuery: 'tiyatro İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&q=80',
       budget: '₺₺',
-      description: 'İstanbul\'da birden fazla sahnede gösteri yapan devlet tiyatrosu. Uygun fiyata kaliteli tiyatro keyfi.'
+      description: 'Komedi, dram veya müzikal — usta oyuncuların sahnelediği oyunu canlı izlemek.'
     },
     {
-      name: 'Sky Trampolines',
-      mapsQuery: 'Sky Trampolines İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1556819031-bf55851a09d8?w=600&q=80',
+      name: 'Trambolin Parkı',
+      mapsQuery: 'trambolin parkı İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?w=600&q=80',
       budget: '₺₺',
-      description: 'İstanbul\'un en büyük trambolin parkı. Yerçekimine meydan oku, zıpla, takla at ve bol enerji harca!'
+      description: 'Yerçekimine meydan oku! Trambolin parklarında zıpla, takla at, enerji harca.'
     },
     {
-      name: 'Formula Kart Go-Kart',
-      mapsQuery: 'Formula Kart Go-Kart İstanbul',
+      name: 'Go-Kart',
+      mapsQuery: 'go kart pisti İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=80',
       budget: '₺₺₺',
-      description: 'İstanbul\'un profesyonel go-kart pisti. Adrenalin tutkunları için pistin tozunu yutturacak bir yarış.'
+      description: 'Pistte gaz ver, rakibini geç! Adrenalin dolu bir go-kart yarışı için Maps\'ten pist bul.'
     },
     {
-      name: 'Çamlıca Tepesi Gezisi',
-      mapsQuery: 'Büyük Çamlıca Tepesi İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=600&q=80',
-      budget: 'Bedava',
-      location: 'Üsküdar',
-      description: 'İstanbul\'un iki yakasını ve Boğaz\'ı gören eşsiz panoramik manzarasıyla Büyük Çamlıca Tepesi\'nde vakit geçirmek.'
-    },
-    {
-      name: 'O\'Garden SPA',
-      mapsQuery: 'O Garden SPA Şişli İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=80',
-      budget: '₺₺₺₺',
-      location: 'Şişli',
-      description: 'Şehrin stresini atan, hamam ve masaj seanslarıyla lüks bir SPA deneyimi.'
-    },
-    {
-      name: 'Boğaz Turu (Şehir Hatları)',
-      mapsQuery: 'Şehir Hatları Boğaz turu İstanbul',
+      name: 'Boğaz Turu',
+      mapsQuery: 'Boğaz turu vapur İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=600&q=80',
       budget: '₺',
-      description: 'Şehir Hatları vapuruyla Boğaz\'ın iki yakasını gezerek köprüler, yalılar ve tarihi yapıları seyredin.'
+      description: 'Vapur veya tekneyle Boğaz\'ı gezerek köprüleri, yalıları ve tarihi yapıları seyret.'
     },
     {
-      name: 'Oyun Dükkânı (Board Game Cafe)',
-      mapsQuery: 'Board game cafe İstanbul',
+      name: 'Board Game Kafe',
+      mapsQuery: 'board game kutu oyunu kafe İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&q=80',
       budget: '₺₺',
-      description: 'Yüzlerce kutu oyun seçeneğiyle dolu kafede Catan, Tabu ve daha fazlasıyla eğlenceli saatler.'
+      description: 'Yüzlerce kutu oyun seçeneğiyle dolu kafede Catan, Tabu ve daha fazlasıyla bol eğlence.'
     },
     {
-      name: 'İstanbul Modern',
-      mapsQuery: 'İstanbul Modern Sanat Müzesi Karaköy',
-      imageUrl: 'https://images.unsplash.com/photo-1578926288207-32357be5fbb7?w=600&q=80',
-      budget: '₺₺',
-      location: 'Karaköy',
-      description: 'Türkiye\'nin en önemli çağdaş sanat müzesi. Boğaz manzaralı yeni binasında Türk ve uluslararası sanat eserleri.'
+      name: 'SPA & Masaj',
+      mapsQuery: 'spa masaj merkezi İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=80',
+      budget: '₺₺₺₺',
+      description: 'Haftanın yorgunluğunu üzerimizden atacak rahatlatıcı bir SPA ve masaj seansı.'
+    },
+    {
+      name: 'Bisiklet Turu',
+      mapsQuery: 'bisiklet kiralama İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600&q=80',
+      budget: '₺',
+      description: 'Ormanda veya sahil şeridinde rüzgarı hissederek pedal çevirme keyfi. İSBAK bisikleti de olur!'
+    },
+    {
+      name: 'Piknik',
+      mapsQuery: 'piknik alanı park İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1526218626217-dc65a29bb444?w=600&q=80',
+      budget: '₺',
+      description: 'Çimenlere yay, yiyecekleri hazırla, müziği aç. Emirgan, Fenerbahçe Parkı veya Çamlıca.'
     },
   ]
 };
 
-// Aliases for English category names
-mockOptions.food   = mockOptions.mekan;
-mockOptions.movie  = mockOptions.film;
+// English aliases
+mockOptions.food     = mockOptions.mekan;
+mockOptions.movie    = mockOptions.film;
 mockOptions.activity = mockOptions.aktivite;

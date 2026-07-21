@@ -110,7 +110,7 @@ const Dashboard = () => {
               style={{ padding: '1rem', borderRadius: '12px', border: `2px solid ${category === 'mekan' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'mekan' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
             >
               <Utensils size={30} color={category === 'mekan' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'mekan' ? 'var(--primary)' : 'white' }}>Nereye Gidelim?</h4>
+              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'mekan' ? 'var(--primary)' : 'white' }}>Ne Yiyelim?</h4>
             </div>
 
             <div 
