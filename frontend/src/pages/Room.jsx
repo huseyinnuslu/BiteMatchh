@@ -250,10 +250,24 @@ const Room = () => {
                         <div style={{ flex: 1, textAlign: 'left' }}>
                           <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{opt.name}</h4>
                           <small style={{ color: 'var(--success)' }}>{opt.likeCount} Beğeni</small>
+                          {opt.location && (
+                            <div style={{ marginTop: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>📍 {opt.location}</div>
+                          )}
                         </div>
+                        {opt.location && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(opt.name + ' ' + opt.location)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ padding: '0.4rem 0.7rem', background: 'rgba(66,133,244,0.2)', color: '#93c5fd', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+                          >
+                            🗺 Harita
+                          </a>
+                        )}
                       </div>
                     ))}
                   </div>
+
                 ) : (
                   <p style={{ color: 'var(--danger)', marginBottom: '1.5rem' }}>Hiçbir seçeneği beğenmediniz!</p>
                 )}
