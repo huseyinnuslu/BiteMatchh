@@ -13,8 +13,8 @@ const candidateSchema = mongoose.Schema(
       required: true,
     },
     imageUrl: {
-      type: String,
-      required: true,
+      type:    String,
+      default: '',   // API'den gelmezse script kategoriye göre fallback atar
     },
     category: {
       type: String,
@@ -33,6 +33,15 @@ const candidateSchema = mongoose.Schema(
     duration:    String,
     location:    String,
     mapsQuery:   String,
+
+    /**
+     * Etkinlik bilet satın alma / detay sayfası URL'i.
+     * Web'de yeni sekmede, mobilde harici tarayıcıda açılır.
+     */
+    ticketUrl: {
+      type:    String,
+      default: null,
+    },
 
     /**
      * Dış API'den gelen etkinliğin benzersiz kimliği.
@@ -56,14 +65,14 @@ const candidateSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
-    /** Verinin geldiği kaynak: "Biletix" | "Passo" | "Manual" | vb. */
+    /** Verinin geldiği kaynak: "Eventbrite" | "Ticketmaster" | "IBB" | vb. */
     eventSource: {
       type: String,
       default: null,
     },
     /**
      * MongoDB TTL index hedefi.
-     * Bu tarih geçtiğinde MongoDB belgeyiimotomatik siler (canlı etkinlikler için).
+     * Bu tarih geçtiğinde MongoDB belgeyi otomatik siler (canlı etkinlikler için).
      * Statik kartlarda null bırakılır — TTL index sparse olduğundan etkilenmezler.
      */
     expireAt: {

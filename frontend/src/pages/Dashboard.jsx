@@ -314,82 +314,193 @@ const Dashboard = () => {
 
       {/* ── Canlı Etkinlikler Widget ──────────────────────────────────── */}
       {(eventsLoading || liveEvents.length > 0) && (
-        <div className="glass-card" style={{ marginBottom: '2rem', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', boxShadow: '0 0 8px #ef4444', animation: 'pulse 1.5s infinite' }} />
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>Yaklaşan Etkinlikler</h3>
-            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Her gece güncellenir</span>
+        <div style={{ marginBottom: '2rem' }}>
+
+          {/* Başlık */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', padding: '0 0.25rem' }}>
+            <span style={{
+              width: 9, height: 9, borderRadius: '50%',
+              background: '#ef4444', display: 'inline-block',
+              boxShadow: '0 0 10px #ef4444',
+              animation: 'blink 1.4s ease-in-out infinite',
+            }} />
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white', fontWeight: 700 }}>
+              Yaklaşan Etkinlikler
+            </h3>
+            <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Her gece güncellenir
+            </span>
           </div>
 
           {eventsLoading ? (
-            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            /* Skeleton */
+            <div style={{ display: 'flex', gap: '0.85rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
               {[1,2,3].map(i => (
-                <div key={i} style={{ minWidth: 200, height: 120, borderRadius: '14px', background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                <div key={i} style={{
+                  minWidth: 175, height: 240, borderRadius: '18px',
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))',
+                  flexShrink: 0, animation: 'shimmer 1.6s linear infinite',
+                }} />
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.75rem', scrollbarWidth: 'thin' }}>
+            /* Kartlar */
+            <div style={{
+              display: 'flex', gap: '0.85rem',
+              overflowX: 'auto', overflowY: 'visible',
+              paddingBottom: '0.75rem', paddingTop: '0.25rem',
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}>
               {liveEvents.map((ev, i) => (
-                <div key={i} style={{
-                  minWidth: 210, maxWidth: 210,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '14px', padding: '1rem',
-                  display: 'flex', flexDirection: 'column', gap: '0.5rem',
-                  cursor: 'pointer', transition: 'transform 0.2s, border-color 0.2s',
-                  flexShrink: 0,
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                <div
+                  key={ev._id || i}
+                  onClick={() => {
+                    const url = ev.ticketUrl || (ev.mapsQuery && `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.mapsQuery)}`);
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && e.currentTarget.click()}
+                  style={{
+                    minWidth: 175, maxWidth: 175, height: 250,
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    scrollSnapAlign: 'start',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                    WebkitTapHighlightColor: 'transparent',
+                    userSelect: 'none',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+                  }}
+                  onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+                  onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
-                  {/* Etkinlik adı */}
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'white', lineHeight: 1.3,
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {ev.name}
-                  </p>
+                  {/* Görsel arka plan */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: ev.imageUrl
+                      ? `url(${ev.imageUrl})`
+                      : 'linear-gradient(135deg, #1e1b4b, #312e81)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }} />
 
-                  {/* Tarih */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: 'var(--primary)' }}>
-                    <CalendarDays size={13} />
-                    {formatDate(ev.eventDate)}
-                  </div>
+                  {/* Gradient overlay — altta okunabilir text için */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.92) 100%)',
+                  }} />
 
-                  {/* Konum */}
-                  {ev.location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      <MapPin size={13} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location}</span>
+                  {/* Kaynak badge — sol üst */}
+                  {ev.eventSource && (
+                    <div style={{
+                      position: 'absolute', top: 10, left: 10,
+                      background: 'rgba(0,0,0,0.55)',
+                      backdropFilter: 'blur(6px)',
+                      borderRadius: '6px',
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.65rem', fontWeight: 700,
+                      color: 'rgba(255,255,255,0.85)',
+                      letterSpacing: '0.03em',
+                    }}>
+                      {ev.eventSource}
                     </div>
                   )}
 
-                  {/* Kaynak badge */}
-                  {ev.eventSource && (
-                    <span style={{ fontSize: '0.7rem', background: 'rgba(99,102,241,0.2)', color: 'var(--primary)', padding: '0.2rem 0.5rem', borderRadius: '6px', alignSelf: 'flex-start' }}>
-                      {ev.eventSource}
-                    </span>
+                  {/* Bilet badge — sağ üst (ticketUrl varsa) */}
+                  {ev.ticketUrl && (
+                    <div style={{
+                      position: 'absolute', top: 10, right: 10,
+                      background: 'var(--primary)',
+                      borderRadius: '6px',
+                      padding: '0.2rem 0.45rem',
+                      fontSize: '0.6rem', fontWeight: 800,
+                      color: 'white', letterSpacing: '0.04em',
+                    }}>
+                      🎟 BİLET
+                    </div>
                   )}
 
-                  {/* Harita butonu */}
-                  {ev.mapsQuery && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.mapsQuery)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                        padding: '0.4rem', borderRadius: '8px', background: 'rgba(66,133,244,0.15)',
-                        color: '#93c5fd', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none',
-                        transition: 'background 0.2s',
-                      }}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <MapPin size={13} /> Haritada Gör
-                    </a>
-                  )}
+                  {/* Alt içerik */}
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    padding: '0.85rem 0.9rem 0.9rem',
+                    display: 'flex', flexDirection: 'column', gap: '0.35rem',
+                  }}>
+                    {/* Etkinlik adı */}
+                    <p style={{
+                      margin: 0, fontWeight: 800,
+                      fontSize: '0.92rem', color: 'white', lineHeight: 1.25,
+                      display: '-webkit-box', WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {ev.name}
+                    </p>
+
+                    {/* Tarih rozeti */}
+                    {ev.eventDate && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                        background: 'rgba(99,102,241,0.85)',
+                        borderRadius: '6px', padding: '0.2rem 0.5rem',
+                        fontSize: '0.7rem', fontWeight: 700, color: 'white',
+                        alignSelf: 'flex-start',
+                      }}>
+                        <CalendarDays size={10} />
+                        {formatDate(ev.eventDate)}
+                      </div>
+                    )}
+
+                    {/* Mekan */}
+                    {ev.location && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.3rem',
+                        fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)',
+                      }}>
+                        <MapPin size={10} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ev.location}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* CTA butonu */}
+                    <div style={{
+                      marginTop: '0.3rem',
+                      padding: '0.45rem',
+                      borderRadius: '10px',
+                      background: ev.ticketUrl
+                        ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
+                        : 'rgba(66,133,244,0.3)',
+                      color: 'white',
+                      fontSize: '0.75rem', fontWeight: 800,
+                      textAlign: 'center',
+                      boxShadow: ev.ticketUrl ? '0 2px 10px rgba(99,102,241,0.5)' : 'none',
+                    }}>
+                      {ev.ticketUrl ? '🎟 Bilet Al' : '📍 Haritada Gör'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       )}
+
+
 
       <div className="glass-card">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>Geçmiş Odalarım</h3>
