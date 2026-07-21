@@ -11,9 +11,14 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
+import { startEventCron } from './services/eventFetcherService.js';
 
 dotenv.config();
-connectDB();
+connectDB().then(() => {
+  // MongoDB bağlantısı kurulduktan sonra canlı etkinlik cron'unu başlat
+  startEventCron();
+});
+
 
 const app = express();
 
