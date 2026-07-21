@@ -22,36 +22,36 @@ const yandexMapsUrl = (result) => {
 };
 
 
-// Web Share API — destekleyen tarayıcılarda native paylaşım, desteklememede fallback
+// Bağlantıyı kopyala — native share dialog YOK, sadece clipboard + toast
 const handleShare = async (name, location) => {
   const text = location
     ? `BiteMatch'te eşleştik! 🎉 "${name}" — ${location}`
     : `BiteMatch'te eşleştik! 🎉 "${name}"`;
 
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'BiteMatch Eşleşmesi!', text, url: window.location.href });
-    } catch (e) { /* kullanıcı iptal etti */ }
-  } else {
-    // Fallback: metni kopyala + yeşil toast göster
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // Eski tarayıcılar için execCommand fallback
-      const el = document.createElement('textarea');
-      el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
-      document.body.appendChild(el); el.focus(); el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-    }
-    toast.success('Bağlantı panoya kopyalandı! 📋', {
-      position: 'top-right',
-      autoClose: 2500,
-      hideProgressBar: false,
-      theme: 'dark',
-      style: { background: '#0f172a', border: '1px solid rgba(34,197,94,0.3)' },
-    });
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Eski tarayıcı fallback
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(el);
+    el.focus(); el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
   }
+
+  toast.success('Bağlantı panoya kopyalandı! 📋', {
+    position: 'top-right',
+    autoClose: 2500,
+    theme: 'dark',
+    style: {
+      background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+      border: '1px solid rgba(34,197,94,0.35)',
+      borderRadius: '12px',
+      fontSize: '0.88rem',
+    },
+  });
 };
 
 // ── Buton bileşeni ───────────────────────────────────────────────────────────

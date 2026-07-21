@@ -20,7 +20,7 @@ import { toast } from 'react-toastify';
 import {
   Send, Search, MessageCircle, ArrowLeft,
   Plus, X, MoreVertical, ShieldBan, ShieldCheck,
-  CheckCheck, Circle,
+  CheckCheck, Circle, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 /* ─── Yardımcılar ─────────────────────────────────────────────────────────── */
@@ -222,8 +222,10 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends]             = useState([]);
   const [blockedIds, setBlockedIds]       = useState(new Set());
+  const [blockedUsers, setBlockedUsers]   = useState([]);   // obje listesi (sidebar için)
   const [onlineIds, setOnlineIds]         = useState(new Set());
   const [loadingConvs, setLoadingConvs]   = useState(true);
+  const [showBlocked, setShowBlocked]     = useState(false); // engellenenler bölümü aç/kapa
 
   const [activeUser, setActiveUser]     = useState(null);
   const [messages, setMessages]         = useState([]);
@@ -240,18 +242,20 @@ const Messages = () => {
 
   /* ─── Socket bağlan, online listesi al ── */
   useEffect(() => {
-    const token  = JSON.parse(localStorage.getItem('userInfo') || '{}')?.token;
+    const token  = (() => { try { return JSON.parse(localStorage.getItem('userInfo') || '{}')?.token; } catch { return null; } })();
     const socket = connectSocket(token);
 
-    // Online bildirimi gönder
-    socket.on('connect', () => {
+    // Hem zaten bağlıysa hem de yeniden bağlanınca çalış
+    const handleConnect = () => {
       api.get('/users/friends')
         .then(({ data }) => {
-          const ids = data.map(f => f._id?.toString());
-          socket.emit('user_online', { userId: user._id, friendIds: ids });
+          socket.emit('user_online', { userId: user._id, friendIds: data.map(f => f._id?.toString()) });
         })
         .catch(() => {});
-    });
+    };
+
+    if (socket.connected) handleConnect();
+    socket.on('connect', handleConnect);
 
     socket.on('online_friends',  ({ onlineFriends }) => setOnlineIds(new Set(onlineFriends)));
     socket.on('friend_online',   ({ userId }) => setOnlineIds(p => new Set([...p, userId])));
@@ -262,21 +266,17 @@ const Messages = () => {
         if (prev.some(m => m._id === msg._id)) return prev;
         return [...prev, msg];
       });
-      // Konuşma listesini güncelle
       const otherId = msg.sender?.toString() === user._id?.toString() ? msg.recipient : msg.sender;
       setConversations(prev => {
         const idx = prev.findIndex(c => c.user?._id?.toString() === otherId?.toString());
         const upd = { text: msg.text, createdAt: msg.createdAt, isMe: msg.sender?.toString() === user._id?.toString() };
-        if (idx !== -1) {
-          const arr = [...prev];
-          arr[idx] = { ...arr[idx], lastMessage: upd };
-          return arr;
-        }
+        if (idx !== -1) { const arr = [...prev]; arr[idx] = { ...arr[idx], lastMessage: upd }; return arr; }
         return prev;
       });
     });
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('online_friends');
       socket.off('friend_online');
       socket.off('friend_offline');
@@ -289,7 +289,10 @@ const Messages = () => {
     Promise.all([
       api.get('/messages/conversations').then(({ data }) => setConversations(data)).catch(() => {}),
       api.get('/users/friends').then(({ data }) => setFriends(data)).catch(() => {}),
-      api.get('/users/blocked').then(({ data }) => setBlockedIds(new Set(data.map(b => b._id?.toString())))).catch(() => {}),
+      api.get('/users/blocked').then(({ data }) => {
+        setBlockedIds(new Set(data.map(b => b._id?.toString())));
+        setBlockedUsers(data);
+      }).catch(() => {}),
     ]).finally(() => setLoadingConvs(false));
   }, []);
 
@@ -361,7 +364,7 @@ const Messages = () => {
     });
   }, [input, activeUser, user]);
 
-  /* ─── Engelle / Engeli Kaldır ── */
+  /* ─── Engelle / Engeli Kaldır (aktif sohbetten) ── */
   const handleBlock = useCallback(async () => {
     if (!activeUser) return;
     setShowMenu(false);
@@ -370,10 +373,12 @@ const Messages = () => {
       if (isBlocked) {
         await api.delete(`/users/block/${activeUser._id}`);
         setBlockedIds(prev => { const n = new Set(prev); n.delete(activeUser._id?.toString()); return n; });
+        setBlockedUsers(prev => prev.filter(b => b._id?.toString() !== activeUser._id?.toString()));
         toast.success(`@${activeUser.username} engeli kaldırıldı`);
       } else {
         await api.post(`/users/block/${activeUser._id}`);
         setBlockedIds(prev => new Set([...prev, activeUser._id?.toString()]));
+        setBlockedUsers(prev => [...prev, { _id: activeUser._id, username: activeUser.username }]);
         toast.info(`@${activeUser.username} engellendi`);
         setConversations(prev => prev.filter(c => c.user?._id?.toString() !== activeUser._id?.toString()));
         setActiveUser(null);
@@ -381,6 +386,16 @@ const Messages = () => {
       }
     } catch { toast.error('Bir hata oluştu'); }
   }, [activeUser, blockedIds]);
+
+  /* ─── Engeli kaldır (engellenenler listesinden) ── */
+  const handleUnblockFromList = useCallback(async (userId, username) => {
+    try {
+      await api.delete(`/users/block/${userId}`);
+      setBlockedIds(prev => { const n = new Set(prev); n.delete(userId?.toString()); return n; });
+      setBlockedUsers(prev => prev.filter(b => b._id?.toString() !== userId?.toString()));
+      toast.success(`@${username} engeli kaldırıldı`);
+    } catch { toast.error('Bir hata oluştu'); }
+  }, []);
 
   /* ─── Konuşma + Arkadaş birleştirilmiş listesi ── */
   const convUserIds  = new Set(conversations.map(c => c.user?._id?.toString()));
@@ -509,6 +524,55 @@ const Messages = () => {
                     >
                       + Yeni mesaj başlat
                     </button>
+                  </div>
+                )}
+
+                {/* ── Engellenenler bölümü ── */}
+                {blockedUsers.length > 0 && (
+                  <div style={{ marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 8 }}>
+                    <button
+                      onClick={() => setShowBlocked(v => !v)}
+                      style={{
+                        width: '100%', padding: '6px 12px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        color: '#f87171', fontSize: '0.68rem',
+                        fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>🚫 Engellenenler ({blockedUsers.length})</span>
+                      {showBlocked ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    </button>
+
+                    {showBlocked && blockedUsers.map(b => (
+                      <div
+                        key={b._id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '8px 12px',
+                          borderRadius: '0 10px 10px 0',
+                        }}
+                      >
+                        <Avatar username={b.username || '?'} size={34} />
+                        <span style={{ flex: 1, fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>@{b.username}</span>
+                        <button
+                          onClick={() => handleUnblockFromList(b._id, b.username)}
+                          title="Engeli Kaldır"
+                          style={{
+                            padding: '4px 8px', borderRadius: 8, border: 'none',
+                            background: 'rgba(34,197,94,0.12)',
+                            color: '#22c55e', cursor: 'pointer',
+                            fontSize: '0.68rem', fontWeight: 700,
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.25)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.12)'; }}
+                        >
+                          Engeli Kaldır
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>

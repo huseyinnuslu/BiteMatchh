@@ -16,7 +16,7 @@ router.get('/live', protect, async (req, res, next) => {
     })
       .sort({ eventDate: 1 }) // en yakın tarih önce
       .limit(20)
-      .select('name description imageUrl location eventDate eventSource budget mapsQuery')
+      .select('name description imageUrl location eventDate eventSource budget mapsQuery ticketUrl')
       .lean();
 
     res.json(events);
