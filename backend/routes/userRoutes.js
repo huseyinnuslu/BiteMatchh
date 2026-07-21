@@ -18,6 +18,9 @@ import {
   declineFriendRequest,
   removeFriend,
   getFriends,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -46,5 +49,10 @@ router.delete('/friends/:id/decline', declineFriendRequest);
 
 // Arkadaşı çıkar
 router.delete('/friends/:id', removeFriend);
+
+// Engelleme
+router.get('/blocked',         getBlockedUsers);
+router.post('/block/:id',      blockUser);
+router.delete('/block/:id',    unblockUser);
 
 export default router;

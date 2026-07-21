@@ -60,6 +60,12 @@ const userSchema = mongoose.Schema(
       },
     ],
 
+    // ── Engellenen Kullanicilar ───────────────────────────────────────────
+    blockedUsers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref:  'User',
+    }],
+
     // ── Web Push Bildirimi Abonelik Verisi ────────────────────────────────
     pushSubscription: {
       type: Object,

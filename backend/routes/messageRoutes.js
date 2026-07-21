@@ -21,9 +21,16 @@ router.get('/conversations', protect, async (req, res, next) => {
     const myId = req.user._id;
 
     // Benim gönderdiğim VEYA bana gönderilen tüm DM'ler
+    // Engellenen kullanicilari cek
+    const me = await User.findById(myId).select('blockedUsers').lean();
+    const blocked = (me?.blockedUsers || []).map(id => id.toString());
+
     const msgs = await Message.find({
       type: 'direct',
       $or: [{ sender: myId }, { recipient: myId }],
+      // Engellenenlerle konusmayi gizle
+      sender:    { $nin: blocked },
+      recipient: { $nin: blocked },
     })
       .sort({ createdAt: -1 })
       .populate('sender',    'username')

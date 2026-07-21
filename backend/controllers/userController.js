@@ -402,3 +402,57 @@ export const getFriends = async (req, res, next) => {
     next(error);
   }
 };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Kullanicıyi engelle
+// @route   POST /api/users/block/:id
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const blockUser = async (req, res, next) => {
+  try {
+    const myId     = req.user._id;
+    const targetId = req.params.id;
+
+    if (myId.toString() === targetId) {
+      res.status(400); throw new Error('Kendinizi engelleyemezsiniz');
+    }
+
+    await User.findByIdAndUpdate(myId, {
+      $addToSet: { blockedUsers: targetId },
+      $pull:     { friends: targetId },        // arkadaşlıktan da cıkar
+    });
+    // Karşı tarafı da arkadaşlıktan çıkar
+    await User.findByIdAndUpdate(targetId, { $pull: { friends: myId } });
+
+    res.json({ message: 'Kullanıcı engellendi' });
+  } catch (e) { next(e); }
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Engeli kaldir
+// @route   DELETE /api/users/block/:id
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const unblockUser = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { blockedUsers: req.params.id },
+    });
+    res.json({ message: 'Engel kaldırıldı' });
+  } catch (e) { next(e); }
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Engellenen kullanicilari listele
+// @route   GET /api/users/blocked
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const getBlockedUsers = async (req, res, next) => {
+  try {
+    const me = await User.findById(req.user._id)
+      .select('blockedUsers')
+      .populate('blockedUsers', 'username')
+      .lean();
+    res.json(me?.blockedUsers || []);
+  } catch (e) { next(e); }
+};
