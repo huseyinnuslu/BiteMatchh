@@ -235,6 +235,15 @@ const Messages = () => {
 
   const [showNewDM, setShowNewDM]       = useState(false);
   const [mobileView, setMobileView]     = useState('list');
+  const [isMobile, setIsMobile]         = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
@@ -404,8 +413,6 @@ const Messages = () => {
   const isActiveBlocked = activeUser && blockedIds.has(activeUser._id?.toString());
 
   /* ─── RENDER ───────────────────────────────────────────────────────── */
-  const SIDEBAR_W = 300;
-
   return (
     <>
       {showNewDM && (
@@ -429,12 +436,14 @@ const Messages = () => {
 
         {/* ════════════════════════ SOL PANEL ════════════════════════ */}
         <div style={{
-          width: SIDEBAR_W, minWidth: SIDEBAR_W, flexShrink: 0,
+          width: isMobile ? '100%' : '30%',
+          minWidth: isMobile ? '100%' : '280px',
+          maxWidth: isMobile ? 'none' : '380px',
+          flexShrink: 0,
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', flexDirection: 'column',
+          display: isMobile && mobileView === 'chat' ? 'none' : 'flex',
+          flexDirection: 'column',
           background: '#0b1120',
-          // Mobil: chat açıkken gizle
-          ...(mobileView === 'chat' ? { display: 'none' } : {}),
         }}>
 
           {/* Başlık + Yeni DM */}
@@ -582,9 +591,11 @@ const Messages = () => {
 
         {/* ════════════════════════ SAĞ PANEL ════════════════════════ */}
         <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0,
+          flex: 1,
+          display: isMobile && mobileView === 'list' ? 'none' : 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
           background: '#0d1424',
-          ...(mobileView === 'list' && window.innerWidth <= 640 ? { display: 'none' } : {}),
         }}>
           {!activeUser ? (
             /* Boş durum */
@@ -621,7 +632,12 @@ const Messages = () => {
                 {/* Mobil geri */}
                 <button
                   onClick={() => { setMobileView('list'); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 4 }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: isMobile ? 'flex' : 'none',
+                    padding: 4
+                  }}
                 >
                   <ArrowLeft size={19} />
                 </button>

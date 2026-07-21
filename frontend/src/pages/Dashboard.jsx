@@ -525,13 +525,13 @@ const Dashboard = () => {
                           🎟 Bilet Al
                         </button>
                       )}
-                      {ev.mapsQuery && (
+                      {(ev.mapsQuery || ev.location) && (
                         <button
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => {
                             e.stopPropagation();
                             if (!didDrag.current) {
-                              const q = encodeURIComponent(ev.mapsQuery);
+                              const q = encodeURIComponent(ev.mapsQuery || ev.location);
                               window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
                             }
                           }}
@@ -550,7 +550,7 @@ const Dashboard = () => {
                           📍 Harita
                         </button>
                       )}
-                      {!ev.ticketUrl && !ev.mapsQuery && (
+                      {!ev.ticketUrl && !ev.mapsQuery && !ev.location && (
                         <div style={{
                           flex: 1, padding: '0.45rem',
                           borderRadius: '10px',
@@ -568,38 +568,6 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-      )}
-
-
-
-      <div className="glass-card">
-        <h3 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>Geçmiş Odalarım</h3>
-        {myRooms.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>Henüz kurduğunuz bir oda bulunmuyor.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {myRooms.map(room => (
-              <RoomCard
-                key={room._id}
-                room={room}
-                onDelete={handleDeleteClick}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ConfirmModal bileşeni kullanıldı */}
-      {isDeleteModalOpen && (
-        <ConfirmModal
-          icon="🗑️"
-          title="Odayı Sil"
-          message="Bu odayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
-          confirmText="Evet, Sil"
-          confirmColor="#ef4444"
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-        />
       )}
     </div>
   );

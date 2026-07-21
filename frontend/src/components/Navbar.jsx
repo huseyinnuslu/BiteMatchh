@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare } from 'lucide-react';
+import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 // ---- Navbar ----
@@ -25,10 +25,13 @@ const Navbar = () => {
           </Link>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            {user ? (
+            {user && user._id ? (
               <>
                 <Link to="/dashboard" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <LayoutDashboard size={15} /> Keşfet
+                </Link>
+                <Link to="/history" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+                  <History size={15} style={{ color: 'var(--primary)' }} /> Geçmişim
                 </Link>
                 <Link to="/messages" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'rgba(99,102,241,0.5)', color: 'var(--primary)' }}>
                   <MessageSquare size={15} /> Mesajlar

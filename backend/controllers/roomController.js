@@ -236,3 +236,23 @@ export const startRoom = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Kullanıcının geçmiş başarılı eşleşmelerini getir
+// @route   GET /api/rooms/history
+// @access  Private
+export const getMatchHistory = async (req, res, next) => {
+  try {
+    const matches = await Room.find({
+      participants: req.user._id,
+      status: 'finished',
+      'matchResult.name': { $exists: true, $ne: null }
+    })
+      .populate('participants', 'username name')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    res.json(matches);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -14,7 +14,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
 import Messages from './pages/Messages';
+import MatchHistory from './pages/MatchHistory';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -59,12 +61,16 @@ function App() {
       <div className="container" style={{ flex: 1, paddingBottom: '3rem' }}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route 
             path="/dashboard" 
             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/history" 
+            element={<ProtectedRoute><MatchHistory /></ProtectedRoute>} 
           />
           <Route 
             path="/room/:id" 
