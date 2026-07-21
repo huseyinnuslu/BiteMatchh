@@ -4,15 +4,22 @@ import Confetti from 'react-confetti';
 
 // ── Yardımcı: URL oluşturucular ──────────────────────────────────────────────
 
-const googleMapsUrl = (name, location) => {
-  const q = encodeURIComponent(location ? `${name} ${location}` : name);
+// mapsQuery: backend'den gelen hazır arama terimi (varsa)
+// Yoksa: "Mekan Adı İstanbul" ile gerçek sonuç gelir
+const getMapsQuery = (result) =>
+  result?.mapsQuery ||
+  (result?.location ? `${result.name} ${result.location} İstanbul` : `${result.name} İstanbul`);
+
+const googleMapsUrl = (result) => {
+  const q = encodeURIComponent(getMapsQuery(result));
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 };
 
-const yandexMapsUrl = (name, location) => {
-  const q = encodeURIComponent(location ? `${name} ${location}` : name);
+const yandexMapsUrl = (result) => {
+  const q = encodeURIComponent(getMapsQuery(result));
   return `https://yandex.com.tr/maps/?text=${q}`;
 };
+
 
 // Web Share API — destekleyen tarayıcılarda native paylaşım, desteklememede fallback
 const handleShare = async (name, location) => {
@@ -169,14 +176,14 @@ const MatchModal = ({ isOpen, matchResult, onClose }) => {
                       </p>
                       <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.75rem' }}>
                         <ActionBtn
-                          href={googleMapsUrl(name, location)}
+                          href={googleMapsUrl(matchResult)}
                           icon={<Navigation size={15} />}
                           label="Google Maps"
                           color="white"
                           bg="rgba(66,133,244,0.85)"
                         />
                         <ActionBtn
-                          href={yandexMapsUrl(name, location)}
+                          href={yandexMapsUrl(matchResult)}
                           icon={<MapPin size={15} />}
                           label="Yandex Maps"
                           color="white"
