@@ -141,6 +141,15 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+  .glass-card {
+    padding: 1.25rem;
+  }
+}
+
 .flex-center {
   display: flex;
   align-items: center;

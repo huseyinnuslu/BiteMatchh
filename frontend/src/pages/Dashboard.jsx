@@ -20,6 +20,13 @@ const Dashboard = () => {
   const [timeLimit, setTimeLimit] = useState(0);
   const [liveEvents, setLiveEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Yatay scroll drag-to-scroll ref'leri
   const scrollRef   = useRef(null);
@@ -195,38 +202,38 @@ const Dashboard = () => {
           </div>
 
           <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Ne Hakkında Karar Vereceksiniz?</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '0.75rem' : '1rem', marginBottom: '1.5rem' }}>
             
             <div 
               onClick={() => setCategory('mekan')} 
-              style={{ padding: '1rem', borderRadius: '12px', border: `2px solid ${category === 'mekan' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'mekan' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
+              style={{ padding: isMobile ? '0.75rem 0.5rem' : '1rem', borderRadius: '12px', border: `2px solid ${category === 'mekan' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'mekan' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
             >
-              <Utensils size={30} color={category === 'mekan' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'mekan' ? 'var(--primary)' : 'white' }}>Ne Yiyelim?</h4>
+              <Utensils size={isMobile ? 24 : 30} color={category === 'mekan' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
+              <h4 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '1rem', color: category === 'mekan' ? 'var(--primary)' : 'white' }}>Ne Yiyelim?</h4>
             </div>
 
             <div 
               onClick={() => setCategory('film')} 
-              style={{ padding: '1rem', borderRadius: '12px', border: `2px solid ${category === 'film' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'film' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
+              style={{ padding: isMobile ? '0.75rem 0.5rem' : '1rem', borderRadius: '12px', border: `2px solid ${category === 'film' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'film' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
             >
-              <Film size={30} color={category === 'film' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'film' ? 'var(--primary)' : 'white' }}>Ne İzleyelim?</h4>
+              <Film size={isMobile ? 24 : 30} color={category === 'film' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
+              <h4 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '1rem', color: category === 'film' ? 'var(--primary)' : 'white' }}>Ne İzleyelim?</h4>
             </div>
 
             <div 
               onClick={() => setCategory('aktivite')} 
-              style={{ padding: '1rem', borderRadius: '12px', border: `2px solid ${category === 'aktivite' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'aktivite' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
+              style={{ padding: isMobile ? '0.75rem 0.5rem' : '1rem', borderRadius: '12px', border: `2px solid ${category === 'aktivite' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'aktivite' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
             >
-              <Tent size={30} color={category === 'aktivite' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'aktivite' ? 'var(--primary)' : 'white' }}>Ne Yapalım?</h4>
+              <Tent size={isMobile ? 24 : 30} color={category === 'aktivite' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
+              <h4 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '1rem', color: category === 'aktivite' ? 'var(--primary)' : 'white' }}>Ne Yapalım?</h4>
             </div>
 
             <div 
               onClick={() => setCategory('custom')} 
-              style={{ padding: '1rem', borderRadius: '12px', border: `2px solid ${category === 'custom' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'custom' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
+              style={{ padding: isMobile ? '0.75rem 0.5rem' : '1rem', borderRadius: '12px', border: `2px solid ${category === 'custom' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`, background: category === 'custom' ? 'rgba(99, 102, 241, 0.1)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
             >
-              <Edit3 size={30} color={category === 'custom' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: category === 'custom' ? 'var(--primary)' : 'white' }}>Kendi Listeni Yarat</h4>
+              <Edit3 size={isMobile ? 24 : 30} color={category === 'custom' ? 'var(--primary)' : 'white'} style={{ marginBottom: '0.5rem' }} />
+              <h4 style={{ margin: 0, fontSize: isMobile ? '0.85rem' : '1rem', color: category === 'custom' ? 'var(--primary)' : 'white' }}>Kendi Listeni Yarat</h4>
             </div>
 
           </div>
@@ -234,12 +241,12 @@ const Dashboard = () => {
           {/* Bütçe Sınırlaması Seçimi */}
           <div style={{ marginBottom: '2rem' }}>
             <label style={{ display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Bütçe Aralığı (Çoklu Seçim)</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: isMobile ? '0.5rem' : '0.8rem' }}>
               
               <div 
                 onClick={() => handleBudgetToggle('₺')}
                 style={{
-                  padding: '1rem 0.5rem',
+                  padding: isMobile ? '0.75rem 0.25rem' : '1rem 0.5rem',
                   borderRadius: '12px',
                   border: `2px solid ${priceRange.includes('₺') ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`,
                   background: priceRange.includes('₺') ? 'rgba(255, 75, 75, 0.15)' : 'var(--surface)',
@@ -253,14 +260,14 @@ const Dashboard = () => {
                   boxShadow: priceRange.includes('₺') ? '0 0 12px rgba(255, 75, 75, 0.3)' : 'none'
                 }}
               >
-                <span style={{ fontSize: '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺') ? 'var(--primary)' : 'white' }}>₺</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Öğrenci Dostu / Hızlı Yemek</span>
+                <span style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺') ? 'var(--primary)' : 'white' }}>₺</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Öğrenci Dostu / Hızlı Yemek</span>
               </div>
 
               <div 
                 onClick={() => handleBudgetToggle('₺₺')}
                 style={{
-                  padding: '1rem 0.5rem',
+                  padding: isMobile ? '0.75rem 0.25rem' : '1rem 0.5rem',
                   borderRadius: '12px',
                   border: `2px solid ${priceRange.includes('₺₺') ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`,
                   background: priceRange.includes('₺₺') ? 'rgba(255, 75, 75, 0.15)' : 'var(--surface)',
@@ -274,14 +281,14 @@ const Dashboard = () => {
                   boxShadow: priceRange.includes('₺₺') ? '0 0 12px rgba(255, 75, 75, 0.3)' : 'none'
                 }}
               >
-                <span style={{ fontSize: '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺₺') ? 'var(--primary)' : 'white' }}>₺₺</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Standart Kafe & Restoran</span>
+                <span style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺₺') ? 'var(--primary)' : 'white' }}>₺₺</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Standart Kafe & Restoran</span>
               </div>
 
               <div 
                 onClick={() => handleBudgetToggle('₺₺₺')}
                 style={{
-                  padding: '1rem 0.5rem',
+                  padding: isMobile ? '0.75rem 0.25rem' : '1rem 0.5rem',
                   borderRadius: '12px',
                   border: `2px solid ${priceRange.includes('₺₺₺') ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`,
                   background: priceRange.includes('₺₺₺') ? 'rgba(255, 75, 75, 0.15)' : 'var(--surface)',
@@ -295,8 +302,8 @@ const Dashboard = () => {
                   boxShadow: priceRange.includes('₺₺₺') ? '0 0 12px rgba(255, 75, 75, 0.3)' : 'none'
                 }}
               >
-                <span style={{ fontSize: '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺₺₺') ? 'var(--primary)' : 'white' }}>₺₺₺</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Premium / Gurme</span>
+                <span style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 'bold', color: priceRange.includes('₺₺₺') ? 'var(--primary)' : 'white' }}>₺₺₺</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: '1.2' }}>Premium / Gurme</span>
               </div>
 
             </div>
@@ -308,7 +315,7 @@ const Dashboard = () => {
           {/* Oylama Süre Sınırı Seçimi */}
           <div style={{ marginBottom: '2rem' }}>
             <label style={{ display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Oylama Süresi Sınırı</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.6rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: isMobile ? '0.4rem' : '0.6rem' }}>
               {[
                 { label: '30 Saniye', value: 30 },
                 { label: '1 Dakika', value: 60 },
@@ -319,14 +326,14 @@ const Dashboard = () => {
                   key={timeOpt.value}
                   onClick={() => setTimeLimit(timeOpt.value)}
                   style={{
-                    padding: '0.85rem 0.2rem',
+                    padding: isMobile ? '0.6rem 0.1rem' : '0.85rem 0.2rem',
                     borderRadius: '12px',
                     border: `2px solid ${timeLimit === timeOpt.value ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}`,
                     background: timeLimit === timeOpt.value ? 'rgba(99, 102, 241, 0.15)' : 'var(--surface)',
                     cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.2s',
-                    fontSize: '0.85rem',
+                    fontSize: isMobile ? '0.72rem' : '0.85rem',
                     color: timeLimit === timeOpt.value ? 'var(--primary)' : 'white',
                     fontWeight: timeLimit === timeOpt.value ? 'bold' : 'normal',
                     boxShadow: timeLimit === timeOpt.value ? '0 0 10px rgba(99, 102, 241, 0.3)' : 'none'
