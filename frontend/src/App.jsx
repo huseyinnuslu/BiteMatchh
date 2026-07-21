@@ -22,6 +22,13 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const { user } = useContext(AuthContext);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ── Global online presence ─────────────────────────────────────────────
   // user_online eventi hangi sayfada olursa olsun yayınlanır.
@@ -85,7 +92,7 @@ function App() {
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
-      <div className="container" style={{ flex: 1, paddingBottom: '3rem' }}>
+      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? '6rem' : '3rem' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />

@@ -45,7 +45,7 @@ const MatchHistory = () => {
   };
 
   return (
-    <div className="animate-slide-up" style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '4rem', padding: '1rem' }}>
+    <div className="animate-slide-up" style={{ width: '100%', maxWidth: '900px', margin: '0 auto', padding: '1rem', paddingBottom: '4rem', boxSizing: 'border-box' }}>
       
       {/* Üst Kısım: Geri Dön ve Başlık */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>

@@ -162,7 +162,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="animate-slide-up" style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '4rem' }}>
+    <div className="animate-slide-up" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', padding: '0 1rem', paddingBottom: '4rem', boxSizing: 'border-box' }}>
 
       {/* ── Keşfet Başlık ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>

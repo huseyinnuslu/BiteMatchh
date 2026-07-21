@@ -186,7 +186,7 @@ const Profile = () => {
   const topCategory = categoryEntries[0];
 
   return (
-    <div style={{ maxWidth: '760px', margin: '0 auto', paddingTop: '2rem' }}>
+    <div style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
 
       {/* ── Hero Profil Kartı ───────────────────────────────────────────── */}
       <motion.div
