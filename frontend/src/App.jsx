@@ -90,9 +90,9 @@ function App() {
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', position: 'relative' }}>
       <Navbar />
-      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? '6rem' : '3rem' }}>
+      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? '6rem' : '3rem', width: '100%', boxSizing: 'border-box' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
