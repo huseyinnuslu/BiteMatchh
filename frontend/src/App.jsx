@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -33,6 +34,10 @@ function App() {
           <Route 
             path="/admin" 
             element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/profile" 
+            element={<ProtectedRoute><Profile /></ProtectedRoute>} 
           />
         </Routes>
       </div>

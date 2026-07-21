@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Flame, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Flame, LogOut, LayoutDashboard, Shield, UserCircle } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 // ---- Navbar ----
@@ -29,6 +29,9 @@ const Navbar = () => {
               <>
                 <Link to="/dashboard" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <LayoutDashboard size={15} /> Dashboard
+                </Link>
+                <Link to="/profile" className="btn btn-outline" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                  <UserCircle size={15} /> Profilim
                 </Link>
                 {user.role === 'Admin' && (
                   <Link to="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', borderColor: '#ff6b6b', color: '#ff6b6b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
