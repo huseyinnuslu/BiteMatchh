@@ -1,11 +1,11 @@
 import { useEffect, useState, useContext } from 'react';
-import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
-  User, Users, BarChart2, Search, UserPlus, UserMinus,
-  Heart, Zap, Trophy, Calendar, ChevronRight, X,
+  Users, BarChart2, Search, UserPlus, UserMinus,
+  Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
+  UserCircle,
 } from 'lucide-react';
 import api from '../api';
 
@@ -16,21 +16,32 @@ const CATEGORY_ICONS = {
 };
 
 // ── Sekme bileşeni ───────────────────────────────────────────────────────────
-const Tab = ({ id, label, icon: Icon, active, onClick }) => (
+const Tab = ({ id, label, icon: Icon, active, onClick, badge }) => (
   <button
     onClick={() => onClick(id)}
     style={{
+      position: 'relative',
       display: 'flex', alignItems: 'center', gap: '0.4rem',
-      padding: '0.6rem 1.2rem', borderRadius: '10px', border: 'none',
+      padding: '0.6rem 1.1rem', borderRadius: '10px', border: 'none',
       background: active ? 'linear-gradient(135deg,var(--primary),var(--secondary))' : 'transparent',
       color: active ? 'white' : 'var(--text-muted)',
-      fontWeight: active ? 700 : 500, fontSize: '0.9rem',
+      fontWeight: active ? 700 : 500, fontSize: '0.88rem',
       cursor: 'pointer', transition: 'all 0.2s',
       boxShadow: active ? '0 4px 14px rgba(255,75,75,0.3)' : 'none',
     }}
   >
-    <Icon size={15} />
+    <Icon size={14} />
     {label}
+    {badge > 0 && (
+      <span style={{
+        position: 'absolute', top: 4, right: 4,
+        background: 'var(--danger)', color: 'white',
+        borderRadius: '50%', width: 17, height: 17,
+        fontSize: '0.65rem', fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        lineHeight: 1,
+      }}>{badge > 9 ? '9+' : badge}</span>
+    )}
   </button>
 );
 
@@ -38,7 +49,6 @@ const Tab = ({ id, label, icon: Icon, active, onClick }) => (
 const scoreColor = (s) =>
   s >= 70 ? 'var(--success)' : s >= 40 ? 'gold' : 'var(--text-muted)';
 
-// ── Uyum skoru çubuğu ────────────────────────────────────────────────────────
 const ScoreBar = ({ score }) => (
   <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.07)', borderRadius: '3px', overflow: 'hidden' }}>
     <motion.div
@@ -57,79 +67,98 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Arkadaş arama
+  // Arama
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [friendAction, setFriendAction] = useState(null); // işlem yapılan kullanıcı id'si
+  const [actionId, setActionId] = useState(null);
 
   // ── Profil yükle ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data } = await api.get('/users/profile');
-        setProfile(data);
-      } catch {
-        toast.error('Profil yüklenemedi');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const loadProfile = async () => {
+    try {
+      const { data } = await api.get('/users/profile');
+      setProfile(data);
+    } catch {
+      toast.error('Profil yüklenemedi');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // ── Kullanıcı arama ───────────────────────────────────────────────────────
+  useEffect(() => { loadProfile(); }, []);
+
+  // ── Kullanıcı arama (debounce 400ms) ─────────────────────────────────────
   useEffect(() => {
     if (searchQuery.length < 2) { setSearchResults([]); return; }
-    const timer = setTimeout(async () => {
+    const t = setTimeout(async () => {
       setSearching(true);
       try {
         const { data } = await api.get(`/users/search?q=${searchQuery}`);
         setSearchResults(data);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
+      } catch { setSearchResults([]); }
+      finally { setSearching(false); }
     }, 400);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
-  // ── Arkadaş ekle ─────────────────────────────────────────────────────────
-  const handleAddFriend = async (friendId) => {
-    setFriendAction(friendId);
+  // ── Arkadaşlık isteği gönder ──────────────────────────────────────────────
+  const handleSendRequest = async (friendId) => {
+    setActionId(friendId);
     try {
-      const { data } = await api.post(`/users/friends/${friendId}`);
-      toast.success(`Arkadaş eklendi! Uyum: %${data.compatibilityScore}`);
-      // Profili yenile
-      const { data: updated } = await api.get('/users/profile');
-      setProfile(updated);
-      setSearchQuery('');
-      setSearchResults([]);
+      await api.post(`/users/friends/${friendId}`);
+      toast.success('Arkadaşlık isteği gönderildi! 📨');
+      // Arama sonuçlarında "İstek Gönderildi" olarak güncelle
+      setSearchResults(prev =>
+        prev.map(u => u._id === friendId ? { ...u, isPending: true } : u)
+      );
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Eklenemedi');
-    } finally {
-      setFriendAction(null);
-    }
+      toast.error(e.response?.data?.message || 'İstek gönderilemedi');
+    } finally { setActionId(null); }
   };
 
-  // ── Arkadaş çıkar ────────────────────────────────────────────────────────
+  // ── Arkadaşlık isteği kabul et ────────────────────────────────────────────
+  const handleAccept = async (fromId) => {
+    setActionId(fromId);
+    try {
+      const { data } = await api.put(`/users/friends/${fromId}/accept`);
+      toast.success(`Arkadaşlık kabul edildi! 🎉 Uyum: %${data.compatibilityScore}`);
+      await loadProfile();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Kabul edilemedi');
+    } finally { setActionId(null); }
+  };
+
+  // ── Arkadaşlık isteği reddet ──────────────────────────────────────────────
+  const handleDecline = async (fromId) => {
+    setActionId(fromId);
+    try {
+      await api.delete(`/users/friends/${fromId}/decline`);
+      toast.info('İstek reddedildi');
+      setProfile(prev => ({
+        ...prev,
+        pendingFriendRequests: prev.pendingFriendRequests.filter(r => r._id !== fromId),
+        pendingCount: prev.pendingCount - 1,
+      }));
+    } catch { toast.error('İşlem başarısız'); }
+    finally { setActionId(null); }
+  };
+
+  // ── Arkadaşı çıkar ────────────────────────────────────────────────────────
   const handleRemoveFriend = async (friendId) => {
-    setFriendAction(friendId);
+    setActionId(friendId);
     try {
       await api.delete(`/users/friends/${friendId}`);
       toast.success('Arkadaş listeden çıkarıldı');
-      setProfile(prev => ({ ...prev, friends: prev.friends.filter(f => f._id !== friendId), friendCount: prev.friendCount - 1 }));
-    } catch {
-      toast.error('Çıkarılamadı');
-    } finally {
-      setFriendAction(null);
-    }
+      setProfile(prev => ({
+        ...prev,
+        friends: prev.friends.filter(f => f._id !== friendId),
+        friendCount: prev.friendCount - 1,
+      }));
+    } catch { toast.error('Çıkarılamadı'); }
+    finally { setActionId(null); }
   };
 
-  // ── Arkadaş mı kontrolü ───────────────────────────────────────────────────
-  const isFriend = (id) => profile?.friends?.some(f => f._id === id);
-
+  // ── Yükleniyor ────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex-center" style={{ height: '70vh', flexDirection: 'column', gap: '1rem' }}>
       <div className="pulse-primary" style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--surface)' }} />
@@ -139,7 +168,7 @@ const Profile = () => {
 
   if (!profile) return null;
 
-  const { stats, friends } = profile;
+  const { stats, friends, pendingFriendRequests, pendingCount } = profile;
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryDistribution || {}).sort((a, b) => b[1] - a[1]);
   const topCategory = categoryEntries[0];
@@ -154,7 +183,6 @@ const Profile = () => {
         className="glass-card"
         style={{ marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}
       >
-        {/* Arka plan dekor */}
         <div style={{
           position: 'absolute', top: -60, right: -60,
           width: 200, height: 200, borderRadius: '50%',
@@ -174,7 +202,6 @@ const Profile = () => {
             {profile.username?.[0]?.toUpperCase() || '?'}
           </div>
 
-          {/* Bilgiler */}
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: 0, fontSize: '1.6rem' }}>{profile.name || profile.username}</h2>
             <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0.6rem' }}>@{profile.username}</p>
@@ -185,6 +212,14 @@ const Profile = () => {
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Users size={13} /> {profile.friendCount} arkadaş
               </span>
+              {pendingCount > 0 && (
+                <span
+                  onClick={() => setActiveTab('pending')}
+                  style={{ fontSize: '0.82rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  🔔 {pendingCount} bekleyen istek
+                </span>
+              )}
               {topCategory && (
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   {CATEGORY_ICONS[topCategory[0]] || '⭐'} {topCategory[0]} ustası
@@ -209,33 +244,27 @@ const Profile = () => {
       </motion.div>
 
       {/* ── Sekmeler ────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px' }}>
-        <Tab id="stats"   label="İstatistikler" icon={BarChart2} active={activeTab === 'stats'}   onClick={setActiveTab} />
-        <Tab id="friends" label="Arkadaşlar"    icon={Users}     active={activeTab === 'friends'} onClick={setActiveTab} />
-        <Tab id="add"     label="Arkadaş Bul"   icon={UserPlus}  active={activeTab === 'add'}     onClick={setActiveTab} />
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px', flexWrap: 'wrap' }}>
+        <Tab id="stats"   label="İstatistikler" icon={BarChart2}   active={activeTab === 'stats'}   onClick={setActiveTab} />
+        <Tab id="friends" label="Arkadaşlar"    icon={Users}       active={activeTab === 'friends'} onClick={setActiveTab} />
+        <Tab id="pending" label="İstekler"      icon={Clock}       active={activeTab === 'pending'} onClick={setActiveTab} badge={pendingCount} />
+        <Tab id="add"     label="Arkadaş Bul"   icon={UserPlus}    active={activeTab === 'add'}     onClick={setActiveTab} />
       </div>
 
       <AnimatePresence mode="wait">
 
-        {/* ══ İstatistikler Sekmesi ══════════════════════════════════════ */}
+        {/* ══ İstatistikler ═══════════════════════════════════════════════ */}
         {activeTab === 'stats' && (
           <motion.div key="stats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-
-            {/* Özet kartlar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               {[
                 { icon: '👆', label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
-                { icon: '❤️', label: 'Beğeni', value: stats.totalLikes, color: 'var(--success)' },
+                { icon: '❤️', label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
                 { icon: '📊', label: 'Beğeni Oranı', value: `%${stats.likeRatio}`, color: 'var(--accent)' },
-                { icon: '🏠', label: 'Katıldığı Oda', value: stats.totalRooms, color: 'gold' },
-                { icon: '✅', label: 'Tamamlanan', value: stats.completedRooms, color: 'var(--success)' },
-              ].map((s) => (
-                <motion.div
-                  key={s.label}
-                  whileHover={{ y: -3 }}
-                  className="glass-card"
-                  style={{ textAlign: 'center', padding: '1.2rem 0.8rem' }}
-                >
+                { icon: '🏠', label: 'Oda',          value: stats.totalRooms,  color: 'gold' },
+                { icon: '✅', label: 'Tamamlanan',   value: stats.completedRooms, color: 'var(--success)' },
+              ].map(s => (
+                <motion.div key={s.label} whileHover={{ y: -3 }} className="glass-card" style={{ textAlign: 'center', padding: '1.2rem 0.8rem' }}>
                   <div style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>{s.icon}</div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value ?? '—'}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>{s.label}</div>
@@ -243,16 +272,14 @@ const Profile = () => {
               ))}
             </div>
 
-            {/* Kategori dağılımı */}
-            {categoryEntries.length > 0 && (
+            {categoryEntries.length > 0 ? (
               <div className="glass-card">
                 <h3 style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Trophy size={18} color="gold" /> Kategori Dağılımı
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                   {categoryEntries.map(([cat, count]) => {
-                    const maxCount = categoryEntries[0][1];
-                    const pct = Math.round((count / maxCount) * 100);
+                    const pct = Math.round((count / categoryEntries[0][1]) * 100);
                     return (
                       <div key={cat}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.88rem' }}>
@@ -272,18 +299,16 @@ const Profile = () => {
                   })}
                 </div>
               </div>
-            )}
-
-            {categoryEntries.length === 0 && (
+            ) : (
               <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-                <p style={{ color: 'var(--text-muted)' }}>Henüz istatistik oluşmadı. Oda katıl ve kaydırmaya başla!</p>
+                <p style={{ color: 'var(--text-muted)' }}>Oda katıl ve kaydırmaya başla!</p>
               </div>
             )}
           </motion.div>
         )}
 
-        {/* ══ Arkadaşlar Sekmesi ════════════════════════════════════════ */}
+        {/* ══ Arkadaşlar ═══════════════════════════════════════════════════ */}
         {activeTab === 'friends' && (
           <motion.div key="friends" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             {friends.length === 0 ? (
@@ -306,7 +331,6 @@ const Profile = () => {
                     className="glass-card"
                     style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
-                    {/* Avatar */}
                     <div style={{
                       width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
                       background: 'linear-gradient(135deg,var(--surface-hover),var(--surface))',
@@ -317,7 +341,6 @@ const Profile = () => {
                       {f.username?.[0]?.toUpperCase()}
                     </div>
 
-                    {/* Bilgi */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600 }}>@{f.username}</div>
                       <div style={{ marginTop: '0.3rem' }}>
@@ -329,17 +352,16 @@ const Profile = () => {
                       </div>
                     </div>
 
-                    {/* Çıkar */}
                     <button
                       onClick={() => handleRemoveFriend(f._id)}
-                      disabled={friendAction === f._id}
+                      disabled={actionId === f._id}
+                      title="Arkadaşlıktan çıkar"
                       style={{
                         width: 34, height: 34, borderRadius: '50%', border: 'none',
                         background: 'rgba(239,68,68,0.1)', color: 'var(--danger)',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0, transition: 'all 0.2s',
+                        flexShrink: 0, transition: 'all 0.2s', opacity: actionId === f._id ? 0.5 : 1,
                       }}
-                      title="Arkadaşlıktan çıkar"
                     >
                       <UserMinus size={15} />
                     </button>
@@ -350,33 +372,97 @@ const Profile = () => {
           </motion.div>
         )}
 
-        {/* ══ Arkadaş Bul Sekmesi ═══════════════════════════════════════ */}
+        {/* ══ Bekleyen İstekler ════════════════════════════════════════════ */}
+        {activeTab === 'pending' && (
+          <motion.div key="pending" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+            {pendingFriendRequests.length === 0 ? (
+              <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+                <h3 style={{ marginBottom: '0.5rem' }}>Bekleyen istek yok</h3>
+                <p style={{ color: 'var(--text-muted)' }}>Başkalarına arkadaşlık isteği gönderebilirsin.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                  {pendingFriendRequests.length} kişi sana arkadaşlık isteği gönderdi
+                </p>
+                {pendingFriendRequests.map((req, i) => (
+                  <motion.div
+                    key={req._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="glass-card"
+                    style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem', borderColor: 'rgba(255,75,75,0.2)' }}
+                  >
+                    {/* Avatar */}
+                    <div style={{
+                      width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+                      background: 'linear-gradient(135deg,var(--primary),var(--secondary))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '1.2rem', fontWeight: 700, color: 'white',
+                    }}>
+                      {req.username?.[0]?.toUpperCase()}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>@{req.username}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                        sana arkadaşlık isteği gönderdi
+                      </div>
+                    </div>
+
+                    {/* Kabul / Reddet */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleAccept(req._id)}
+                        disabled={actionId === req._id}
+                        className="btn btn-primary"
+                        style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', gap: '0.3rem' }}
+                      >
+                        <CheckCircle size={14} />
+                        {actionId === req._id ? '...' : 'Kabul'}
+                      </button>
+                      <button
+                        onClick={() => handleDecline(req._id)}
+                        disabled={actionId === req._id}
+                        style={{
+                          padding: '0.4rem 0.9rem', borderRadius: '10px', border: '1px solid var(--danger)',
+                          background: 'rgba(239,68,68,0.08)', color: 'var(--danger)',
+                          cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem',
+                          opacity: actionId === req._id ? 0.5 : 1,
+                        }}
+                      >
+                        <XCircle size={14} />
+                        Reddet
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ══ Arkadaş Bul ══════════════════════════════════════════════════ */}
         {activeTab === 'add' && (
           <motion.div key="add" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             <div className="glass-card" style={{ marginBottom: '1rem' }}>
               <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Search size={18} color="var(--accent)" /> Kullanıcı Ara
               </h3>
-
-              {/* Arama kutusu */}
               <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                 <input
                   className="input-field"
-                  placeholder="Kullanıcı adıyla ara... (min 2 karakter)"
+                  placeholder="Kullanıcı adıyla ara..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   style={{ paddingLeft: '2.6rem' }}
                 />
-                {searchQuery && (
-                  <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={16} />
-                  </button>
-                )}
               </div>
             </div>
 
-            {/* Sonuçlar */}
             <AnimatePresence>
               {searching && (
                 <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Aranıyor...</div>
@@ -407,18 +493,22 @@ const Profile = () => {
                         {u.name && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{u.name}</div>}
                       </div>
 
-                      {isFriend(u._id) ? (
+                      {u.isFriend ? (
                         <span style={{ fontSize: '0.8rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           <Heart size={13} fill="var(--success)" /> Arkadaşsınız
                         </span>
+                      ) : u.isPending ? (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={13} /> İstek Gönderildi
+                        </span>
                       ) : (
                         <button
-                          onClick={() => handleAddFriend(u._id)}
-                          disabled={friendAction === u._id}
+                          onClick={() => handleSendRequest(u._id)}
+                          disabled={actionId === u._id}
                           className="btn btn-primary"
                           style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
                         >
-                          {friendAction === u._id ? '...' : <><UserPlus size={14} /> Ekle</>}
+                          {actionId === u._id ? '...' : <><UserPlus size={14} /> İstek Gönder</>}
                         </button>
                       )}
                     </motion.div>

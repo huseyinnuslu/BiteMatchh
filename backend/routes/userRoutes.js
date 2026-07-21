@@ -1,13 +1,21 @@
 /**
  * userRoutes.js
  * BiteMatch – Kullanıcı profil ve arkadaş yönetimi rotaları
+ *
+ * Arkadaşlık akışı:
+ *   POST   /friends/:id          → İstek gönder
+ *   PUT    /friends/:id/accept   → İsteği kabul et
+ *   DELETE /friends/:id/decline  → İsteği reddet
+ *   DELETE /friends/:id          → Arkadaşı çıkar
  */
 
 import express from 'express';
 import {
   getProfile,
   searchUsers,
-  addFriend,
+  sendFriendRequest,
+  acceptFriendRequest,
+  declineFriendRequest,
   removeFriend,
   getFriends,
 } from '../controllers/userController.js';
@@ -21,12 +29,22 @@ router.use(protect);
 // Profil
 router.get('/profile', getProfile);
 
-// Kullanıcı arama (arkadaş bul)
+// Kullanıcı arama
 router.get('/search', searchUsers);
 
-// Arkadaş yönetimi
+// Arkadaş listesi
 router.get('/friends', getFriends);
-router.post('/friends/:id', addFriend);
+
+// Arkadaşlık isteği gönder
+router.post('/friends/:id', sendFriendRequest);
+
+// Arkadaşlık isteği kabul et
+router.put('/friends/:id/accept', acceptFriendRequest);
+
+// Arkadaşlık isteği reddet
+router.delete('/friends/:id/decline', declineFriendRequest);
+
+// Arkadaşı çıkar
 router.delete('/friends/:id', removeFriend);
 
 export default router;

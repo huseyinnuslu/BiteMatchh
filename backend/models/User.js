@@ -50,6 +50,16 @@ const userSchema = mongoose.Schema(
       },
     ],
 
+    // ── Bekleyen Arkadaşlık İstekleri (gelen) ────────────────────────────
+    // Bu diziye isteği GÖNDEREN kişinin _id'si eklenir.
+    // Kabul edilirse friends'e taşınır, reddedilirse silinir.
+    pendingFriendRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+
     // ── Kullanıcı İstatistikleri ───────────────────────────────────────────
     stats: {
       // Toplam kaydırma sayısı (like + dislike)
