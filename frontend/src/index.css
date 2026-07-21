@@ -25,11 +25,12 @@
   font-family: 'Outfit', sans-serif;
 }
 
-body {
+html, body {
   background-color: var(--background);
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
+  max-width: 100%;
   -webkit-font-smoothing: antialiased;
 }
 
