@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, MapPin, Share2, ExternalLink, Navigation } from 'lucide-react';
 import Confetti from 'react-confetti';
+import { toast } from 'react-toastify';
 
 // ── Yardımcı: URL oluşturucular ──────────────────────────────────────────────
 
@@ -32,9 +33,24 @@ const handleShare = async (name, location) => {
       await navigator.share({ title: 'BiteMatch Eşleşmesi!', text, url: window.location.href });
     } catch (e) { /* kullanıcı iptal etti */ }
   } else {
-    // Fallback: metni kopyala
-    navigator.clipboard.writeText(text);
-    alert('Link panoya kopyalandı! 📋');
+    // Fallback: metni kopyala + yeşil toast göster
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Eski tarayıcılar için execCommand fallback
+      const el = document.createElement('textarea');
+      el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
+      document.body.appendChild(el); el.focus(); el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    toast.success('Bağlantı panoya kopyalandı! 📋', {
+      position: 'top-right',
+      autoClose: 2500,
+      hideProgressBar: false,
+      theme: 'dark',
+      style: { background: '#0f172a', border: '1px solid rgba(34,197,94,0.3)' },
+    });
   }
 };
 

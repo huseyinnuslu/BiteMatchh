@@ -14,6 +14,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 
@@ -88,6 +89,7 @@ app.use('/api/admin',  apiLimiter,  adminRoutes);
 app.use('/api/users',  apiLimiter,  userRoutes);
 app.use('/api/events', apiLimiter,  eventRoutes);
 app.use('/api/notifications', apiLimiter, notificationRoutes);
+app.use('/api/messages', apiLimiter, messageRoutes);
 
 // Health check — Render keep-alive için
 app.get('/',        (_req, res) => res.json({ status: 'ok', app: 'BiteMatch API' }));

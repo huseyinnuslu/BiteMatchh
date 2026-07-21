@@ -1,17 +1,54 @@
+/**
+ * Message.js
+ * BiteMatch – Mesajlaşma şeması
+ * İki mod: 'room' (oda içi) ve 'direct' (arkadaşlar arası DM)
+ */
 import mongoose from 'mongoose';
 
 const messageSchema = new mongoose.Schema(
   {
-    room:       { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true, index: true },
-    sender:     { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // 'room' → oda içi sohbet, 'direct' → kişiden kişiye DM
+    type: {
+      type:    String,
+      enum:    ['room', 'direct'],
+      default: 'room',
+    },
+    // Oda mesajı için (direct'te null)
+    room: {
+      type:    mongoose.Schema.Types.ObjectId,
+      ref:     'Room',
+      default: null,
+    },
+    // DM için alıcı (room mesajında null)
+    recipient: {
+      type:    mongoose.Schema.Types.ObjectId,
+      ref:     'User',
+      default: null,
+      index:   true,
+    },
+    sender: {
+      type:     mongoose.Schema.Types.ObjectId,
+      ref:      'User',
+      required: true,
+      index:    true,
+    },
     senderName: { type: String, required: true },
     text:       { type: String, required: true, maxlength: 500 },
-    expireAt:   { type: Date, default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+    // Oda mesajları 7 gün, DM'ler 90 gün saklanır
+    expireAt: {
+      type:    Date,
+      default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    },
   },
   { timestamps: true }
 );
 
+// TTL – expireAt geçince MongoDB otomatik siler
 messageSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+// Oda sorguları
+messageSchema.index({ room: 1, createdAt: 1 });
+// DM sorguları – (sender, recipient) çifti
+messageSchema.index({ sender: 1, recipient: 1, createdAt: 1 });
 
 const Message = mongoose.model('Message', messageSchema);
 export default Message;

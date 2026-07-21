@@ -9,6 +9,7 @@ import Room from './pages/Room';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
+import Messages from './pages/Messages';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -38,6 +39,10 @@ function App() {
           <Route 
             path="/profile" 
             element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/messages" 
+            element={<ProtectedRoute><Messages /></ProtectedRoute>} 
           />
         </Routes>
       </div>

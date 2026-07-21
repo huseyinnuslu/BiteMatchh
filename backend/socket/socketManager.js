@@ -90,6 +90,41 @@ export const initSocket = (io) => {
       if (toSocket) io.to(toSocket).emit('new_friend_request', { fromUsername, message: `${fromUsername} size arkadaslik istegi gonderdi` });
     });
 
+    // send_direct_message: arkadaslar arasi DM
+    // Payload: { toUserId, text, senderName }
+    socket.on('send_direct_message', async ({ toUserId, text, senderName }) => {
+      const myId = socket.data.userId;
+      if (!myId || !toUserId || !text?.trim()) return;
+
+      const msg = {
+        _id:        Date.now().toString(),
+        type:       'direct',
+        sender:     myId,
+        senderName: senderName || socket.data.username,
+        recipient:  toUserId,
+        text:       text.slice(0, 500),
+        createdAt:  new Date().toISOString(),
+      };
+
+      // Aliciya ilet (online ise)
+      const toSocket = onlineUsers.get(toUserId);
+      if (toSocket) io.to(toSocket).emit('receive_direct_message', msg);
+
+      // Gönderene de yansit (birden fazla sekme/cihaz icin)
+      socket.emit('receive_direct_message', { ...msg, isMine: true });
+
+      // DB'ye async kaydet
+      try {
+        await Message.create({
+          type:       'direct',
+          sender:     myId,
+          senderName: msg.senderName,
+          recipient:  toUserId,
+          text:       msg.text,
+        });
+      } catch (e) { console.error('DM kaydedilemedi:', e.message); }
+    });
+
     // disconnect
     socket.on('disconnect', (reason) => {
       const { roomCode, userId, username } = socket.data;
