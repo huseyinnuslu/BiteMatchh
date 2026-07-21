@@ -348,11 +348,13 @@ const Dashboard = () => {
             <div style={{
               display: 'flex', gap: '0.85rem',
               overflowX: 'auto', overflowY: 'visible',
-              paddingBottom: '0.75rem', paddingTop: '0.25rem',
+              paddingBottom: '1rem', paddingTop: '0.5rem',
+              paddingLeft: '2px', paddingRight: '16px',
               scrollSnapType: 'x mandatory',
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
+              cursor: 'grab',
             }}>
               {liveEvents.map((ev, i) => (
                 <div

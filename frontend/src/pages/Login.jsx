@@ -7,7 +7,7 @@ import { AuthContext } from '../context/AuthContext';
 const GOOGLE_ENABLED = !!(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, guestLogin, googleLogin } = useContext(AuthContext);
@@ -19,7 +19,7 @@ const Login = () => {
   // E-posta + Şifre ile giriş
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await login(email, password);
+    const result = await login(identifier, password);
     if (result.success) navigate(from, { replace: true });
   };
 
@@ -55,13 +55,15 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label>Email</label>
+            <label>E-posta veya Kullanıcı Adı</label>
             <input
-              type="email"
+              type="text"
               className="input-field"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="E-posta veya @kullanıcıadı"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
+              autoComplete="username"
             />
           </div>
           <div className="input-group">

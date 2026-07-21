@@ -96,17 +96,19 @@ export const registerUser = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    // identifier: e-posta VEYA kullanici adi kabul edilir
+    const { email, identifier, password } = req.body;
+    const loginId = identifier || email;
 
-    if (!email || !password) {
+    if (!loginId || !password) {
       res.status(400);
-      throw new Error('E-posta ve sifre zorunludur');
+      throw new Error('E-posta/kullanici adi ve sifre zorunludur');
     }
 
-    // Sadece gerekli alanlari cek (password hash dahil, geri kalanlar gelmez)
-    const user = await User.findOne({ email }).select(
-      '_id name username email role password'
-    );
+    // $or sorgusu: hem email hem username ile eslisir
+    const user = await User.findOne({
+      $or: [{ email: loginId }, { username: loginId }],
+    }).select('_id name username email role password');
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -119,7 +121,7 @@ export const loginUser = async (req, res, next) => {
       });
     } else {
       res.status(401);
-      throw new Error('Gecersiz email veya sifre');
+      throw new Error('Gecersiz e-posta/kullanici adi veya sifre');
     }
   } catch (error) {
     next(error);

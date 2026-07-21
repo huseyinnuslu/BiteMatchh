@@ -60,6 +60,12 @@ const userSchema = mongoose.Schema(
       },
     ],
 
+    // ── Web Push Bildirimi Abonelik Verisi ────────────────────────────────
+    pushSubscription: {
+      type: Object,
+      default: null,
+    },
+
     // ── Kullanıcı İstatistikleri ───────────────────────────────────────────
     stats: {
       // Toplam kaydırma sayısı (like + dislike)

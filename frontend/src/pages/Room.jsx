@@ -7,6 +7,7 @@ import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw } from 'lucide-reac
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
+import ChatDrawer from '../components/ChatDrawer';
 import { connectSocket, disconnectSocket, getSocket } from '../socket/socketClient';
 
 const Room = () => {
@@ -21,6 +22,8 @@ const Room = () => {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [socketMatch, setSocketMatch] = useState(null); // Socket'tan gelen anlık eşleşme
+  const [chatOpen, setChatOpen]         = useState(false);
+  const [chatMatchItem, setChatMatchItem] = useState(null);
   const pollingRef = useRef(null);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
 
@@ -86,6 +89,8 @@ const Room = () => {
         const matched =
           currentRoom?.options?.find((o) => String(o._id) === String(itemId)) || null;
         setSocketMatch(matched);
+        setChatMatchItem(matched);
+        setTimeout(() => setChatOpen(true), 1200);
 
         // Backend'i de güncelle (status=finished yapması için)
         fetchRoomStatus(id);
@@ -349,6 +354,13 @@ const Room = () => {
         isOpen={!!activeMatch}
         matchResult={activeMatch}
         onClose={() => navigate('/dashboard')}
+      />
+      <ChatDrawer
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        roomCode={id}
+        roomId={id}
+        matchedItem={chatMatchItem || matchResult || socketMatch}
       />
     </div>
   );
