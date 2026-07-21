@@ -32,6 +32,18 @@ const candidateSchema = mongoose.Schema(
     platform:    String,
     duration:    String,
     location:    String,
+    mapsQuery:   String,
+
+    /**
+     * Dış API'den gelen etkinliğin benzersiz kimliği.
+     * Format: "eventbrite_12345" | "ticketmaster_ABCDE" | "ibb_99"
+     * Duplicate upsert için index anahtarı olarak kullanılır.
+     */
+    externalId: {
+      type:    String,
+      default: null,
+      sparse:  true,
+    },
 
     // ── Canlı Etkinlik Alanları ───────────────────────────────────────────
     /** Kartın süreli/canlı bir etkinlik olup olmadığı */
@@ -73,6 +85,10 @@ candidateSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0, sparse: true });
 // Kart havuzu sorgularında kullanılan filtreler için
 candidateSchema.index({ category: 1, isLiveEvent: 1 });
 candidateSchema.index({ isLiveEvent: 1, eventDate: 1 });
+
+// externalId: dış API etkinliklerinde duplicate'i önler
+candidateSchema.index({ externalId: 1 }, { unique: true, sparse: true });
+
 
 const Candidate = mongoose.model('Candidate', candidateSchema);
 

@@ -1,0 +1,78 @@
+name: 🎭 Canlı Etkinlik Sync
+
+on:
+  # Her gece 03:00 UTC (Türkiye 06:00) — etkinlik veritabanı güncellenir
+  schedule:
+    - cron: '0 3 * * *'
+
+  # Manuel tetikleme — GitHub Actions sekmesinden "Run workflow" ile çalıştır
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (sadece log, DB kaydetme)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  fetch-events:
+    name: 📡 Etkinlik Verisi Çek & Kaydet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Repoyu checkout et
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      # 2. Node.js ortamını kur
+      - name: 🟢 Node.js Kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # 3. Backend bağımlılıklarını yükle (mongoose, dotenv vb.)
+      - name: 📦 Bağımlılıkları Yükle
+        run: npm ci
+        working-directory: backend
+
+      # 4. ETL scriptini çalıştır
+      #    Secrets GitHub'dan güvenli şekilde inject edilir.
+      #    Hiçbir secret log'a yazdırılmaz.
+      - name: 🎭 Etkinlik Sync Scripti
+        env:
+          MONGO_URI:          ${{ secrets.MONGO_URI }}
+          EVENTBRITE_TOKEN:   ${{ secrets.EVENTBRITE_TOKEN }}
+          TICKETMASTER_KEY:   ${{ secrets.TICKETMASTER_KEY }}
+          NODE_ENV:           production
+          DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
+        run: node ../scripts/fetchLiveEvents.js
+        working-directory: backend
+
+      # 5. Sonuç özeti — başarı veya hata GitHub Summary'e yazdırılır
+      - name: 📋 Özet
+        if: always()
+        run: |
+          echo "## 🎭 BiteMatch Etkinlik Sync Sonucu" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Alan | Değer |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tarih (UTC) | $(date -u '+%Y-%m-%d %H:%M') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tetikleyici | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Durum | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+
+  # Opsiyonel: Sync başarısız olursa bildirim
+  notify-on-failure:
+    name: 🚨 Hata Bildirimi
+    runs-on: ubuntu-latest
+    needs: fetch-events
+    if: failure()
+    steps:
+      - name: 🚨 Hata Logu
+        run: |
+          echo "❌ BiteMatch etkinlik sync başarısız oldu!"
+          echo "Tetikleyici: ${{ github.event_name }}"
+          echo "Zaman: $(date -u)"
+          echo "Lütfen GitHub Actions loglarını kontrol edin."
