@@ -485,23 +485,38 @@ const Dashboard = () => {
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.92) 100%)',
                   }} />
 
-                  {/* Kaynak badge — sol üst */}
-                  {ev.eventSource && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: 10,
-                      background: 'rgba(0,0,0,0.55)',
-                      backdropFilter: 'blur(6px)',
-                      borderRadius: '6px',
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.65rem', fontWeight: 700,
-                      color: 'rgba(255,255,255,0.85)',
-                      letterSpacing: '0.03em',
-                    }}>
-                      {ev.eventSource}
-                    </div>
-                  )}
+                  {/* Kaynak badge — sol üst: platform rozetini ticketUrl içeriğine göre belirle */}
+                  {(() => {
+                    const tUrl = ev.ticketUrl || '';
+                    let label, bg;
+                    if (tUrl.includes('passo.com.tr')) {
+                      label = '🎟 Passo'; bg = 'rgba(234,88,12,0.85)';
+                    } else if (tUrl.includes('biletix.com')) {
+                      label = '🎟 Biletix'; bg = 'rgba(37,99,235,0.85)';
+                    } else if (tUrl.includes('biletinial.com')) {
+                      label = '🎟 Biletinial'; bg = 'rgba(124,58,237,0.85)';
+                    } else if (ev.eventSource === 'IBB') {
+                      label = '🏛 IBB Etkinlik'; bg = 'rgba(4,120,87,0.85)';
+                    } else if (ev.eventSource === 'Eventbrite') {
+                      label = '📍 Eventbrite'; bg = 'rgba(248,113,113,0.7)';
+                    } else {
+                      label = '🎯 Kültür Sanat'; bg = 'rgba(0,0,0,0.55)';
+                    }
+                    return (
+                      <div style={{
+                        position: 'absolute', top: 10, left: 10,
+                        background: bg,
+                        backdropFilter: 'blur(6px)',
+                        borderRadius: '6px',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.62rem', fontWeight: 700,
+                        color: 'rgba(255,255,255,0.95)',
+                        letterSpacing: '0.03em',
+                      }}>{label}</div>
+                    );
+                  })()}
 
-                  {/* Bilet badge — sağ üst (ticketUrl varsa) */}
+                  {/* Bilet badge — sağ üst: sadece gerçek bir ticketUrl varsa */}
                   {ev.ticketUrl && (
                     <div style={{
                       position: 'absolute', top: 10, right: 10,
@@ -578,7 +593,7 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    {/* CTA: Bilet Al + Haritada Gör — ayrı butonlar */}
+                    {/* CTA: Bilet Al + Haritada Gör */}
                     <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.3rem' }}>
                       {ev.ticketUrl && (
                         <button
@@ -616,7 +631,7 @@ const Dashboard = () => {
                           style={{
                             flex: 1, padding: '0.45rem 0.25rem',
                             borderRadius: '10px', border: 'none',
-                            background: ev.ticketUrl ? 'rgba(66,133,244,0.25)' : 'rgba(66,133,244,0.4)',
+                            background: ev.ticketUrl ? 'rgba(66,133,244,0.25)' : 'rgba(66,133,244,0.55)',
                             color: 'white', fontSize: '0.7rem', fontWeight: 800,
                             cursor: 'pointer', textAlign: 'center',
                             transition: 'opacity 0.15s',

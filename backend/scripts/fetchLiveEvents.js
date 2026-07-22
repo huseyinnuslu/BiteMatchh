@@ -79,6 +79,26 @@ function fallbackImage(name = '', cat = '') {
   return FALLBACK.default;
 }
 
+// ── Güvenli ticketUrl doğrulayıcı ────────────────────────────────────────────
+// Jenerik ana sayfa URL'lerini reddeder, null döndürür.
+const GENERIC_HOMES = [
+  'https://www.passo.com.tr', 'https://passo.com.tr',
+  'https://www.biletix.com',  'https://biletix.com',
+  'https://www.biletinial.com', 'https://biletinial.com',
+];
+function safeTicketUrl(url) {
+  if (!url) return null;
+  const stripped = url.replace(/\/+$/, '');
+  if (GENERIC_HOMES.some(g => stripped === g || stripped === g.replace('https://', 'http://'))) return null;
+  return url;
+}
+
+function expireIn10Days(eventDate) {
+  const d = new Date(eventDate);
+  d.setDate(d.getDate() + 10);
+  return d;
+}
+
 // ── HTTP/HTTPS GET helper ─────────────────────────────────────────────────────
 function fetchJSON(url, headers = {}) {
   return new Promise((res, rej) => {
@@ -130,19 +150,20 @@ async function fetchFromBiletix() {
       const eventDate = rawDate ? new Date(rawDate) : null;
       if (!eventDate || isNaN(eventDate) || eventDate < now) continue;
 
-      const expireAt = new Date(eventDate);
-      expireAt.setHours(expireAt.getHours() + 4);
+      const expireAt = expireIn10Days(eventDate);
 
       const name    = Array.isArray(d.event_name) ? d.event_name[0] : (d.event_name || '');
       const venue   = Array.isArray(d.venue_name) ? d.venue_name[0] : (d.venue_name || '');
       const cat     = Array.isArray(d.category_name) ? d.category_name[0] : (d.category_name || '');
       const imgRaw  = Array.isArray(d.imageurl) ? d.imageurl[0] : (d.imageurl || '');
       const eventId = d.id || '';
+      const eventUrl = Array.isArray(d.event_url) ? d.event_url[0] : (d.event_url || '');
 
-      // Biletix bilet URL'i: eventId'den oluşturulur
-      const ticketUrl = eventId
+      // Biletix bilet URL'i: spesifik etkinlik sayfası (eventId veya event_url'den)
+      const rawTicket = eventId
         ? `https://www.biletix.com/etkinlik/${eventId}/TURK/tr`
-        : null;
+        : (eventUrl || null);
+      const ticketUrl = safeTicketUrl(rawTicket);
 
       const imageUrl = imgRaw
         ? (imgRaw.startsWith('http') ? imgRaw : `https://www.biletix.com${imgRaw}`)
@@ -196,17 +217,18 @@ async function fetchFromPasso() {
       const eventDate = dateStr ? new Date(dateStr) : null;
       if (!eventDate || isNaN(eventDate) || eventDate < now) continue;
 
-      const expireAt = new Date(eventDate);
-      expireAt.setHours(expireAt.getHours() + 4);
+      const expireAt = expireIn10Days(eventDate);
 
       const name   = item.name || item.title || item.event_name || '';
       const venue  = item.venue?.name || item.venue_name || item.place || '';
       const slug   = item.slug || item.id || '';
       const imgRaw = item.image || item.cover || item.thumbnail || '';
 
-      const ticketUrl = slug
+      // Passo: sadece spesifik etkinlik sayfası
+      const rawPassoTicket = slug
         ? `https://passo.com.tr/etkinlik/${slug}`
         : (item.url || item.link || null);
+      const ticketUrl = safeTicketUrl(rawPassoTicket);
 
       const imageUrl = imgRaw
         ? (imgRaw.startsWith('http') ? imgRaw : `https://passo.com.tr${imgRaw}`)
@@ -255,12 +277,12 @@ async function fetchFromIBB() {
       const eventDate = tarihStr ? new Date(tarihStr) : null;
       if (!eventDate || isNaN(eventDate) || eventDate < now) continue;
 
-      const expireAt = new Date(eventDate);
-      expireAt.setHours(expireAt.getHours() + 4);
+      const expireAt = expireIn10Days(eventDate);
 
       const name     = r['Etkinlik Adı'] || r['ad'] || r['NAME'] || 'IBB Etkinliği';
       const mekan    = r['Mekan'] || r['mekan'] || r['LOCATION'] || 'İstanbul';
-      const ticketUrl = r['Bilet Linki'] || r['bilet_url'] || r['TICKET_URL'] || null;
+      // IBB: spesifik bilet linki yoksa null — ana sayfa göndermiyoruz
+      const ticketUrl = safeTicketUrl(r['Bilet Linki'] || r['bilet_url'] || r['TICKET_URL'] || null);
       const rawImg   = r['Resim'] || r['resim'] || r['IMAGE'] || '';
 
       events.push({
