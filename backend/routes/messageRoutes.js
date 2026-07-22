@@ -46,11 +46,14 @@ router.get('/conversations', protect, async (req, res, next) => {
 
       const otherId   = senderId === myIdStr ? recipientId   : senderId;
       const otherUser = senderId === myIdStr ? msg.recipient : msg.sender;
+      
+      // sharedEvent nesnesinin dolu olup olmadığını kontrol et (sadece boş obje gelmesine karşı isim kontrolü yap)
+      const isShared = msg.sharedEvent && msg.sharedEvent.name ? true : false;
 
       if (!convMap.has(otherId)) {
         convMap.set(otherId, {
           user:        otherUser,
-          lastMessage: { text: msg.text, createdAt: msg.createdAt, senderId },
+          lastMessage: { text: msg.text, createdAt: msg.createdAt, senderId, hasSharedEvent: isShared },
         });
       }
     }

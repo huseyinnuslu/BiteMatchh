@@ -197,25 +197,29 @@ export const joinRoom = async (req, res, next) => {
 // @access  Private
 export const deleteRoom = async (req, res, next) => {
   try {
-    const room = await Room.findById(req.params.id).select('host _id');
+    const room = await Room.findById(req.params.id);
 
     if (!room) {
       res.status(404);
       throw new Error('Oda bulunamadı');
     }
 
-    if (room.host.toString() !== req.user._id.toString()) {
+    if (room.host.toString() === req.user._id.toString()) {
+      // Paralel silme: oda ve swipe'ları aynı anda sil
+      await Promise.all([
+        Room.deleteOne({ _id: room._id }),
+        Swipe.deleteMany({ room: room._id }),
+      ]);
+      res.json({ message: 'Oda başarıyla silindi' });
+    } else if (room.participants.some(p => p.toString() === req.user._id.toString())) {
+      // Katılımcı ise kendini katılımcılar listesinden çıkar (geçmişten silmek için)
+      room.participants = room.participants.filter(p => p.toString() !== req.user._id.toString());
+      await room.save();
+      res.json({ message: 'Oda geçmişinizden kaldırıldı' });
+    } else {
       res.status(401);
-      throw new Error('Bu odayı silme yetkiniz yok');
+      throw new Error('Bu odayla bir ilişkiniz bulunmuyor');
     }
-
-    // Paralel silme: oda ve swipe'ları aynı anda sil
-    await Promise.all([
-      Room.deleteOne({ _id: room._id }),
-      Swipe.deleteMany({ room: room._id }),
-    ]);
-
-    res.json({ message: 'Oda başarıyla silindi' });
   } catch (error) {
     next(error);
   }

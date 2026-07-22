@@ -96,10 +96,14 @@ const ConvItem = ({ conv, active, online, onClick }) => {
           )}
         </div>
         <div style={{
-          fontSize: '0.78rem', color: 'var(--text-muted)',
+          fontSize: '0.8rem', color: 'var(--text-muted)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {lm ? (lm.isMe ? `Sen: ${lm.text}` : lm.text) : <em>Henüz mesaj yok</em>}
+          {lm 
+            ? (lm.isMe 
+                ? `Sen: ${lm.text || (lm.hasSharedEvent ? 'Etkinlik Paylaşıldı 🎟' : '')}` 
+                : (lm.text || (lm.hasSharedEvent ? 'Etkinlik Paylaştı 🎟' : ''))) 
+            : <em>Henüz mesaj yok</em>}
         </div>
       </div>
     </div>
@@ -779,7 +783,7 @@ const Messages = () => {
                           overflow: 'hidden',
                         }}>
                           {/* Paylaşılan Etkinlik Ön İzleme Kartı */}
-                          {msg.sharedEvent && (
+                          {msg.sharedEvent && msg.sharedEvent.name && (
                             <div style={{
                               background: 'rgba(15, 23, 42, 0.45)',
                               border: '1px solid rgba(255, 255, 255, 0.1)',

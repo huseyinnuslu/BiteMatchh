@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api';
 
 const MatchHistory = () => {
@@ -33,6 +34,17 @@ const MatchHistory = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleDeleteMatch = async (roomId) => {
+    if (!window.confirm('Bu eşleşmeyi geçmişinizden silmek istediğinize emin misiniz?')) return;
+    try {
+      await api.delete(`/rooms/${roomId}`);
+      setMatches(matches.filter(m => m._id !== roomId));
+      toast.success('Eşleşme geçmişinizden silindi.');
+    } catch (error) {
+      toast.error('Silinirken bir hata oluştu.');
+    }
   };
 
   const getPartnerList = (room) => {
@@ -165,13 +177,35 @@ const MatchHistory = () => {
                   <div>
                     {/* Oda ismi ve Eşleşme Tarihi */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
-                        {room.name}
-                      </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        <CalendarDays size={13} />
-                        {formatDate(room.updatedAt)}
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
+                          {room.name}
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          <CalendarDays size={13} />
+                          {formatDate(room.updatedAt)}
+                        </div>
                       </div>
+                      <button 
+                        onClick={() => handleDeleteMatch(room._id)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          color: '#ef4444',
+                          borderRadius: '8px',
+                          padding: '0.4rem 0.5rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.75rem',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                      >
+                        <Trash2 size={14} /> Sil
+                      </button>
                     </div>
 
                     {/* Katılımcılar */}
