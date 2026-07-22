@@ -524,68 +524,63 @@ const Dashboard = () => {
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.92) 100%)',
                   }} />
 
-                  {/* Kaynak / Platform rozeti — sol üst */}
-                  {(() => {
-                    const tUrl = ev.ticketUrl || '';
-                    let label, bg;
-                    if (tUrl.includes('bubilet.com.tr')) {
-                      label = '🎟 Bubilet'; bg = 'rgba(220,38,38,0.88)';
-                    } else if (tUrl.includes('passo.com.tr')) {
-                      label = '🎟 Passo'; bg = 'rgba(234,88,12,0.85)';
-                    } else if (tUrl.includes('biletix.com')) {
-                      label = '🎟 Biletix'; bg = 'rgba(37,99,235,0.85)';
-                    } else if (tUrl.includes('biletinial.com')) {
-                      label = '🎟 Biletinial'; bg = 'rgba(124,58,237,0.85)';
-                    } else if (ev.eventSource === 'IBB') {
-                      label = '🏛 IBB'; bg = 'rgba(4,120,87,0.85)';
-                    } else if (ev.eventSource === 'Eventbrite') {
-                      label = '📍 Eventbrite'; bg = 'rgba(248,113,113,0.7)';
-                    } else {
-                      label = ev.city ? `📍 ${ev.city}` : '🎯 Etkinlik'; bg = 'rgba(0,0,0,0.6)';
-                    }
-                    return (
+                  {/* ── Sol üst: Kaynak + Öne Çıkan rozetleri (flex row, üst üste binme yok) ── */}
+                  <div style={{
+                    position: 'absolute', top: 10, left: 10,
+                    display: 'flex', flexDirection: 'row',
+                    alignItems: 'center', gap: '0.35rem',
+                    zIndex: 10,
+                  }}>
+                    {/* Kaynak / Platform rozeti */}
+                    {(() => {
+                      const tUrl = ev.ticketUrl || '';
+                      let label, bg;
+                      if (tUrl.includes('bubilet.com.tr')) {
+                        label = '🎟 Bubilet'; bg = 'rgba(220,38,38,0.88)';
+                      } else if (tUrl.includes('passo.com.tr')) {
+                        label = '🎟 Passo'; bg = 'rgba(234,88,12,0.85)';
+                      } else if (tUrl.includes('biletix.com')) {
+                        label = '🎟 Biletix'; bg = 'rgba(37,99,235,0.85)';
+                      } else if (tUrl.includes('biletinial.com')) {
+                        label = '🎟 Biletinial'; bg = 'rgba(124,58,237,0.85)';
+                      } else if (ev.eventSource === 'IBB') {
+                        label = '🏛 IBB'; bg = 'rgba(4,120,87,0.85)';
+                      } else if (ev.eventSource === 'Eventbrite') {
+                        label = '📍 Eventbrite'; bg = 'rgba(248,113,113,0.7)';
+                      } else {
+                        label = ev.city ? `📍 ${ev.city}` : '🎯 Etkinlik';
+                        bg = 'rgba(0,0,0,0.6)';
+                      }
+                      return (
+                        <div style={{
+                          background: bg, backdropFilter: 'blur(6px)',
+                          borderRadius: '6px', padding: '0.2rem 0.5rem',
+                          fontSize: '0.62rem', fontWeight: 700,
+                          color: 'rgba(255,255,255,0.95)', letterSpacing: '0.03em',
+                          whiteSpace: 'nowrap',
+                        }}>{label}</div>
+                      );
+                    })()}
+
+                    {/* Öne Çıkan rozeti — aynı flex satırında */}
+                    {ev.isFeatured && (
                       <div style={{
-                        position: 'absolute', top: 10, left: 10,
-                        background: bg, backdropFilter: 'blur(6px)',
-                        borderRadius: '6px', padding: '0.2rem 0.5rem',
-                        fontSize: '0.62rem', fontWeight: 700,
-                        color: 'rgba(255,255,255,0.95)', letterSpacing: '0.03em',
-                      }}>{label}</div>
-                    );
-                  })()}
+                        background: 'rgba(251,191,36,0.92)',
+                        borderRadius: '6px', padding: '0.2rem 0.4rem',
+                        fontSize: '0.58rem', fontWeight: 800, color: '#1a1a1a',
+                        whiteSpace: 'nowrap',
+                      }}>⭐ ÖNE ÇIKAN</div>
+                    )}
+                  </div>
 
-                  {/* Öne Çıkan yıldız — sağ üst sol tarafı (ticketUrl yokken en sağda) */}
-                  {ev.isFeatured && (
-                    <div style={{
-                      position: 'absolute', top: 10,
-                      right: ev.ticketUrl ? 60 : 10,
-                      background: 'rgba(251,191,36,0.9)',
-                      borderRadius: '6px', padding: '0.2rem 0.4rem',
-                      fontSize: '0.6rem', fontWeight: 800, color: '#1a1a1a',
-                    }}>⭐ ÖNE ÇIKAN</div>
-                  )}
-
-                  {/* Bilet badge — sağ üst: sadece gerçek bir ticketUrl varsa */}
-                  {ev.ticketUrl && (
-                    <div style={{
-                      position: 'absolute', top: 10, right: 10,
-                      background: 'var(--primary)',
-                      borderRadius: '6px', padding: '0.2rem 0.45rem',
-                      fontSize: '0.6rem', fontWeight: 800,
-                      color: 'white', letterSpacing: '0.04em',
-                    }}>
-                      🎟 BİLET
-                    </div>
-                  )}
-
-                  {/* Share/Send Button — sağ üst */}
+                  {/* ── Sağ üst: Sadece Share/Gönder butonu ── */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleShareClick(ev);
                     }}
                     style={{
-                      position: 'absolute', top: 10, right: ev.ticketUrl ? 65 : 10,
+                      position: 'absolute', top: 10, right: 10,
                       width: 28, height: 28, borderRadius: '50%',
                       background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
