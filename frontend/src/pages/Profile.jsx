@@ -8,6 +8,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import api from '../api';
+import { getSocket } from '../socket/socketClient';
 
 // ── Kategori emoji haritası ──────────────────────────────────────────────────
 const CATEGORY_ICONS = {
@@ -123,6 +124,11 @@ const Profile = () => {
       setSearchResults(prev =>
         prev.map(u => u._id === friendId ? { ...u, isPending: true } : u)
       );
+      
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('friend_request_notify', { toUserId: friendId, fromUsername: user.username });
+      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'İstek gönderilemedi');
     } finally { setActionId(null); }

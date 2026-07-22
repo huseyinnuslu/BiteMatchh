@@ -53,67 +53,26 @@ function App() {
         .catch(() => {});
     };
 
-    const handleRoomInvitation = ({ roomId, inviterName, message }) => {
+    const handleNewNotification = (notif) => {
+      if (notif.type === 'message' && window.location.pathname.startsWith('/messages')) return;
+
       toast.info(
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Oda Daveti! 📬</div>
-          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{message}</div>
-          <button
-            onClick={() => window.location.href = `/room/${roomId}`}
-            style={{
-              marginTop: '0.5rem', padding: '0.35rem 0.6rem',
-              background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-              border: 'none', borderRadius: '6px',
-              color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem',
-              boxShadow: '0 2px 8px rgba(255,75,75,0.3)',
-            }}
-          >
-            Katıl
-          </button>
-        </div>,
-        { autoClose: 15000, closeOnClick: false }
-      );
-    };
-
-    const handleNewMessage = (msg) => {
-      // Eğer kendi mesajımızsa veya halihazırda mesajlar sayfasında bu kişiyle konuşuyorsak bildirim göstermeyebiliriz
-      // Ancak App seviyesinde sayfa kontrolü zor olduğu için genel bildirim verip tıklandığında yönlendirebiliriz.
-      if (msg.isMine || msg.sender === user._id) return;
-      
-      const isMessagesPage = window.location.pathname.startsWith('/messages');
-      // Eğer mesaj sayfasında değilsek bildirim göster
-      if (!isMessagesPage) {
-        toast.info(
-          <div 
-            style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
-            onClick={() => window.location.href = `/messages`}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Yeni Mesaj 💬</div>
-            <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>
-              <strong>{msg.senderName}:</strong> {msg.text || (msg.sharedEvent ? 'Etkinlik paylaştı 🎟' : '')}
-            </div>
-          </div>,
-          { autoClose: 5000, closeOnClick: true }
-        );
-      }
-    };
-
-    const handleFriendRequest = ({ fromUsername, message }) => {
-      toast.success(
         <div 
           style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
-          onClick={() => window.location.href = `/profile`}
+          onClick={() => { if (notif.link) window.location.href = notif.link; }}
         >
-          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Arkadaşlık İsteği! 🤝</div>
-          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{message}</div>
+          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {notif.type === 'message' ? 'Yeni Mesaj 💬' : 
+             notif.type === 'friend_request' ? 'Arkadaşlık İsteği! 🤝' : 
+             notif.type === 'room_invite' ? 'Oda Daveti! 📬' : 'Bildirim 🔔'}
+          </div>
+          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{notif.message}</div>
         </div>,
-        { autoClose: 8000, closeOnClick: true }
+        { autoClose: 6000, closeOnClick: true }
       );
     };
 
-    socket.on('room_invitation', handleRoomInvitation);
-    socket.on('receive_direct_message', handleNewMessage);
-    socket.on('new_friend_request', handleFriendRequest);
+    socket.on('new_notification', handleNewNotification);
 
     if (socket.connected) {
       emitOnline();
@@ -123,9 +82,7 @@ function App() {
 
     return () => { 
       socket.off('connect', emitOnline); 
-      socket.off('room_invitation', handleRoomInvitation);
-      socket.off('receive_direct_message', handleNewMessage);
-      socket.off('new_friend_request', handleFriendRequest);
+      socket.off('new_notification', handleNewNotification);
     };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────
