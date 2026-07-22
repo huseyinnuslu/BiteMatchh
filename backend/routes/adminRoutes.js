@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, deleteUser, updateUserRole, getAllRooms, deleteRoom, getStats } from '../controllers/adminController.js';
+import { getAllUsers, deleteUser, updateUserRole, getAllRooms, deleteRoom, getStats, importEvents } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.delete('/users/:id', deleteUser);
 router.put('/users/:id/role', updateUserRole);
 router.get('/rooms', getAllRooms);
 router.delete('/rooms/:id', deleteRoom);
+router.post('/import-events', importEvents);
 
 export default router;

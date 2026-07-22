@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import Room from '../models/Room.js';
+import Candidate from '../models/Candidate.js';
+import https from 'https';
+import http  from 'http';
 
 // @desc    Tüm kullanıcıları listele
 // @route   GET /api/admin/users
@@ -151,6 +154,64 @@ export const getStats = async (req, res, next) => {
       completedRooms: statusMap['finished'] || 0,
       newUsersThisWeek,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toplu etkinlik verisi aktarımı (JSON)
+// @route   POST /api/admin/import-events
+// @access  Admin
+export const importEvents = async (req, res, next) => {
+  try {
+    const { events, clearOld } = req.body;
+
+    if (!events || !Array.isArray(events)) {
+      res.status(400);
+      throw new Error('Lütfen geçerli bir JSON array sağlayın (events alanı altında)');
+    }
+
+    if (clearOld) {
+      await Candidate.deleteMany({ isLiveEvent: true });
+    }
+
+    const now = new Date();
+    const parsedEvents = [];
+
+    for (const item of events) {
+      if (!item.title || !item.ticketUrl) continue;
+
+      const eventDate = item.eventDate ? new Date(item.eventDate) : new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+      const expireDate = new Date(eventDate);
+      expireDate.setDate(expireDate.getDate() + 10);
+
+      parsedEvents.push({
+        externalId:  `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name:        item.title,
+        description: item.description || '',
+        imageUrl:    item.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=85',
+        category:    item.category || 'aktivite',
+        location:    item.location || 'Bilinmiyor',
+        mapsQuery:   item.location ? `${item.location} ${item.city || ''}` : '',
+        ticketUrl:   item.ticketUrl,
+        isLiveEvent: true,
+        eventDate:   eventDate,
+        expireAt:    expireDate,
+        eventSource: item.provider || 'Bubilet',
+        city:        item.city || 'Belirtilmemiş',
+        isFeatured:  item.isFeatured || false,
+        budget:      '₺₺',
+      });
+    }
+
+    if (parsedEvents.length === 0) {
+      res.status(400);
+      throw new Error('Geçerli bir etkinlik bulunamadı (title ve ticketUrl zorunlu)');
+    }
+
+    await Candidate.insertMany(parsedEvents, { ordered: false });
+
+    res.json({ message: `${parsedEvents.length} etkinlik başarıyla içe aktarıldı!` });
   } catch (error) {
     next(error);
   }

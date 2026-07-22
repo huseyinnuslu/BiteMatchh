@@ -17,6 +17,11 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  // Etkinlik import state'leri
+  const [jsonInput, setJsonInput] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [clearOld, setClearOld] = useState(false);
+
   // Bekleyen rol değişiklikleri: { [userId]: newRole }
   const [pendingRoles, setPendingRoles] = useState({});
   const [savingRole, setSavingRole] = useState(null);
@@ -107,6 +112,32 @@ const AdminPanel = () => {
     finally { setModal(null); }
   };
 
+  // JSON Import
+  const handleImportEvents = async () => {
+    try {
+      setIsImporting(true);
+      const parsedData = JSON.parse(jsonInput);
+      if (!Array.isArray(parsedData)) {
+        toast.error('JSON verisi bir array (liste) formatında olmalıdır [ { ... } ]');
+        return;
+      }
+      
+      const { data } = await api.post('/admin/import-events', { events: parsedData, clearOld });
+      toast.success(data.message || 'Veriler başarıyla eklendi!');
+      setJsonInput('');
+      setClearOld(false);
+      fetchStats();
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        toast.error('Geçersiz JSON formatı. Lütfen kontrol edin.');
+      } else {
+        toast.error(err.response?.data?.message || 'Veri aktarımı başarısız oldu');
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // ---- Yardımcı Bileşenler ----
   const roleBadge = (role) => {
     const map = { Admin: { bg: '#ff6b6b', label: '👑 Admin' }, Host: { bg: '#4ade80', label: '🍽️ Host' }, Guest: { bg: '#94a3b8', label: '👤 Misafir' } };
@@ -191,6 +222,7 @@ const AdminPanel = () => {
           <button style={tabStyle('stats')} onClick={() => setActiveTab('stats')}><BarChart3 size={15} /> İstatistikler</button>
           <button style={tabStyle('users')} onClick={() => setActiveTab('users')}><Users size={15} /> Kullanıcılar ({users.length})</button>
           <button style={tabStyle('rooms')} onClick={() => setActiveTab('rooms')}><Home size={15} /> Odalar ({rooms.length})</button>
+          <button style={tabStyle('events')} onClick={() => setActiveTab('events')}>📅 Etkinlikler</button>
         </div>
 
         {/* ===== STATS TAB ===== */}
@@ -386,6 +418,58 @@ const AdminPanel = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* ===== EVENTS TAB ===== */}
+        {activeTab === 'events' && (
+          <div className="glass-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>📋 Toplu Etkinlik Yapıştır (JSON Import)</h3>
+            </div>
+            
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              Geçerli bir JSON array yapıştırın. Zorunlu alanlar: <code style={{ color: 'var(--primary)' }}>title</code>, <code style={{ color: 'var(--primary)' }}>ticketUrl</code>.
+            </p>
+
+            <textarea
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              placeholder="[\n  {\n    &#34;title&#34;: &#34;Örnek Konser&#34;,\n    &#34;ticketUrl&#34;: &#34;https://...&#34;,\n    &#34;city&#34;: &#34;İstanbul&#34;,\n    &#34;category&#34;: &#34;Konser&#34;\n  }\n]"
+              style={{
+                width: '100%', height: '250px', background: 'rgba(0,0,0,0.2)',
+                border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+                borderRadius: '8px', padding: '1rem', fontFamily: 'monospace',
+                fontSize: '0.85rem', resize: 'vertical', marginBottom: '1rem'
+              }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={clearOld} 
+                  onChange={(e) => setClearOld(e.target.checked)} 
+                  style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
+                />
+                Eski etkinlikleri temizle (Sadece JSON'daki veriler kalır)
+              </label>
+
+              <button
+                onClick={handleImportEvents}
+                disabled={isImporting || !jsonInput.trim()}
+                style={{
+                  background: 'var(--primary)', color: '#fff', border: 'none',
+                  padding: '0.7rem 1.5rem', borderRadius: '8px', fontWeight: 600,
+                  cursor: isImporting || !jsonInput.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isImporting || !jsonInput.trim() ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isImporting ? '⏳ İşleniyor...' : '🚀 Verileri İçeri Aktar ve DB\'yi Güncelle'}
+              </button>
             </div>
           </div>
         )}
