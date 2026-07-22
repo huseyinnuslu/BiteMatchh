@@ -39,6 +39,34 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
+// @desc    Birden fazla kullanıcı sil
+// @route   DELETE /api/admin/users/bulk
+// @access  Admin
+export const bulkDeleteUsers = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) {
+      res.status(400);
+      throw new Error('Geçersiz kullanıcı ID listesi');
+    }
+
+    // Seçilen kullanıcıların admin olmayanlarını bul
+    const usersToDelete = await User.find({ _id: { $in: ids }, role: { $ne: 'Admin' } });
+    const userIds = usersToDelete.map(u => u._id);
+
+    if (userIds.length > 0) {
+      await User.deleteMany({ _id: { $in: userIds } });
+      await Room.deleteMany({ host: { $in: userIds } });
+      await Message.deleteMany({ sender: { $in: userIds } });
+      await Swipe.deleteMany({ user: { $in: userIds } });
+    }
+
+    res.json({ message: `${userIds.length} kullanıcı başarıyla silindi.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Kullanıcı rolünü güncelle
 // @route   PUT /api/admin/users/:id/role
 // @access  Admin
@@ -91,6 +119,27 @@ export const deleteRoom = async (req, res, next) => {
     }
     await room.deleteOne();
     res.json({ message: 'Oda başarıyla silindi' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Birden fazla oda sil
+// @route   DELETE /api/admin/rooms/bulk
+// @access  Admin
+export const bulkDeleteRooms = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) {
+      res.status(400);
+      throw new Error('Geçersiz oda ID listesi');
+    }
+
+    await Room.deleteMany({ _id: { $in: ids } });
+    await Message.deleteMany({ room: { $in: ids } });
+    await Swipe.deleteMany({ room: { $in: ids } });
+
+    res.json({ message: `${ids.length} oda başarıyla silindi.` });
   } catch (error) {
     next(error);
   }
@@ -219,23 +268,4 @@ export const importEvents = async (req, res, next) => {
   }
 };
 
-// @desc    Tüm test verilerini temizle (Factory Reset)
-// @route   DELETE /api/admin/reset-database
-// @access  Admin
-export const resetDatabase = async (req, res, next) => {
-  try {
-    // 1. Tüm odaları, mesajları ve kaydırmaları sil
-    await Room.deleteMany({});
-    await Message.deleteMany({});
-    await Swipe.deleteMany({});
 
-    // 2. Admin (isAdmin: true) olmayan tüm kullanıcıları sil
-    await User.deleteMany({ isAdmin: { $ne: true } });
-
-    // Not: Candidate (Kart Havuzu) silinmiyor, böylece etkinlikler korunuyor.
-
-    res.json({ message: 'Veritabanı başarıyla sıfırlandı. Tüm test verileri temizlendi.' });
-  } catch (error) {
-    next(error);
-  }
-};

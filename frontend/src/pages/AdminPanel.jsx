@@ -17,6 +17,10 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  // Bulk Delete States
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedRooms, setSelectedRooms] = useState([]);
+
   // Etkinlik import state'leri
   const [jsonInput, setJsonInput] = useState('');
   const [isImporting, setIsImporting] = useState(false);
@@ -113,21 +117,47 @@ const AdminPanel = () => {
     setModal(null);
   };
 
-  const handleResetDatabase = () => {
-    setModal({ type: 'resetDatabase', data: {} });
+  // ---- BULK DELETE LOGIC ----
+  const toggleUserSelection = (id) => {
+    setSelectedUsers(prev => prev.includes(id) ? prev.filter(u => u !== id) : [...prev, id]);
   };
 
-  const commitResetDatabase = async () => {
+  const toggleRoomSelection = (id) => {
+    setSelectedRooms(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
+
+  const handleBulkDeleteUsers = () => {
+    if (selectedUsers.length === 0) return;
+    setModal({ type: 'bulkDeleteUsers', data: { count: selectedUsers.length } });
+  };
+
+  const commitBulkDeleteUsers = async () => {
     try {
-      const res = await api.delete('/admin/reset-database');
-      toast.success(res.data.message || 'Veritabanı sıfırlandı.');
-      // Refresh stats
-      const { data: st } = await api.get('/admin/stats');
-      setStats(st);
-      fetchUsers();
-      fetchRooms();
+      const res = await api.delete('/admin/users/bulk', { data: { ids: selectedUsers } });
+      toast.success(res.data.message || `${selectedUsers.length} kullanıcı silindi.`);
+      setUsers(users.filter(u => !selectedUsers.includes(u._id)));
+      setSelectedUsers([]);
+      fetchStats();
     } catch (err) {
-      toast.error('Sıfırlama işlemi sırasında hata oluştu.');
+      toast.error(err.response?.data?.message || 'Toplu silme işlemi başarısız oldu.');
+    }
+    setModal(null);
+  };
+
+  const handleBulkDeleteRooms = () => {
+    if (selectedRooms.length === 0) return;
+    setModal({ type: 'bulkDeleteRooms', data: { count: selectedRooms.length } });
+  };
+
+  const commitBulkDeleteRooms = async () => {
+    try {
+      const res = await api.delete('/admin/rooms/bulk', { data: { ids: selectedRooms } });
+      toast.success(res.data.message || `${selectedRooms.length} oda silindi.`);
+      setRooms(rooms.filter(r => !selectedRooms.includes(r._id)));
+      setSelectedRooms([]);
+      fetchStats();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Toplu silme işlemi başarısız oldu.');
     }
     setModal(null);
   };
@@ -215,12 +245,22 @@ const AdminPanel = () => {
         />
       );
     }
-    if (modal.type === 'resetDatabase') {
+    if (modal.type === 'bulkDeleteUsers') {
       return (
         <ConfirmModal
-          icon={<AlertOctagon size={48} color="#ef4444" />} title="Sistemi Sıfırla (Factory Reset)" confirmText="TÜM TEST VERİLERİNİ SİL" confirmColor="#ef4444"
-          message="Dikkat! Bu işlem Admin hesapları ve Kart Havuzu dışındaki TÜM kullanıcıları, odaları ve mesajları kalıcı olarak silecektir. Emin misiniz?"
-          onConfirm={commitResetDatabase}
+          icon={<Trash2 size={48} color="#ef4444" />} title="Kullanıcıları Toplu Sil" confirmText="Evet, Sil" confirmColor="#ef4444"
+          message={`Seçilen ${modal.data.count} kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+          onConfirm={commitBulkDeleteUsers}
+          onCancel={() => setModal(null)}
+        />
+      );
+    }
+    if (modal.type === 'bulkDeleteRooms') {
+      return (
+        <ConfirmModal
+          icon={<Trash2 size={48} color="#ef4444" />} title="Odaları Toplu Sil" confirmText="Evet, Sil" confirmColor="#ef4444"
+          message={`Seçilen ${modal.data.count} odayı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+          onConfirm={commitBulkDeleteRooms}
           onCancel={() => setModal(null)}
         />
       );
@@ -247,27 +287,6 @@ const AdminPanel = () => {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>BiteMatch Yönetim Ekranı — Hoş geldiniz, {user?.username}</p>
             </div>
           </div>
-          <button
-            onClick={handleResetDatabase}
-            style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#ef4444',
-              borderRadius: '8px',
-              padding: '0.6rem 1.2rem',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-          >
-            <AlertOctagon size={18} /> Sistemi Sıfırla
-          </button>
         </div>
 
         {/* Tabs */}
@@ -296,7 +315,20 @@ const AdminPanel = () => {
         {activeTab === 'users' && (
           <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>Kullanıcı Listesi</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Kullanıcı Listesi</h3>
+                {selectedUsers.length > 0 && (
+                  <button
+                    onClick={handleBulkDeleteUsers}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#ef4444', borderRadius: '6px', padding: '0.4rem 0.8rem', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer',
+                    }}
+                  >
+                    Seçilenleri Sil ({selectedUsers.length})
+                  </button>
+                )}
+              </div>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                 {Object.keys(pendingRoles).length > 0 && `${Object.keys(pendingRoles).length} kaydedilmemiş değişiklik`}
               </span>
@@ -305,6 +337,19 @@ const AdminPanel = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <th style={{ padding: '0.85rem 1.2rem', textAlign: 'left', width: '40px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={users.length > 0 && selectedUsers.length === users.filter(u => u.role !== 'Admin').length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUsers(users.filter(u => u.role !== 'Admin').map(u => u._id));
+                          } else {
+                            setSelectedUsers([]);
+                          }
+                        }}
+                      />
+                    </th>
                     {['Kullanıcı', 'Email', 'Mevcut Rol', 'Yeni Rol', 'İşlemler'].map(h => (
                       <th key={h} style={{ padding: '0.85rem 1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
@@ -320,6 +365,15 @@ const AdminPanel = () => {
                         onMouseEnter={e => { if (!hasPending) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                         onMouseLeave={e => { if (!hasPending) e.currentTarget.style.background = 'transparent'; }}
                       >
+                        <td style={{ padding: '0.85rem 1.2rem' }}>
+                          {u.role !== 'Admin' && (
+                            <input 
+                              type="checkbox" 
+                              checked={selectedUsers.includes(u._id)}
+                              onChange={() => toggleUserSelection(u._id)}
+                            />
+                          )}
+                        </td>
                         {/* Kullanıcı Adı */}
                         <td style={{ padding: '0.85rem 1.2rem', fontWeight: 700 }}>
                           {u.role === 'Admin' ? '👑 ' : u.role === 'Guest' ? '👤 ' : '🍽️ '}{u.username}
@@ -417,13 +471,39 @@ const AdminPanel = () => {
         {/* ===== ROOMS TAB ===== */}
         {activeTab === 'rooms' && (
           <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <h3 style={{ margin: 0 }}>Oda Listesi</h3>
+            <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Oda Listesi</h3>
+                {selectedRooms.length > 0 && (
+                  <button
+                    onClick={handleBulkDeleteRooms}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#ef4444', borderRadius: '6px', padding: '0.4rem 0.8rem', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer',
+                    }}
+                  >
+                    Seçilenleri Sil ({selectedRooms.length})
+                  </button>
+                )}
+              </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <th style={{ padding: '0.85rem 1.2rem', textAlign: 'left', width: '40px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={rooms.length > 0 && selectedRooms.length === rooms.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRooms(rooms.map(r => r._id));
+                          } else {
+                            setSelectedRooms([]);
+                          }
+                        }}
+                      />
+                    </th>
                     {['Oda Adı', 'Oluşturan', 'Katılımcı', 'Durum', 'Oluşturulma', 'İşlemler'].map(h => (
                       <th key={h} style={{ padding: '0.85rem 1.2rem', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
@@ -436,6 +516,13 @@ const AdminPanel = () => {
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
+                      <td style={{ padding: '0.85rem 1.2rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedRooms.includes(r._id)}
+                          onChange={() => toggleRoomSelection(r._id)}
+                        />
+                      </td>
                       <td style={{ padding: '0.85rem 1.2rem', fontWeight: 700 }}>🏠 {r.name || 'İsimsiz Oda'}</td>
                       <td style={{ padding: '0.85rem 1.2rem', color: 'var(--text-muted)' }}>{r.host?.username || '—'}</td>
                       <td style={{ padding: '0.85rem 1.2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>

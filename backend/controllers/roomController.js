@@ -228,32 +228,33 @@ export const deleteRoom = async (req, res, next) => {
 // @desc    Odayı başlat (Sadece host)
 // @route   PUT /api/rooms/:id/start
 // @access  Private
-// Optimizasyon: findOneAndUpdate ile tek sorguda güncelle
 export const startRoom = async (req, res, next) => {
   try {
-    const room = await Room.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        host: req.user._id,   // host kontrolü sorguda yapılır
-        status: 'waiting',    // zaten başlatılmışsa tekrar başlatma
-      },
-      {
-        status: 'voting',
-        votingStartedAt: new Date(),
-      },
-      { new: true }
-    );
+    const room = await Room.findById(req.params.id);
 
     if (!room) {
-      // findOneAndUpdate null döndüyse: ya oda yok ya yetki yok ya da zaten başladı
-      const exists = await Room.exists({ _id: req.params.id });
-      if (!exists) {
-        res.status(404);
-        throw new Error('Oda bulunamadı');
-      }
-      res.status(401);
-      throw new Error('Odayı sadece kurucu başlatabilir veya oda zaten başladı');
+      res.status(404);
+      throw new Error('Oda bulunamadı');
     }
+    
+    if (room.host.toString() !== req.user._id.toString()) {
+      res.status(401);
+      throw new Error('Odayı sadece kurucu başlatabilir');
+    }
+
+    if (room.status !== 'waiting') {
+      res.status(400);
+      throw new Error('Oda zaten başlatıldı veya tamamlandı');
+    }
+
+    if (room.participants.length < 2) {
+      res.status(400);
+      throw new Error('Odayı başlatmak için en az 1 kişi daha davet etmelisiniz (Toplam en az 2 kişi).');
+    }
+
+    room.status = 'voting';
+    room.votingStartedAt = new Date();
+    await room.save();
 
     res.json(room);
   } catch (error) {

@@ -4,6 +4,7 @@
  */
 
 import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
 
 const roomLikes        = new Map();
 const roomParticipants = new Map();
@@ -76,18 +77,41 @@ export const initSocket = (io) => {
     });
 
     // invite_to_room: arkadasini odaya davet et
-    socket.on('invite_to_room', ({ friendId, roomCode, roomId, inviterName }) => {
+    socket.on('invite_to_room', async ({ friendId, roomCode, roomId, inviterName }) => {
       if (!friendId || !roomCode) return;
-      const friendSocket = onlineUsers.get(friendId);
-      if (friendSocket) {
-        io.to(friendSocket).emit('room_invitation', { roomCode, roomId, inviterName, message: `${inviterName} sizi bir odaya davet etti!` });
-      }
+      
+      const message = `${inviterName} sizi bir odaya davet etti!`;
+      try {
+        const notif = await Notification.create({
+          user: friendId,
+          message,
+          type: 'room_invite',
+          link: `/room/${roomId}`
+        });
+        const friendSocket = onlineUsers.get(friendId);
+        if (friendSocket) {
+          io.to(friendSocket).emit('new_notification', notif);
+          io.to(friendSocket).emit('room_invitation', { roomCode, roomId, inviterName, message });
+        }
+      } catch (e) { console.error('Bildirim kaydedilemedi:', e.message); }
     });
 
     // friend_request_notify
-    socket.on('friend_request_notify', ({ toUserId, fromUsername }) => {
-      const toSocket = onlineUsers.get(toUserId);
-      if (toSocket) io.to(toSocket).emit('new_friend_request', { fromUsername, message: `${fromUsername} size arkadaslik istegi gonderdi` });
+    socket.on('friend_request_notify', async ({ toUserId, fromUsername }) => {
+      const message = `${fromUsername} size arkadaşlık isteği gönderdi`;
+      try {
+        const notif = await Notification.create({
+          user: toUserId,
+          message,
+          type: 'friend_request',
+          link: `/profile`
+        });
+        const toSocket = onlineUsers.get(toUserId);
+        if (toSocket) {
+          io.to(toSocket).emit('new_notification', notif);
+          io.to(toSocket).emit('new_friend_request', { fromUsername, message });
+        }
+      } catch (e) { console.error('Bildirim kaydedilemedi:', e.message); }
     });
 
     // send_direct_message: arkadaslar arasi DM
@@ -125,7 +149,18 @@ export const initSocket = (io) => {
           text:       msg.text,
           sharedEvent,
         });
-      } catch (e) { console.error('DM kaydedilemedi:', e.message); }
+
+        // Bildirim olustur
+        const notifMsg = msg.text ? `${msg.senderName}: ${msg.text}` : `${msg.senderName} bir etkinlik paylaştı 🎟`;
+        const notif = await Notification.create({
+          user: toUserId,
+          message: notifMsg,
+          type: 'message',
+          link: `/messages`
+        });
+        if (toSocket) io.to(toSocket).emit('new_notification', notif);
+
+      } catch (e) { console.error('DM veya Bildirim kaydedilemedi:', e.message); }
     });
 
     // disconnect

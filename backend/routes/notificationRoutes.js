@@ -2,9 +2,16 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import User from '../models/User.js';
 import { sendPushToUser } from '../utils/webPush.js';
+import { getNotifications, markAllAsRead, markAsRead } from '../controllers/notificationController.js';
 
 const router = express.Router();
 
+// ---- Uygulama İçi Bildirimler (In-App) ----
+router.get('/', protect, getNotifications);
+router.put('/read-all', protect, markAllAsRead);
+router.put('/:id/read', protect, markAsRead);
+
+// ---- Web Push Bildirimleri ----
 router.post('/subscribe', protect, async (req, res, next) => {
   try {
     const { subscription } = req.body;

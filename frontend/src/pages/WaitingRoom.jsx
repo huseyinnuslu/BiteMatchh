@@ -60,6 +60,10 @@ const WaitingRoom = () => {
   }, [currentRoom.inviteExpiresAt, currentRoom._id, fetchRoomStatus]);
 
   const handleStart = async () => {
+    if (currentRoom.participants.length < 2) {
+      toast.error('Odayı başlatmak için en az 1 kişi daha davet etmelisiniz (Toplam en az 2 kişi).');
+      return;
+    }
     await startRoom(currentRoom._id);
   };
 
@@ -212,8 +216,18 @@ const WaitingRoom = () => {
         </div>
 
         {isHost ? (
-          <button onClick={handleStart} className="btn btn-primary pulse-primary" style={{ width: '100%', fontSize: '1rem', padding: '0.85rem' }}>
-            <Play size={18} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} /> Herkes Hazır, Oylamayı Başlat!
+          <button 
+            onClick={handleStart} 
+            disabled={currentRoom.participants.length < 2}
+            className={`btn ${currentRoom.participants.length < 2 ? 'btn-outline' : 'btn-primary pulse-primary'}`} 
+            style={{ 
+              width: '100%', fontSize: '1rem', padding: '0.85rem', 
+              opacity: currentRoom.participants.length < 2 ? 0.6 : 1, 
+              cursor: currentRoom.participants.length < 2 ? 'not-allowed' : 'pointer' 
+            }}
+          >
+            <Play size={18} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} /> 
+            {currentRoom.participants.length < 2 ? 'Odayı Başlatmak İçin Arkadaş Davet Edin' : 'Herkes Hazır, Oylamayı Başlat!'}
           </button>
         ) : (
           <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>

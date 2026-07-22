@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History } from 'lucide-react';
+import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History, Bell } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import { getSocket } from '../socket/socketClient';
+import api from '../api';
 
 // ---- Navbar ----
 const Navbar = () => {
@@ -10,12 +12,57 @@ const Navbar = () => {
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Fetch notifications
+  useEffect(() => {
+    if (!user?._id) return;
+    const fetchNotifs = async () => {
+      try {
+        const { data } = await api.get('/notifications');
+        setNotifications(data);
+      } catch (err) { console.error('Bildirimler alınamadı', err); }
+    };
+    fetchNotifs();
+
+    // Socket listener
+    const socket = getSocket();
+    if (socket) {
+      socket.on('new_notification', (notif) => {
+        setNotifications(prev => [notif, ...prev]);
+      });
+    }
+
+    return () => {
+      if (socket) socket.off('new_notification');
+    };
+  }, [user?._id]);
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    setShowNotifications(false);
+    if (!notif.isRead) {
+      try {
+        await api.put(`/notifications/${notif._id}/read`);
+        setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, isRead: true } : n));
+      } catch (err) { console.error(err); }
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <>
@@ -68,11 +115,72 @@ const Navbar = () => {
               </Link>
               <Link to="/profile" className="btn btn-outline" style={{
                 padding: '0.5rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem',
-                borderColor: location.pathname === '/profile' ? 'var(--primary)' : 'var(--accent)',
-                color: location.pathname === '/profile' ? 'var(--primary)' : 'var(--accent)'
+                borderColor: location.pathname === '/profile' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                color: location.pathname === '/profile' ? 'var(--primary)' : 'white'
               }}>
-                <UserCircle size={14} /> Profilim
+                <UserCircle size={14} /> Profil
               </Link>
+
+              {/* Bildirim Çanı (Desktop) */}
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: 'white', position: 'relative'
+                  }}
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: '-4px', right: '-4px', background: 'var(--primary)',
+                      color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px',
+                      borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div style={{
+                    position: 'absolute', top: '120%', right: 0, width: '300px',
+                    background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 1000,
+                    maxHeight: '400px', display: 'flex', flexDirection: 'column'
+                  }}>
+                    <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: 'white' }}>Bildirimler</h4>
+                      {unreadCount > 0 && (
+                        <span onClick={markAllAsRead} style={{ fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}>Tümünü Okundu İşaretle</span>
+                      )}
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Hiç bildiriminiz yok.</div>
+                      ) : (
+                        notifications.map(n => (
+                          <Link 
+                            key={n._id} to={n.link || '#'}
+                            onClick={() => handleNotificationClick(n)}
+                            style={{ 
+                              display: 'block', padding: '0.75rem 1rem', textDecoration: 'none',
+                              background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',
+                              borderLeft: n.isRead ? '3px solid transparent' : '3px solid var(--primary)',
+                              transition: 'background 0.2s'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.85rem', color: 'white', marginBottom: '0.2rem' }}>{n.message}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(n.createdAt).toLocaleDateString('tr-TR')}</div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {user.role === 'Admin' && (
                 <Link to="/admin" className="btn btn-outline" style={{
                   padding: '0.5rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem',
