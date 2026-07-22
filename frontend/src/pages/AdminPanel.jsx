@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { Shield, Users, Home, BarChart3, Trash2, Save, X } from 'lucide-react';
+import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -105,11 +105,31 @@ const AdminPanel = () => {
   const commitDeleteRoom = async (roomId, name) => {
     try {
       await api.delete(`/admin/rooms/${roomId}`);
-      toast.success(`"${name}" odası silindi`);
-      setRooms(prev => prev.filter(r => r._id !== roomId));
-      fetchStats();
-    } catch { toast.error('Silme başarısız'); }
-    finally { setModal(null); }
+      setRooms(rooms.filter(r => r._id !== roomId));
+      toast.success(`"${name}" odası başarıyla silindi.`);
+    } catch (err) {
+      toast.error('Oda silinirken hata oluştu.');
+    }
+    setModal(null);
+  };
+
+  const handleResetDatabase = () => {
+    setModal({ type: 'resetDatabase', data: {} });
+  };
+
+  const commitResetDatabase = async () => {
+    try {
+      const res = await api.delete('/admin/reset-database');
+      toast.success(res.data.message || 'Veritabanı sıfırlandı.');
+      // Refresh stats
+      const { data: st } = await api.get('/admin/stats');
+      setStats(st);
+      fetchUsers();
+      fetchRooms();
+    } catch (err) {
+      toast.error('Sıfırlama işlemi sırasında hata oluştu.');
+    }
+    setModal(null);
   };
 
   // JSON Import
@@ -195,6 +215,16 @@ const AdminPanel = () => {
         />
       );
     }
+    if (modal.type === 'resetDatabase') {
+      return (
+        <ConfirmModal
+          icon={<AlertOctagon size={48} color="#ef4444" />} title="Sistemi Sıfırla (Factory Reset)" confirmText="TÜM TEST VERİLERİNİ SİL" confirmColor="#ef4444"
+          message="Dikkat! Bu işlem Admin hesapları ve Kart Havuzu dışındaki TÜM kullanıcıları, odaları ve mesajları kalıcı olarak silecektir. Emin misiniz?"
+          onConfirm={commitResetDatabase}
+          onCancel={() => setModal(null)}
+        />
+      );
+    }
   };
 
   return (
@@ -203,18 +233,41 @@ const AdminPanel = () => {
 
       <div className="animate-slide-up" style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{
-            width: '52px', height: '52px', borderRadius: '14px',
-            background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Shield size={26} color="#ff6b6b" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '14px',
+              background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Shield size={26} color="#ff6b6b" />
+            </div>
+            <div>
+              <h1 className="text-gradient" style={{ marginBottom: '0.15rem' }}>Admin Paneli</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>BiteMatch Yönetim Ekranı — Hoş geldiniz, {user?.username}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-gradient" style={{ marginBottom: '0.15rem' }}>Admin Paneli</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>BiteMatch Yönetim Ekranı • Hoş geldiniz, {user?.username}</p>
-          </div>
+          <button
+            onClick={handleResetDatabase}
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#ef4444',
+              borderRadius: '8px',
+              padding: '0.6rem 1.2rem',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+          >
+            <AlertOctagon size={18} /> Sistemi Sıfırla
+          </button>
         </div>
 
         {/* Tabs */}

@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import Room from '../models/Room.js';
 import Candidate from '../models/Candidate.js';
+import Message from '../models/Message.js';
+import Swipe from '../models/Swipe.js';
 import https from 'https';
 import http  from 'http';
 
@@ -212,6 +214,27 @@ export const importEvents = async (req, res, next) => {
     await Candidate.insertMany(parsedEvents, { ordered: false });
 
     res.json({ message: `${parsedEvents.length} etkinlik başarıyla içe aktarıldı!` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Tüm test verilerini temizle (Factory Reset)
+// @route   DELETE /api/admin/reset-database
+// @access  Admin
+export const resetDatabase = async (req, res, next) => {
+  try {
+    // 1. Tüm odaları, mesajları ve kaydırmaları sil
+    await Room.deleteMany({});
+    await Message.deleteMany({});
+    await Swipe.deleteMany({});
+
+    // 2. Admin (isAdmin: true) olmayan tüm kullanıcıları sil
+    await User.deleteMany({ isAdmin: { $ne: true } });
+
+    // Not: Candidate (Kart Havuzu) silinmiyor, böylece etkinlikler korunuyor.
+
+    res.json({ message: 'Veritabanı başarıyla sıfırlandı. Tüm test verileri temizlendi.' });
   } catch (error) {
     next(error);
   }

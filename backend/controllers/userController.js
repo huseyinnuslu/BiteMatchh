@@ -83,7 +83,12 @@ export const getProfile = async (req, res, next) => {
         },
       ]),
       Room.aggregate([
-        { $match: { participants: userId } },
+        { 
+          $match: { 
+            participants: userId,
+            $expr: { $gte: [{ $size: "$participants" }, 2] }
+          } 
+        },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ]),
       Swipe.aggregate([

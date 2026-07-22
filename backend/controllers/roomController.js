@@ -269,7 +269,8 @@ export const getMatchHistory = async (req, res, next) => {
     const matches = await Room.find({
       participants: req.user._id,
       status: 'finished',
-      'matchResult.name': { $exists: true, $ne: null }
+      'matchResult.name': { $exists: true, $ne: null },
+      $expr: { $gte: [{ $size: "$participants" }, 2] } // Tek kişilik (yalnız oynanan) odaları filtrele
     })
       .populate('participants', 'username name')
       .sort({ updatedAt: -1 })

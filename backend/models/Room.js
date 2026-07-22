@@ -88,6 +88,15 @@ roomSchema.index({ status: 1 });
 // participants dizisinde belirli bir user'ı ara (joinRoom kontrolü)
 roomSchema.index({ participants: 1 });
 
+// Zombi Oda Temizliği: 30 dakika (1800 saniye) boyunca işlem görmeyen (updatedAt) waiting veya voting statüsündeki odaları otomatik sil
+roomSchema.index(
+  { updatedAt: 1 }, 
+  { 
+    expireAfterSeconds: 1800, 
+    partialFilterExpression: { status: { $in: ['waiting', 'voting'] } } 
+  }
+);
+
 const Room = mongoose.model('Room', roomSchema);
 
 export default Room;

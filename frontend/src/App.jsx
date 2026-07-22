@@ -75,7 +75,45 @@ function App() {
       );
     };
 
+    const handleNewMessage = (msg) => {
+      // Eğer kendi mesajımızsa veya halihazırda mesajlar sayfasında bu kişiyle konuşuyorsak bildirim göstermeyebiliriz
+      // Ancak App seviyesinde sayfa kontrolü zor olduğu için genel bildirim verip tıklandığında yönlendirebiliriz.
+      if (msg.isMine || msg.sender === user._id) return;
+      
+      const isMessagesPage = window.location.pathname.startsWith('/messages');
+      // Eğer mesaj sayfasında değilsek bildirim göster
+      if (!isMessagesPage) {
+        toast.info(
+          <div 
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
+            onClick={() => window.location.href = `/messages`}
+          >
+            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Yeni Mesaj 💬</div>
+            <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>
+              <strong>{msg.senderName}:</strong> {msg.text || (msg.sharedEvent ? 'Etkinlik paylaştı 🎟' : '')}
+            </div>
+          </div>,
+          { autoClose: 5000, closeOnClick: true }
+        );
+      }
+    };
+
+    const handleFriendRequest = ({ fromUsername, message }) => {
+      toast.success(
+        <div 
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
+          onClick={() => window.location.href = `/profile`}
+        >
+          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Arkadaşlık İsteği! 🤝</div>
+          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{message}</div>
+        </div>,
+        { autoClose: 8000, closeOnClick: true }
+      );
+    };
+
     socket.on('room_invitation', handleRoomInvitation);
+    socket.on('receive_direct_message', handleNewMessage);
+    socket.on('new_friend_request', handleFriendRequest);
 
     if (socket.connected) {
       emitOnline();
@@ -86,6 +124,8 @@ function App() {
     return () => { 
       socket.off('connect', emitOnline); 
       socket.off('room_invitation', handleRoomInvitation);
+      socket.off('receive_direct_message', handleNewMessage);
+      socket.off('new_friend_request', handleFriendRequest);
     };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────
