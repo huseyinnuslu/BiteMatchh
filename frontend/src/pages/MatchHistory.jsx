@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import api from '../api';
 
 const MatchHistory = () => {
