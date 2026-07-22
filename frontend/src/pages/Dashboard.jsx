@@ -482,11 +482,11 @@ const Dashboard = () => {
                 {cityFilter === 'Tümü' ? 'Henüz etkinlik yok.' : `${cityFilter} için etkinlik bulunamadı.`}
               </div>
             ) : filteredEvents.map((ev, i) => (
-                <div
-                  key={ev._id || i}
-                  style={{
-                    minWidth: 185, maxWidth: 185, height: 270,
-                    borderRadius: '18px',
+                  <div
+                    key={ev._id || i}
+                    style={{
+                      minWidth: 260, maxWidth: 260, height: 380,
+                      borderRadius: '18px',
                     overflow: 'hidden',
                     flexShrink: 0,
                     scrollSnapAlign: 'start',
@@ -515,7 +515,7 @@ const Dashboard = () => {
                       ? `url(${ev.imageUrl})`
                       : 'linear-gradient(135deg, #1e1b4b, #312e81)',
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    backgroundPosition: 'top center',
                   }} />
 
                   {/* Gradient overlay — altta okunabilir text için */}
@@ -524,14 +524,11 @@ const Dashboard = () => {
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.92) 100%)',
                   }} />
 
-                  {/* ── Sol üst: Kaynak + Öne Çıkan rozetleri (flex row, üst üste binme yok) ── */}
+                  {/* ── Sol üst: Kaynak rozeti ── */}
                   <div style={{
-                    position: 'absolute', top: 10, left: 10,
-                    display: 'flex', flexDirection: 'row',
-                    alignItems: 'center', gap: '0.35rem',
+                    position: 'absolute', top: 12, left: 12,
                     zIndex: 10,
                   }}>
-                    {/* Kaynak / Platform rozeti */}
                     {(() => {
                       const tUrl = ev.ticketUrl || '';
                       let label, bg;
@@ -554,44 +551,51 @@ const Dashboard = () => {
                       return (
                         <div style={{
                           background: bg, backdropFilter: 'blur(6px)',
-                          borderRadius: '6px', padding: '0.2rem 0.5rem',
-                          fontSize: '0.62rem', fontWeight: 700,
+                          borderRadius: '6px', padding: '0.3rem 0.6rem',
+                          fontSize: '0.7rem', fontWeight: 700,
                           color: 'rgba(255,255,255,0.95)', letterSpacing: '0.03em',
-                          whiteSpace: 'nowrap',
+                          whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                         }}>{label}</div>
                       );
                     })()}
+                  </div>
 
-                    {/* Öne Çıkan rozeti — aynı flex satırında */}
+                  {/* ── Sağ üst: Öne Çıkan + Share/Gönder butonu (flex row) ── */}
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12,
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    zIndex: 10,
+                  }}>
+                    {/* Öne Çıkan rozeti */}
                     {ev.isFeatured && (
                       <div style={{
                         background: 'rgba(251,191,36,0.92)',
-                        borderRadius: '6px', padding: '0.2rem 0.4rem',
-                        fontSize: '0.58rem', fontWeight: 800, color: '#1a1a1a',
-                        whiteSpace: 'nowrap',
+                        borderRadius: '6px', padding: '0.3rem 0.5rem',
+                        fontSize: '0.65rem', fontWeight: 800, color: '#1a1a1a',
+                        whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                       }}>⭐ ÖNE ÇIKAN</div>
                     )}
+                    
+                    {/* Share Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShareClick(ev);
+                      }}
+                      style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', cursor: 'pointer',
+                        transition: 'all 0.2s', backdropFilter: 'blur(4px)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      }}
+                      onMouseEnter={el => { el.currentTarget.style.background = 'var(--primary)'; el.currentTarget.style.color = 'black'; }}
+                      onMouseLeave={el => { el.currentTarget.style.background = 'rgba(0,0,0,0.5)'; el.currentTarget.style.color = 'white'; }}
+                    >
+                      <Send size={14} />
+                    </button>
                   </div>
-
-                  {/* ── Sağ üst: Sadece Share/Gönder butonu ── */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShareClick(ev);
-                    }}
-                    style={{
-                      position: 'absolute', top: 10, right: 10,
-                      width: 28, height: 28, borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'white', cursor: 'pointer', zIndex: 10,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={el => { el.currentTarget.style.background = 'var(--primary)'; el.currentTarget.style.color = 'black'; }}
-                    onMouseLeave={el => { el.currentTarget.style.background = 'rgba(0,0,0,0.6)'; el.currentTarget.style.color = 'white'; }}
-                  >
-                    <Send size={13} />
-                  </button>
 
                   {/* Alt içerik */}
                   <div style={{
@@ -602,9 +606,9 @@ const Dashboard = () => {
                     {/* Etkinlik adı */}
                     <p style={{
                       margin: 0, fontWeight: 800,
-                      fontSize: '0.92rem', color: 'white', lineHeight: 1.25,
+                      fontSize: '1.05rem', color: 'white', lineHeight: 1.3,
                       display: '-webkit-box', WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden', textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                     }}>
                       {ev.name}
                     </p>
@@ -627,9 +631,9 @@ const Dashboard = () => {
                     {ev.location && (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '0.3rem',
-                        fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)',
+                        fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)',
                       }}>
-                        <MapPin size={10} style={{ flexShrink: 0 }} />
+                        <MapPin size={12} style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {ev.location}
                         </span>
@@ -637,7 +641,7 @@ const Dashboard = () => {
                     )}
 
                     {/* CTA: Bilet Al + Haritada Gör */}
-                    <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.3rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                       {ev.ticketUrl && (
                         <button
                           onMouseDown={e => e.stopPropagation()}
@@ -646,17 +650,17 @@ const Dashboard = () => {
                             window.open(ev.ticketUrl, '_blank', 'noopener,noreferrer');
                           }}
                           style={{
-                            flex: 1, padding: '0.45rem 0.25rem',
-                            borderRadius: '10px', border: 'none',
+                            flex: 1, padding: '0.6rem 0.25rem',
+                            borderRadius: '12px', border: 'none',
                             background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                            color: 'white', fontSize: '0.7rem', fontWeight: 800,
+                            color: 'white', fontSize: '0.8rem', fontWeight: 800,
                             cursor: 'pointer', textAlign: 'center',
-                            boxShadow: '0 2px 10px rgba(99,102,241,0.5)',
-                            transition: 'opacity 0.15s',
+                            boxShadow: '0 4px 12px rgba(99,102,241,0.5)',
+                            transition: 'all 0.2s',
                             whiteSpace: 'nowrap',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
-                          onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(99,102,241,0.7)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.5)'; }}
                         >
                           🎟 Bilet Al
                         </button>
@@ -670,16 +674,17 @@ const Dashboard = () => {
                             window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
                           }}
                           style={{
-                            flex: 1, padding: '0.45rem 0.25rem',
-                            borderRadius: '10px', border: 'none',
-                            background: ev.ticketUrl ? 'rgba(66,133,244,0.25)' : 'rgba(66,133,244,0.55)',
-                            color: 'white', fontSize: '0.7rem', fontWeight: 800,
+                            flex: 1, padding: '0.6rem 0.25rem',
+                            borderRadius: '12px', border: 'none',
+                            background: ev.ticketUrl ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)',
+                            backdropFilter: 'blur(4px)',
+                            color: 'white', fontSize: '0.8rem', fontWeight: 800,
                             cursor: 'pointer', textAlign: 'center',
-                            transition: 'opacity 0.15s',
-                            whiteSpace: 'nowrap',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
-                          onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(66,133,244,0.8)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = ev.ticketUrl ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)'; }}
                         >
                           📍 Harita
                         </button>
