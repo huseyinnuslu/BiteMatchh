@@ -137,3 +137,21 @@ graph TD
 - **Database:** Mongoose ile 3 schema (User, Room, Swipe) oluÅŸturuldu, iliÅŸkilendirildi.
 - **Auth:** JWT ve bcryptjs ile login/register iÅŸlemleri protected routing ile kodlandÄ±.
 - **Uygulama Kalitesi:** Responsive ve animasyonlu (Framer Motion) ÅŸÄ±k bir arayÃ¼z.
+
+## ??? Otomatik Etkinlik Temizliði (Cron Job Setup)
+BiteMatch, tarihi geçmiþ etkinlikleri veritabanýndan her gün otomatik temizlemek için güvenli bir endpoint sunar (/api/cron/cleanup-events).
+
+### Kurulum Adýmlarý
+1. **Render (veya Vercel/Heroku) Çevre Deðiþkenleri:**
+   Projenizi deploy ettiðiniz platformda þu ortam deðiþkenini ekleyin:
+   CRON_SECRET_KEY=sizin_belirlediginiz_cok_gizli_bir_sifre
+   
+2. **Harici Cron Servisi (Örn: cron-job.org):**
+   - **URL:** https://your-backend-url.onrender.com/api/cron/cleanup-events
+   - **HTTP Method:** POST veya GET
+   - **Headers:** 
+     - Key: Authorization
+     - Value: Bearer sizin_belirlediginiz_cok_gizli_bir_sifre
+   - **Zamanlama:** Her gün gece 00:01'de çalýþacak þekilde ayarlayýn.
+
+Baþarýlý tetiklemelerde { "success": true, "deletedCount": X } döner.
