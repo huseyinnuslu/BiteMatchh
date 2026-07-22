@@ -25,9 +25,15 @@ const Dashboard = () => {
 
   const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya'];
 
-  // Filtrelenmiş etkinlikler: geçmiş olanlar gizlenir, öne çıkanlar önce, sonra tarihe göre
+  // Filtrelenmiş etkinlikler: geçmiş olanlar gizlenir (Türkiye saatine göre), öne çıkanlar önce, sonra tarihe göre
   const filteredEvents = liveEvents
-    .filter(ev => new Date(ev.eventDate) >= new Date()) // Geçmiş etkinlikleri filtrele
+    .filter(ev => {
+      if (!ev.eventDate) return true;
+      // Cihaz saatinden bağımsız olarak Türkiye (Europe/Istanbul) saatini baz alıyoruz
+      const nowInTurkey = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+      const eventInTurkey = new Date(new Date(ev.eventDate).toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+      return eventInTurkey >= nowInTurkey;
+    })
     .filter(ev => cityFilter === 'Tümü' || ev.city === cityFilter)
     .sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
