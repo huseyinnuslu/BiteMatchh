@@ -39,11 +39,14 @@ const MatchHistory = () => {
   const handleDeleteMatch = async (roomId) => {
     if (!window.confirm('Bu eşleşmeyi geçmişinizden silmek istediğinize emin misiniz?')) return;
     try {
-      await api.delete(`/rooms/${roomId}`);
-      setMatches(matches.filter(m => m._id !== roomId));
-      toast.success('Eşleşme geçmişinizden silindi.');
+      const res = await api.delete(`/rooms/${roomId}`);
+      if (res.status === 200) {
+        setMatches(matches => matches.filter(m => m._id !== roomId));
+        toast.success('Eşleşme geçmişinizden silindi.');
+      }
     } catch (error) {
-      toast.error('Silinirken bir hata oluştu.');
+      console.error('Silme hatası:', error.response?.data || error.message);
+      toast.error(error.response?.data?.message || 'Silinirken bir hata oluştu.');
     }
   };
 
@@ -123,6 +126,7 @@ const MatchHistory = () => {
                   padding: '1.25rem',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+                  position: 'relative'
                 }}
               >
                 {/* Sol / Üst: Etkinlik Resmi */}
@@ -189,22 +193,27 @@ const MatchHistory = () => {
                       <button 
                         onClick={() => handleDeleteMatch(room._id)}
                         style={{
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
                           color: '#ef4444',
                           borderRadius: '8px',
-                          padding: '0.4rem 0.5rem',
+                          padding: '0.4rem 0.6rem',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          fontSize: '0.75rem',
+                          gap: '0.4rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
                           transition: 'all 0.2s',
+                          zIndex: 20
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; }}
                       >
-                        <Trash2 size={14} /> Sil
+                        <Trash2 size={16} /> Sil
                       </button>
                     </div>
 

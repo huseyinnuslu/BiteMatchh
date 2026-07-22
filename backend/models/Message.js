@@ -33,7 +33,7 @@ const messageSchema = new mongoose.Schema(
       index:    true,
     },
     senderName: { type: String, required: true },
-    text:       { type: String, required: true, maxlength: 500 },
+    text:       { type: String, maxlength: 500 },
     // DM event sharing
     sharedEvent: {
       name:        { type: String },
