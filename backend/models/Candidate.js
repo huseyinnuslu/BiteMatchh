@@ -65,10 +65,20 @@ const candidateSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
-    /** Verinin geldiği kaynak: "Eventbrite" | "Ticketmaster" | "IBB" | vb. */
+    /** Verinin geldiği kaynak: "Bubilet" | "Eventbrite" | "Ticketmaster" | "IBB" | vb. */
     eventSource: {
       type: String,
       default: null,
+    },
+    /** Etkinliğin gerçekleşeceği şehir: "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya" vb. */
+    city: {
+      type: String,
+      default: null,
+    },
+    /** Öne çıkan / popüler etkinlik mi? */
+    isFeatured: {
+      type: Boolean,
+      default: false,
     },
     /**
      * MongoDB TTL index hedefi.
@@ -97,6 +107,10 @@ candidateSchema.index({ isLiveEvent: 1, eventDate: 1 });
 
 // externalId: dış API etkinliklerinde duplicate'i önler
 candidateSchema.index({ externalId: 1 }, { unique: true, sparse: true });
+
+// Şehir + isFeatured bazlı filtreleme için
+candidateSchema.index({ city: 1, isLiveEvent: 1 });
+candidateSchema.index({ isFeatured: 1, isLiveEvent: 1 });
 
 
 const Candidate = mongoose.model('Candidate', candidateSchema);

@@ -21,6 +21,18 @@ const Dashboard = () => {
   const [liveEvents, setLiveEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [cityFilter, setCityFilter] = useState('Tümü');
+
+  const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya'];
+
+  // Filtrelenmiş etkinlikler: öne çıkanlar önce, sonra tarihe göre
+  const filteredEvents = liveEvents
+    .filter(ev => cityFilter === 'Tümü' || ev.city === cityFilter)
+    .sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return new Date(a.eventDate) - new Date(b.eventDate);
+    });
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -382,7 +394,7 @@ const Dashboard = () => {
         <div style={{ marginBottom: '2rem' }}>
 
           {/* Başlık */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', padding: '0 0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem', padding: '0 0.25rem' }}>
             <span style={{
               width: 9, height: 9, borderRadius: '50%',
               background: '#ef4444', display: 'inline-block',
@@ -393,8 +405,31 @@ const Dashboard = () => {
               Yaklaşan Etkinlikler
             </h3>
             <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              Her gece güncellenir
+              via Bubilet
             </span>
+          </div>
+
+          {/* Şehir Filtresi Pills */}
+          <div style={{
+            display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.5rem',
+            marginBottom: '0.75rem', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+          }}>
+            {CITIES.map(city => (
+              <button
+                key={city}
+                onClick={() => setCityFilter(city)}
+                style={{
+                  padding: '0.3rem 0.85rem',
+                  borderRadius: '20px',
+                  border: `1.5px solid ${cityFilter === city ? 'var(--primary)' : 'rgba(255,255,255,0.12)'}`,
+                  background: cityFilter === city ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
+                  color: cityFilter === city ? 'var(--primary)' : 'rgba(255,255,255,0.7)',
+                  fontSize: '0.72rem', fontWeight: cityFilter === city ? 700 : 400,
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  transition: 'all 0.18s',
+                }}
+              >{city}</button>
+            ))}
           </div>
 
           {eventsLoading ? (
@@ -442,7 +477,11 @@ const Dashboard = () => {
               onMouseUp={()    => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
               onMouseLeave={()  => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
             >
-              {liveEvents.map((ev, i) => (
+              {filteredEvents.length === 0 && !eventsLoading ? (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem 0.25rem' }}>
+                {cityFilter === 'Tümü' ? 'Henüz etkinlik yok.' : `${cityFilter} için etkinlik bulunamadı.`}
+              </div>
+            ) : filteredEvents.map((ev, i) => (
                 <div
                   key={ev._id || i}
                   style={{
@@ -485,44 +524,53 @@ const Dashboard = () => {
                     background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.92) 100%)',
                   }} />
 
-                  {/* Kaynak badge — sol üst: platform rozetini ticketUrl içeriğine göre belirle */}
+                  {/* Kaynak / Platform rozeti — sol üst */}
                   {(() => {
                     const tUrl = ev.ticketUrl || '';
                     let label, bg;
-                    if (tUrl.includes('passo.com.tr')) {
+                    if (tUrl.includes('bubilet.com.tr')) {
+                      label = '🎟 Bubilet'; bg = 'rgba(220,38,38,0.88)';
+                    } else if (tUrl.includes('passo.com.tr')) {
                       label = '🎟 Passo'; bg = 'rgba(234,88,12,0.85)';
                     } else if (tUrl.includes('biletix.com')) {
                       label = '🎟 Biletix'; bg = 'rgba(37,99,235,0.85)';
                     } else if (tUrl.includes('biletinial.com')) {
                       label = '🎟 Biletinial'; bg = 'rgba(124,58,237,0.85)';
                     } else if (ev.eventSource === 'IBB') {
-                      label = '🏛 IBB Etkinlik'; bg = 'rgba(4,120,87,0.85)';
+                      label = '🏛 IBB'; bg = 'rgba(4,120,87,0.85)';
                     } else if (ev.eventSource === 'Eventbrite') {
                       label = '📍 Eventbrite'; bg = 'rgba(248,113,113,0.7)';
                     } else {
-                      label = '🎯 Kültür Sanat'; bg = 'rgba(0,0,0,0.55)';
+                      label = ev.city ? `📍 ${ev.city}` : '🎯 Etkinlik'; bg = 'rgba(0,0,0,0.6)';
                     }
                     return (
                       <div style={{
                         position: 'absolute', top: 10, left: 10,
-                        background: bg,
-                        backdropFilter: 'blur(6px)',
-                        borderRadius: '6px',
-                        padding: '0.2rem 0.5rem',
+                        background: bg, backdropFilter: 'blur(6px)',
+                        borderRadius: '6px', padding: '0.2rem 0.5rem',
                         fontSize: '0.62rem', fontWeight: 700,
-                        color: 'rgba(255,255,255,0.95)',
-                        letterSpacing: '0.03em',
+                        color: 'rgba(255,255,255,0.95)', letterSpacing: '0.03em',
                       }}>{label}</div>
                     );
                   })()}
+
+                  {/* Öne Çıkan yıldız — sağ üst sol tarafı (ticketUrl yokken en sağda) */}
+                  {ev.isFeatured && (
+                    <div style={{
+                      position: 'absolute', top: 10,
+                      right: ev.ticketUrl ? 60 : 10,
+                      background: 'rgba(251,191,36,0.9)',
+                      borderRadius: '6px', padding: '0.2rem 0.4rem',
+                      fontSize: '0.6rem', fontWeight: 800, color: '#1a1a1a',
+                    }}>⭐ ÖNE ÇIKAN</div>
+                  )}
 
                   {/* Bilet badge — sağ üst: sadece gerçek bir ticketUrl varsa */}
                   {ev.ticketUrl && (
                     <div style={{
                       position: 'absolute', top: 10, right: 10,
                       background: 'var(--primary)',
-                      borderRadius: '6px',
-                      padding: '0.2rem 0.45rem',
+                      borderRadius: '6px', padding: '0.2rem 0.45rem',
                       fontSize: '0.6rem', fontWeight: 800,
                       color: 'white', letterSpacing: '0.04em',
                     }}>

@@ -4,19 +4,26 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// GET /api/events/live
-// Yaklaşan canlı etkinlikleri döndür (en fazla 20, sadece gelecekteki)
+// GET /api/events/live?city=İstanbul
+// Yaklaşan canlı etkinlikleri döndür (en fazla 40, sadece gelecekteki)
 router.get('/live', protect, async (req, res, next) => {
   try {
     const now = new Date();
-    const events = await Candidate.find({
+    const query = {
       isLiveEvent: true,
-      eventDate: { $gte: now },
-      expireAt:  { $gt:  now },
-    })
-      .sort({ eventDate: 1 }) // en yakın tarih önce
-      .limit(20)
-      .select('name description imageUrl location eventDate eventSource budget mapsQuery ticketUrl')
+      eventDate:   { $gte: now },
+      expireAt:    { $gt:  now },
+    };
+
+    // Opsiyonel şehir filtresi
+    if (req.query.city && req.query.city !== 'Tümü') {
+      query.city = req.query.city;
+    }
+
+    const events = await Candidate.find(query)
+      .sort({ isFeatured: -1, eventDate: 1 }) // öne çıkanlar önce, sonra tarihe göre
+      .limit(40)
+      .select('name description imageUrl location city eventDate eventSource budget mapsQuery ticketUrl isFeatured')
       .lean();
 
     res.json(events);
