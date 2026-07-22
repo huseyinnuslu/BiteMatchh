@@ -643,7 +643,7 @@ const Dashboard = () => {
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => {
                             e.stopPropagation();
-                            if (!didDrag.current) window.open(ev.ticketUrl, '_blank', 'noopener,noreferrer');
+                            window.open(ev.ticketUrl, '_blank', 'noopener,noreferrer');
                           }}
                           style={{
                             flex: 1, padding: '0.45rem 0.25rem',
@@ -666,10 +666,8 @@ const Dashboard = () => {
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => {
                             e.stopPropagation();
-                            if (!didDrag.current) {
-                              const q = encodeURIComponent(ev.mapsQuery || ev.location);
-                              window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
-                            }
+                            const q = encodeURIComponent(ev.mapsQuery || ev.location);
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
                           }}
                           style={{
                             flex: 1, padding: '0.45rem 0.25rem',
