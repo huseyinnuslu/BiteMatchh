@@ -25,8 +25,9 @@ const Dashboard = () => {
 
   const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya'];
 
-  // Filtrelenmiş etkinlikler: öne çıkanlar önce, sonra tarihe göre
+  // Filtrelenmiş etkinlikler: geçmiş olanlar gizlenir, öne çıkanlar önce, sonra tarihe göre
   const filteredEvents = liveEvents
+    .filter(ev => new Date(ev.eventDate) >= new Date()) // Geçmiş etkinlikleri filtrele
     .filter(ev => cityFilter === 'Tümü' || ev.city === cityFilter)
     .sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
