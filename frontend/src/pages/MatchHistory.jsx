@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
+import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2, History } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
@@ -157,13 +157,12 @@ const MatchHistory = () => {
           <Loader className="spin" size={32} color="var(--primary)" />
         </div>
       ) : matches.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-          <h3>Henüz bir eşleşmeniz yok</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Arkadaşlarınla ya da gruplarla oda kurup oylayarak ortak zevkinizi bulabilirsiniz!
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
+          <History size={64} style={{ opacity: 0.2, marginBottom: '1.5rem', color: 'var(--text-muted)' }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '320px', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+            Henüz hiç eşleşmen yok. Ortak kararlar almak için hemen bir oda kur!
           </p>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
+          <button onClick={() => navigate('/dashboard')} className="btn btn-primary" style={{ padding: '0.7rem 1.5rem' }}>
             Hemen Oda Kur / Keşfet
           </button>
         </div>

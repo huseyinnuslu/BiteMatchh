@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera, Trash2,
+  UserCircle, Camera, Trash2, Inbox
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -467,12 +467,13 @@ const Profile = () => {
         {activeTab === 'friends' && (
           <motion.div key="friends" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             {friends.length === 0 ? (
-              <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-                <h3 style={{ marginBottom: '0.5rem' }}>Henüz arkadaşın yok</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Arkadaş ekleyerek uyum skorlarını gör!</p>
-                <button onClick={() => setActiveTab('add')} className="btn btn-primary" style={{ width: '100%' }}>
-                  <UserPlus size={16} /> Arkadaş Bul
+              <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
+                <Users size={64} style={{ opacity: 0.2, marginBottom: '1.5rem', color: 'var(--text-muted)' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '300px', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                  Henüz hiç arkadaşın yok. Sosyalleşmeye başlamak için ilk adımını at!
+                </p>
+                <button onClick={() => setActiveTab('add')} className="btn btn-primary" style={{ padding: '0.7rem 1.5rem' }}>
+                  <UserPlus size={16} style={{ marginRight: '8px' }} /> Arkadaş Bul
                 </button>
               </div>
             ) : (
@@ -540,10 +541,11 @@ const Profile = () => {
         {activeTab === 'pending' && (
           <motion.div key="pending" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             {pendingFriendRequests.length === 0 ? (
-              <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-                <h3 style={{ marginBottom: '0.5rem' }}>Bekleyen istek yok</h3>
-                <p style={{ color: 'var(--text-muted)' }}>Başkalarına arkadaşlık isteği gönderebilirsin.</p>
+              <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
+                <Inbox size={64} style={{ opacity: 0.2, marginBottom: '1.5rem', color: 'var(--text-muted)' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '300px', lineHeight: 1.6 }}>
+                  Şu an hiç arkadaşlık isteğin yok. Hemen <strong>'Arkadaş Bul'</strong> sekmesinden çevreni genişlet!
+                </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
