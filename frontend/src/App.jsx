@@ -33,6 +33,7 @@ function App() {
 
   // ── Global online presence ─────────────────────────────────────────────
   // user_online eventi hangi sayfada olursa olsun yayınlanır.
+  // 'connect' eventi; ilk bağlanmada + her yeniden bağlanmada tetiklenir.
   useEffect(() => {
     if (!user?._id) return;
     const token = (() => {
@@ -51,7 +52,10 @@ function App() {
             friendIds: data.map(f => f._id?.toString()),
           });
         })
-        .catch(() => {});
+        .catch(() => {
+          // Arkadaş listesi alınamazsa bile kişisel odayı kur
+          socket.emit('user_online', { userId: user._id, friendIds: [] });
+        });
     };
 
     const handleNewNotification = (notif) => {
@@ -78,11 +82,9 @@ function App() {
 
     socket.on('new_notification', handleNewNotification);
 
-    if (socket.connected) {
-      emitOnline();
-    } else {
-      socket.once('connect', emitOnline);
-    }
+    // Her bağlanmada (ilk + reconnect) user_online emit et
+    socket.on('connect', emitOnline);
+    if (socket.connected) emitOnline();
 
     return () => { 
       socket.off('connect', emitOnline); 

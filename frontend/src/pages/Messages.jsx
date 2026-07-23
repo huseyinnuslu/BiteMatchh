@@ -242,13 +242,17 @@ const Messages = () => {
     const token  = (() => { try { return JSON.parse(localStorage.getItem('userInfo') || '{}')?.token; } catch { return null; } })();
     const socket = connectSocket(token);
 
-    // Hem zaten bağlıysa hem de yeniden bağlanınca çalış
+    // Her bağlanmada (ilk + yeniden) user_online emit et
+    // Bu sayede kişisel socket odası (user:{id}) yeniden kurulur
     const handleConnect = () => {
       api.get('/users/friends')
         .then(({ data }) => {
           socket.emit('user_online', { userId: user._id, friendIds: data.map(f => f._id?.toString()) });
         })
-        .catch(() => {});
+        .catch(() => {
+          // Arkadaş listesi alınamazsa sadece kendi odasını kur
+          socket.emit('user_online', { userId: user._id, friendIds: [] });
+        });
     };
 
     if (socket.connected) handleConnect();
@@ -259,10 +263,13 @@ const Messages = () => {
     socket.on('friend_offline',  ({ userId }) => setOnlineIds(p => { const n = new Set(p); n.delete(userId); return n; }));
 
     socket.on('receive_direct_message', (msg) => {
+      // tmpId ile gönderilen optimistic mesajı gerçek ID ile değiştir
       setMessages(prev => {
+        // Eğer tam aynı _id ile zaten eklenmiş ise tekrar ekleme
         if (prev.some(m => m._id === msg._id)) return prev;
         return [...prev, msg];
       });
+      // Konuşma listesini güncelle (alıcı veya gönderen taraf için)
       const otherId = msg.sender?.toString() === user._id?.toString() ? msg.recipient : msg.sender;
       setConversations(prev => {
         const idx = prev.findIndex(c => c.user?._id?.toString() === otherId?.toString());
@@ -338,24 +345,41 @@ const Messages = () => {
     if (!txt || !activeUser) return;
 
     const socket = getSocket();
-    const tmpId  = Date.now().toString();
-    const opt = {
-      _id: tmpId, type: 'direct',
-      sender: user._id, senderName: user.username,
-      recipient: activeUser._id,
-      text: txt, createdAt: new Date().toISOString(), isMine: true,
-    };
-    setMessages(prev => [...prev, opt]);
     setInput('');
 
     if (socket?.connected) {
-      socket.emit('send_direct_message', { toUserId: activeUser._id, text: txt, senderName: user.username });
+      // Optimistic message — tmpId ile anlık göster
+      const tmpId = `tmp_${Date.now()}`;
+      const opt = {
+        _id: tmpId, type: 'direct',
+        sender: user._id, senderName: user.username,
+        recipient: activeUser._id,
+        text: txt, createdAt: new Date().toISOString(), isMine: true,
+      };
+      setMessages(prev => [...prev, opt]);
+
+      // fromUserId: backend'e açıkça gönderilir (socket.data.userId fallback'i)
+      socket.emit('send_direct_message', {
+        toUserId: activeUser._id,
+        fromUserId: user._id,
+        text: txt,
+        senderName: user.username,
+      });
     } else {
+      // Socket yoksa HTTP fallback
+      const opt = {
+        _id: `tmp_${Date.now()}`, type: 'direct',
+        sender: user._id, senderName: user.username,
+        recipient: activeUser._id,
+        text: txt, createdAt: new Date().toISOString(), isMine: true,
+      };
+      setMessages(prev => [...prev, opt]);
       api.post(`/messages/dm/${activeUser._id}`, { text: txt }).catch(() => {});
     }
+
     setConversations(prev => {
       const idx = prev.findIndex(c => c.user?._id?.toString() === activeUser._id?.toString());
-      const lm  = { text: txt, createdAt: opt.createdAt, isMe: true };
+      const lm  = { text: txt, createdAt: new Date().toISOString(), isMe: true };
       if (idx !== -1) { const a = [...prev]; a[idx] = { ...a[idx], lastMessage: lm }; return a; }
       return prev;
     });
