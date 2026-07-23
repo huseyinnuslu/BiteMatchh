@@ -92,7 +92,7 @@ const Terms = () => {
             className="btn btn-primary"
             style={{ padding: '0.6rem 2rem' }}
           >
-            Anladım, Kayda Geri Dön
+            Okudum, Anladım, Onaylıyorum
           </button>
         </div>
 
