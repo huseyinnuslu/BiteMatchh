@@ -1,9 +1,28 @@
-import { Shield, FileText } from 'lucide-react';
+import { Shield, FileText, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Terms = () => {
+  const navigate = useNavigate();
   return (
-    <div className="animate-fade-in" style={{ padding: '2rem 1rem', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+    <div className="animate-fade-in" style={{ padding: '2rem 1rem', maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+      
+      {/* Geri Dön Butonu */}
+      <button 
+        onClick={() => navigate(-1)} 
+        style={{ 
+          position: 'absolute', top: '2rem', left: '1rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
+          color: 'var(--text-muted)', padding: '0.5rem 1rem', borderRadius: '8px', 
+          cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
+        <ArrowLeft size={16} /> Geri Dön
+      </button>
+
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem', marginTop: '3rem' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', color: 'var(--primary)', marginBottom: '1rem' }}>
           <Shield size={32} />
         </div>
@@ -65,9 +84,16 @@ const Terms = () => {
         </section>
 
         <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--success)', margin: 0, fontWeight: 500 }}>
+          <p style={{ color: 'var(--success)', margin: '0 0 1rem', fontWeight: 500 }}>
             Platforma kayıt olarak tüm bu şartları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz.
           </p>
+          <button 
+            onClick={() => navigate(-1)} 
+            className="btn btn-primary"
+            style={{ padding: '0.6rem 2rem' }}
+          >
+            Anladım, Kayda Geri Dön
+          </button>
         </div>
 
       </div>
