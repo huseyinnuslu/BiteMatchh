@@ -72,4 +72,30 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
   }
 });
 
+// @route   DELETE /api/upload/avatar
+// @desc    Kullanıcı profil fotoğrafını sil
+// @access  Private
+router.delete('/avatar', protect, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('Kullanıcı bulunamadı');
+    }
+
+    if (user.profilePic) {
+      const filePath = path.join(process.cwd(), user.profilePic);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      user.profilePic = '';
+      await user.save();
+    }
+
+    res.json({ message: 'Profil fotoğrafı kaldırıldı' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

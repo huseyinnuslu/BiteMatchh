@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera,
+  UserCircle, Camera, Trash2,
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -158,6 +158,21 @@ const Profile = () => {
     }
   };
 
+  // ── Avatar Sil ────────────────────────────────────────────────────────
+  const handleAvatarRemove = async () => {
+    try {
+      setUploading(true);
+      await api.delete('/upload/avatar');
+      toast.success('Profil fotoğrafı kaldırıldı');
+      setProfile(prev => ({ ...prev, profilePic: '' }));
+      updateUser({ profilePic: '' });
+    } catch (err) {
+      toast.error('Fotoğraf kaldırılamadı');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // ── Arkadaşlık isteği gönder ──────────────────────────────────────────────
   const handleSendRequest = async (friendId) => {
     setActionId(friendId);
@@ -279,6 +294,25 @@ const Profile = () => {
                 disabled={uploading}
               />
             </label>
+            
+            {profile.profilePic && (
+              <button
+                onClick={handleAvatarRemove}
+                disabled={uploading}
+                style={{
+                  position: 'absolute', top: -5, right: -5,
+                  background: 'var(--danger)', color: 'white',
+                  width: 24, height: 24, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: uploading ? 'wait' : 'pointer',
+                  border: 'none',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                }}
+                title="Fotoğrafı Kaldır"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
           </div>
 
           <div style={{ flex: 1 }}>
@@ -290,12 +324,6 @@ const Profile = () => {
               </span>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Users size={13} /> {profile.friendCount} Arkadaş
-              </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Users size={13} /> {profile.followersCount || 0} Takipçi
-              </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Users size={13} /> {profile.followingCount || 0} Takip
               </span>
               {pendingCount > 0 && (
                 <span

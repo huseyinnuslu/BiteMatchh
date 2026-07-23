@@ -78,16 +78,6 @@ const UserProfile = () => {
     finally { setActionId(null); }
   };
 
-  const handleUnfollow = async () => {
-    setActionId('unfollow');
-    try {
-      await api.post(`/users/unfollow/${id}`);
-      toast.info('Takipten çıkıldı');
-      setProfile(prev => ({ ...prev, isFollowing: false, followersCount: Math.max(0, (prev.followersCount || 0) - 1) }));
-    } catch { toast.error('Takipten çıkılamadı'); }
-    finally { setActionId(null); }
-  };
-
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>Yükleniyor...</div>;
   }
@@ -119,12 +109,6 @@ const UserProfile = () => {
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Users size={13} /> {profile.friendCount} arkadaş
               </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Users size={13} /> {profile.followersCount || 0} takipçi
-              </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Users size={13} /> {profile.followingCount || 0} takip
-              </span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -139,16 +123,6 @@ const UserProfile = () => {
             ) : (
               <button onClick={handleSendRequest} disabled={actionId === id} className="btn btn-primary" style={{ padding: '0.6rem 1rem' }}>
                 <UserPlus size={16} style={{ marginRight: 6 }} /> Ekle
-              </button>
-            )}
-
-            {profile.isFollowing ? (
-              <button onClick={handleUnfollow} disabled={actionId === 'unfollow'} className="btn" style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '0.6rem 1rem' }}>
-                <UserX size={16} style={{ marginRight: 6 }} /> Takipten Çık
-              </button>
-            ) : (
-              <button onClick={handleFollow} disabled={actionId === 'follow'} className="btn" style={{ background: 'var(--secondary)', color: 'white', padding: '0.6rem 1rem' }}>
-                <UserCheck size={16} style={{ marginRight: 6 }} /> Takip Et
               </button>
             )}
           </div>

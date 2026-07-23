@@ -3,7 +3,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -36,6 +35,7 @@ const __dirname = path.dirname(__filename);
 app.use(helmet({
   crossOriginEmbedderPolicy: false, // Socket.IO uyumluluğu için
   contentSecurityPolicy: false,     // Vercel frontend için
+  crossOriginResourcePolicy: false, // Localhost resim yüklemeleri için
 }));
 
 // ─── Sıkıştırma (gzip) ─────────────────────────────────────────────────────
