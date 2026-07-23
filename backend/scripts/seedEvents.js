@@ -290,7 +290,7 @@ async function main() {
   await mongoose.connect(MONGO_URI);
   console.log('✅ Bağlandı.\n');
 
-  const { deletedCount } = await Candidate.deleteMany({ isLiveEvent: true });
+  const { deletedCount } = await Candidate.deleteMany({ isLiveEvent: true, eventSource: 'Bubilet' });
   console.log(`🧹 ${deletedCount} eski etkinlik silindi.`);
 
   const saved = await Candidate.insertMany(EVENTS, { ordered: false });

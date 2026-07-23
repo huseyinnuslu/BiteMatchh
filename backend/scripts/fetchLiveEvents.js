@@ -285,7 +285,7 @@ async function main() {
 
   // ADIM 1: Eski etkinlikleri temizle
   console.log('🧹 Eski canlı etkinlikler siliniyor...');
-  const { deletedCount } = await Candidate.deleteMany({ isLiveEvent: true });
+  const { deletedCount } = await Candidate.deleteMany({ isLiveEvent: true, eventSource: 'Bubilet' });
   console.log(`   ${deletedCount} eski etkinlik silindi.\n`);
 
   // ADIM 2: Bubilet scraping
