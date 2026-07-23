@@ -19,7 +19,13 @@ let socket = null;
  * @param {string} token - JWT token (kimlik doğrulama için auth header'a eklenir)
  */
 export const connectSocket = (token) => {
-  if (socket && socket.connected) return socket;
+  if (socket) {
+    if (token && socket.auth?.token !== token) {
+      socket.auth.token = token;
+      socket.disconnect().connect();
+    }
+    return socket;
+  }
 
   socket = io(SOCKET_URL, {
     auth: { token },

@@ -11,6 +11,7 @@
 
 import Message from '../models/Message.js';
 import Notification from '../models/Notification.js';
+import jwt from 'jsonwebtoken';
 
 const roomLikes        = new Map();
 const roomParticipants = new Map();
@@ -26,6 +27,24 @@ const userRoom = (userId) => `user:${userId}`;
 export const initSocket = (io) => {
   io.on('connection', (socket) => {
     console.log(`Baglandi: ${socket.id}`);
+
+    // 🔥 BAĞLANTI ANINDA OTOMATİK ODAYA KATIL (Eski PWA cache'li frontend'ler için hayat kurtarıcı!)
+    try {
+      const token = socket.handshake.auth?.token;
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.id) {
+          const uId = decoded.id.toString();
+          socket.data.userId = uId;
+          socket.join(userRoom(uId));
+          
+          if (!onlineUsers.has(uId)) onlineUsers.set(uId, new Set());
+          onlineUsers.get(uId).add(socket.id);
+        }
+      }
+    } catch (err) {
+      console.warn('Socket token verify hatası:', err.message);
+    }
 
     // ── user_online ────────────────────────────────────────────────────────────
     // Kullanıcı uygulamaya girerken çağrılır.
