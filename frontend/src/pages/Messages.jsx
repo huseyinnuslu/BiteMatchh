@@ -236,6 +236,12 @@ const Messages = () => {
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
   const menuRef   = useRef(null);
+  const activeUserRef = useRef(activeUser);
+
+  // activeUserRef'i her activeUser değiştiğinde güncelle
+  useEffect(() => {
+    activeUserRef.current = activeUser;
+  }, [activeUser]);
 
   /* ─── Socket bağlan, online listesi al ── */
   useEffect(() => {
@@ -263,19 +269,29 @@ const Messages = () => {
     socket.on('friend_offline',  ({ userId }) => setOnlineIds(p => { const n = new Set(p); n.delete(userId); return n; }));
 
     socket.on('receive_direct_message', (msg) => {
-      // tmpId ile gönderilen optimistic mesajı gerçek ID ile değiştir
-      setMessages(prev => {
-        // Eğer tam aynı _id ile zaten eklenmiş ise tekrar ekleme
-        if (prev.some(m => m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
-      // Konuşma listesini güncelle (alıcı veya gönderen taraf için)
       const otherId = msg.sender?.toString() === user._id?.toString() ? msg.recipient : msg.sender;
+      
+      // SADECE aktif sohbet açık olan kişiden (veya bize) gelen mesajsa listeye ekle
+      if (activeUserRef.current && activeUserRef.current._id?.toString() === otherId?.toString()) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+      }
+
+      // Konuşma listesini güncelle (alıcı veya gönderen taraf için)
       setConversations(prev => {
         const idx = prev.findIndex(c => c.user?._id?.toString() === otherId?.toString());
         const upd = { text: msg.text, createdAt: msg.createdAt, isMe: msg.sender?.toString() === user._id?.toString() };
-        if (idx !== -1) { const arr = [...prev]; arr[idx] = { ...arr[idx], lastMessage: upd }; return arr; }
-        return prev;
+        if (idx !== -1) { 
+          const arr = [...prev]; 
+          arr[idx] = { ...arr[idx], lastMessage: upd }; 
+          return arr; 
+        } else {
+          // Listede yoksa (yeni sohbet) API'den güncel listeyi çekmek en garantisi
+          api.get('/messages/conversations').then(({ data }) => setConversations(data)).catch(() => {});
+          return prev;
+        }
       });
     });
 
