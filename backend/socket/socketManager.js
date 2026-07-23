@@ -117,6 +117,8 @@ export const initSocket = (io) => {
     // send_direct_message: arkadaslar arasi DM
     // Payload: { toUserId, text, senderName, sharedEvent }
     socket.on('send_direct_message', async ({ toUserId, text, senderName, sharedEvent }) => {
+      // Fallback: userId might be lost after reconnect
+      if (!socket.data.userId && senderName) socket.data.userId = socket.data.userId;
       const myId = socket.data.userId;
       if (!myId || !toUserId) return;
       if (!text?.trim() && !sharedEvent) return;
@@ -136,9 +138,8 @@ export const initSocket = (io) => {
       const toSocket = onlineUsers.get(toUserId);
       if (toSocket) io.to(toSocket).emit('receive_direct_message', msg);
 
-      // Gönderene de yansit (birden fazla sekme/cihaz icin)
-      socket.emit('receive_direct_message', { ...msg, isMine: true });
-
+      // NOT: Gönderene echo yapilmiyor — frontend optimistic message kullanıyor (duplicate önlemi)
+      
       // DB'ye async kaydet
       try {
         await Message.create({

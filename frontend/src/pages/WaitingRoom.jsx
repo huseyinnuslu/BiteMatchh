@@ -36,7 +36,29 @@ const WaitingRoom = () => {
     fetchFriends();
   }, [isHost]);
 
-  // 2. Geri sayım sayacını yönet
+  // 2b. Real-time katılımcı güncellemesi
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleJoined = () => {
+      // Katılımcı listesini backend'den taze çek
+      fetchRoomStatus(currentRoom._id);
+    };
+    const handleLeft = () => {
+      fetchRoomStatus(currentRoom._id);
+    };
+
+    socket.on('participant_joined', handleJoined);
+    socket.on('participant_left', handleLeft);
+
+    return () => {
+      socket.off('participant_joined', handleJoined);
+      socket.off('participant_left', handleLeft);
+    };
+  }, [currentRoom._id, fetchRoomStatus]);
+
+  // 3. Geri sayım sayacını yönet
   useEffect(() => {
     if (!currentRoom.inviteExpiresAt) {
       setTimeLeft(null);

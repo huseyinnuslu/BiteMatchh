@@ -32,16 +32,20 @@ const Navbar = () => {
     };
     fetchNotifs();
 
-    // Socket listener
-    const socket = getSocket();
-    if (socket) {
-      socket.on('new_notification', (notif) => {
-        setNotifications(prev => [notif, ...prev]);
+    // App.jsx'teki global socket handler, yeni bildirim gelince
+    // 'bitematch_new_notif' custom event'i fırlatır.
+    // Bu sayede tek socket bağlantısı ile hem toast hem navbar güncellenir.
+    const handleNewNotif = (e) => {
+      setNotifications(prev => {
+        // Zaten listede varsa ekleme
+        if (prev.some(n => n._id === e.detail._id)) return prev;
+        return [e.detail, ...prev];
       });
-    }
+    };
+    window.addEventListener('bitematch_new_notif', handleNewNotif);
 
     return () => {
-      if (socket) socket.off('new_notification');
+      window.removeEventListener('bitematch_new_notif', handleNewNotif);
     };
   }, [user?._id]);
 
@@ -210,21 +214,83 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Mobilde sağ tarafta Çıkış Butonu */}
+          {/* Mobilde sağ tarafta Bildirim Çanı + Çıkış Butonu */}
           {isMobile && user && user._id && (
-            <button
-              onClick={() => setShowLogoutModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.3rem',
-                padding: '0.4rem 0.8rem', borderRadius: '8px',
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.2)',
-                color: '#f87171', fontWeight: 600, fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-            >
-              <LogOut size={13} /> Çıkış
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {/* Bildirim Çanı */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px', padding: '0.4rem', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: 'white', position: 'relative',
+                    minWidth: '36px', minHeight: '36px',
+                  }}
+                >
+                  <Bell size={17} />
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: '-4px', right: '-4px', background: 'var(--primary)',
+                      color: 'white', fontSize: '0.6rem', fontWeight: 'bold', width: '15px', height: '15px',
+                      borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                {showNotifications && (
+                  <div style={{
+                    position: 'absolute', top: '120%', right: 0, width: 'min(280px, 85vw)',
+                    background: 'rgba(15, 23, 42, 0.97)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 2000,
+                    maxHeight: '350px', display: 'flex', flexDirection: 'column'
+                  }}>
+                    <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: 'white', fontSize: '0.9rem' }}>Bildirimler</h4>
+                      {unreadCount > 0 && (
+                        <span onClick={markAllAsRead} style={{ fontSize: '0.7rem', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}>Tümünü Okundu</span>
+                      )}
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.25rem 0' }}>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Hiç bildiriminiz yok.</div>
+                      ) : (
+                        notifications.slice(0, 10).map(n => (
+                          <Link
+                            key={n._id} to={n.link || '#'}
+                            onClick={() => { handleNotificationClick(n); setShowNotifications(false); }}
+                            style={{
+                              display: 'block', padding: '0.6rem 0.9rem', textDecoration: 'none',
+                              background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',
+                              borderLeft: n.isRead ? '3px solid transparent' : '3px solid var(--primary)',
+                            }}
+                          >
+                            <div style={{ fontSize: '0.8rem', color: 'white', marginBottom: '0.15rem' }}>{n.message}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{new Date(n.createdAt).toLocaleDateString('tr-TR')}</div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Çıkış Butonu */}
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  background: 'rgba(239,68,68,0.08)',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  color: '#f87171', fontWeight: 600, fontSize: '0.8rem',
+                  cursor: 'pointer', minHeight: '36px',
+                }}
+              >
+                <LogOut size={13} /> Çıkış
+              </button>
+            </div>
           )}
 
           {/* Giriş Yapılmamışsa Linkler */}
