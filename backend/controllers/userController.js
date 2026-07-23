@@ -182,7 +182,7 @@ export const getUserProfile = async (req, res, next) => {
     const callerId = req.user._id.toString();
 
     const userAgg = await User.findById(targetUserId)
-      .select('name username createdAt role friends isStatsPublic profilePic followers following')
+      .select('name username createdAt role friends isStatsPublic profilePic followers following pendingFriendRequests')
       .lean();
 
     if (!userAgg) {
@@ -249,18 +249,22 @@ export const getUserProfile = async (req, res, next) => {
       };
     }
 
+    // isPending calculation: Am I in their pending requests?
+    const isPending = (userAgg.pendingFriendRequests || []).map(id => id.toString()).includes(callerId);
+
     res.json({
       _id: userAgg._id,
       name: userAgg.name,
       username: userAgg.username,
-      createdAt: userAgg.createdAt,
-      role: userAgg.role,
       profilePic: userAgg.profilePic,
+      role: userAgg.role,
+      createdAt: userAgg.createdAt,
       isFriend,
+      isPending,
       isFollowing,
-      friendCount: (userAgg.friends || []).length,
       followersCount: (userAgg.followers || []).length,
       followingCount: (userAgg.following || []).length,
+      friendCount: (userAgg.friends || []).length,
       isStatsPublic: isPublic,
       stats: statsData,
     });
@@ -384,7 +388,24 @@ export const sendFriendRequest = async (req, res, next) => {
       $addToSet: { pendingFriendRequests: fromId },
     });
 
-    res.json({ message: 'Arkadaşlık isteği gönderildi' });
+    res.status(200).json({ message: 'Arkadaşlık isteği gönderildi' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Arkadaşlık isteğini geri çek (İptal et) ──────────────────────────────────
+export const cancelFriendRequest = async (req, res, next) => {
+  try {
+    const toId = req.params.id;
+    const fromId = req.user._id.toString();
+
+    // Remove fromId from the target's pendingFriendRequests
+    await User.findByIdAndUpdate(toId, {
+      $pull: { pendingFriendRequests: fromId },
+    });
+
+    res.status(200).json({ message: 'Arkadaşlık isteği geri çekildi' });
   } catch (error) {
     next(error);
   }

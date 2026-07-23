@@ -193,7 +193,20 @@ const Profile = () => {
     } finally { setActionId(null); }
   };
 
-  // ── Arkadaşlık isteği kabul et ────────────────────────────────────────────
+  const handleCancelRequest = async (friendId) => {
+    setActionId(friendId);
+    try {
+      await api.delete(`/users/friends/${friendId}/cancel`);
+      toast.success('İstek geri çekildi');
+      setSearchResults(prev =>
+        prev.map(u => u._id === friendId ? { ...u, isPending: false } : u)
+      );
+    } catch (e) {
+      toast.error('İstek iptal edilemedi');
+    } finally { setActionId(null); }
+  };
+
+  // ── Arkadaşlık isteği kabul et ───────────────────────────────────────────────
   const handleAccept = async (fromId) => {
     setActionId(fromId);
     try {
@@ -664,9 +677,14 @@ const Profile = () => {
                           <Heart size={13} fill="var(--success)" /> Arkadaşsınız
                         </span>
                       ) : u.isPending ? (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Clock size={13} /> İstek Gönderildi
-                        </span>
+                        <button
+                          onClick={() => handleCancelRequest(u._id)}
+                          disabled={actionId === u._id}
+                          className="btn"
+                          style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                        >
+                          {actionId === u._id ? '...' : <><Clock size={14} style={{ marginRight: 6 }} /> İstek Gönderildi</>}
+                        </button>
                       ) : (
                         <button
                           onClick={() => handleSendRequest(u._id)}

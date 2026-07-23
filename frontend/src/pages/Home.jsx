@@ -48,9 +48,9 @@ const Home = () => {
       >
         <TypeAnimation
           sequence={[
-            '"Ne yiyelim?"', 2500,
-            '"Nereye gidelim?"', 2500,
-            '"Hangi filmi izleyelim?"', 2500,
+            '"Ne yiyelim?"', 1500,
+            '"Nereye gidelim?"', 1500,
+            '"Hangi filmi izleyelim?"', 1500,
           ]}
           wrapper="span"
           speed={50}

@@ -14,6 +14,7 @@ import {
   getProfile,
   searchUsers,
   sendFriendRequest,
+  cancelFriendRequest,
   acceptFriendRequest,
   declineFriendRequest,
   removeFriend,
@@ -42,10 +43,9 @@ router.get('/search', searchUsers);
 // Arkadaş listesi
 router.get('/friends', getFriends);
 
-// Arkadaşlık isteği gönder
+// Arkadaş işlemleri
 router.post('/friends/:id', sendFriendRequest);
-
-// Arkadaşlık isteği kabul et
+router.delete('/friends/:id/cancel', cancelFriendRequest);
 router.put('/friends/:id/accept', acceptFriendRequest);
 
 // Arkadaşlık isteği reddet

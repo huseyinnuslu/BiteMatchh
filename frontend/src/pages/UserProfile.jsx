@@ -58,6 +58,17 @@ const UserProfile = () => {
     } finally { setActionId(null); }
   };
 
+  const handleCancelRequest = async () => {
+    setActionId(id);
+    try {
+      await api.delete(`/users/friends/${id}/cancel`);
+      toast.success('İstek geri çekildi');
+      setProfile(prev => ({ ...prev, isPending: false }));
+    } catch (e) {
+      toast.error('İstek iptal edilemedi');
+    } finally { setActionId(null); }
+  };
+
   const handleRemoveFriend = async () => {
     setActionId(id);
     try {
@@ -117,8 +128,8 @@ const UserProfile = () => {
                 <UserMinus size={16} style={{ marginRight: 6 }} /> Çıkar
               </button>
             ) : profile.isPending ? (
-              <button disabled className="btn" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', cursor: 'not-allowed', padding: '0.6rem 1rem' }}>
-                İstek Gönderildi
+              <button onClick={handleCancelRequest} disabled={actionId === id} className="btn" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.6rem 1rem' }}>
+                <Clock size={16} style={{ marginRight: 6 }} /> İstek Gönderildi
               </button>
             ) : (
               <button onClick={handleSendRequest} disabled={actionId === id} className="btn btn-primary" style={{ padding: '0.6rem 1rem' }}>
