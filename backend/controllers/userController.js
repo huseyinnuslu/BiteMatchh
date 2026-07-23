@@ -193,21 +193,50 @@ export const getUserProfile = async (req, res, next) => {
     const isPublic = userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true;
     
     if (isPublic) {
-      let totalSwipes = userAgg.stats?.totalSwipes || 0;
-      let totalLikes = 0;
-      let categoryBreakdown = {};
+      const tUserId = mongoose.Types.ObjectId.createFromHexString
+        ? mongoose.Types.ObjectId.createFromHexString(userAgg._id.toString())
+        : new mongoose.Types.ObjectId(userAgg._id.toString());
 
-      if (userAgg.stats?.categoryDistribution) {
-        const catDist = userAgg.stats.categoryDistribution;
-        for (const [cat, count] of Object.entries(catDist)) {
-          totalLikes += count;
-        }
-        for (const [cat, count] of Object.entries(catDist)) {
-          if (totalLikes > 0) {
-            categoryBreakdown[cat] = Math.round((count / totalLikes) * 100);
-          }
+      const [swipeStats, categoryData] = await Promise.all([
+        Swipe.aggregate([
+          { $match: { user: tUserId } },
+          {
+            $group: {
+              _id: null,
+              totalSwipes: { $sum: 1 },
+              totalLikes: { $sum: { $cond: [{ $eq: ['$decision', 'like'] }, 1, 0] } },
+            },
+          },
+        ]),
+        Swipe.aggregate([
+          { $match: { user: tUserId, decision: 'like' } },
+          {
+            $lookup: {
+              from: 'rooms',
+              localField: 'room',
+              foreignField: '_id',
+              as: 'roomInfo',
+            },
+          },
+          { $unwind: { path: '$roomInfo', preserveNullAndEmptyArrays: true } },
+          { $group: { _id: { $ifNull: ['$roomInfo.category', 'custom'] }, count: { $sum: 1 } } },
+        ]),
+      ]);
+
+      const totalSwipes = swipeStats[0]?.totalSwipes || 0;
+      const totalLikes  = swipeStats[0]?.totalLikes  || 0;
+      
+      const categoryDistribution = Object.fromEntries(
+        categoryData.map(c => [c._id || 'custom', c.count])
+      );
+
+      const categoryBreakdown = {};
+      if (totalLikes > 0) {
+        for (const [cat, count] of Object.entries(categoryDistribution)) {
+          categoryBreakdown[cat] = Math.round((count / totalLikes) * 100);
         }
       }
+
       statsData = {
         totalSwipes,
         totalLikes,
