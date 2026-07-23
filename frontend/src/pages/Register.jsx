@@ -11,6 +11,7 @@ const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [errors, setErrors] = useState({ username: '', email: '', password: '' });
@@ -54,7 +55,7 @@ const Register = () => {
   };
 
   const isFormValid =
-    username && email && password &&
+    username && email && password && termsAccepted &&
     !validateUsername(username) && !validateEmail(email) && !validatePassword(password);
 
   const handleSubmit = async (e) => {
@@ -192,9 +193,20 @@ const Register = () => {
             <ErrorMsg field="password" />
           </div>
 
-          {/* KVKK Bilgilendirmesi */}
-          <div style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.5' }}>
-            Kayıt olarak <Link to="/terms" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni</Link>'ni okuduğunuzu ve kabul ettiğinizi beyan edersiniz.
+          {/* KVKK Bilgilendirmesi (Checkbox) */}
+          <div style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }} onClick={() => setTermsAccepted(!termsAccepted)}>
+            <div style={{
+              minWidth: '20px', height: '20px', borderRadius: '4px',
+              border: `2px solid ${termsAccepted ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+              background: termsAccepted ? 'var(--primary)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginTop: '0.1rem', transition: 'all 0.2s'
+            }}>
+              {termsAccepted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni</Link>'ni okudum ve kabul ediyorum.
+            </div>
           </div>
 
           {/* Submit */}
