@@ -122,6 +122,8 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling'],
 });
 
+export const getIo = () => io;
+
 initSocket(io);
 
 const PORT = process.env.PORT || 5001;

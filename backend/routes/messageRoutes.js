@@ -11,6 +11,8 @@ import mongoose from 'mongoose';
 import { protect } from '../middleware/authMiddleware.js';
 import Message from '../models/Message.js';
 import User    from '../models/User.js';
+import Notification from '../models/Notification.js';
+import { getIo } from '../server.js';
 
 const router = express.Router();
 
@@ -111,6 +113,39 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
       text:       text?.trim() || '',
       sharedEvent,
     });
+
+    // HTTP fallback ile gönderilse bile alıcıya socket üzerinden anlık ilet!
+    try {
+      const io = getIo();
+      if (io) {
+        const msgPayload = {
+          _id:        msg._id.toString(),
+          type:       'direct',
+          sender:     req.user._id.toString(),
+          senderName: req.user.username,
+          recipient:  otherId.toString(),
+          text:       text?.trim() || '',
+          sharedEvent,
+          createdAt:  msg.createdAt,
+        };
+        
+        io.to(`user:${otherId}`).emit('receive_direct_message', msgPayload);
+        
+        const notifMsg = msgPayload.text
+          ? `${msgPayload.senderName}: ${msgPayload.text}`
+          : `${msgPayload.senderName} bir etkinlik paylaştı 🎟`;
+        
+        const notif = await Notification.create({
+          user: otherId,
+          message: notifMsg,
+          type: 'message',
+          link: `/messages`
+        });
+        io.to(`user:${otherId}`).emit('new_notification', notif);
+      }
+    } catch (err) {
+      console.error('HTTP Fallback Socket Emit Error:', err.message);
+    }
 
     res.status(201).json(msg);
   } catch (e) { next(e); }
