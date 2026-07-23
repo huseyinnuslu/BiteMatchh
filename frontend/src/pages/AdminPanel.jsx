@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon } from 'lucide-react';
+import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -299,15 +299,99 @@ const AdminPanel = () => {
 
         {/* ===== STATS TAB ===== */}
         {activeTab === 'stats' && stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '1rem' }}>
-            <StatCard icon="👥" label="Toplam Kullanıcı" value={stats.totalUsers} color="#60a5fa" />
-            <StatCard icon="🏠" label="Toplam Oda" value={stats.totalRooms} color="#a78bfa" />
-            <StatCard icon="🟢" label="Aktif Odalar" value={stats.activeRooms} color="#4ade80" />
-            <StatCard icon="✅" label="Tamamlanan Odalar" value={stats.completedRooms} color="#34d399" />
-            <StatCard icon="👑" label="Host Kullanıcılar" value={stats.hostUsers} color="#fbbf24" />
-            <StatCard icon="👤" label="Misafir Kullanıcılar" value={stats.guestUsers} color="#94a3b8" />
-            <StatCard icon="🛡️" label="Admin Kullanıcılar" value={stats.adminUsers} color="#ff6b6b" />
-            <StatCard icon="🆕" label="Bu Hafta Yeni Üye" value={stats.newUsersThisWeek} color="#38bdf8" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            
+            {/* Sağlık Göstergeleri (Health Widgets) */}
+            <div>
+              <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                <Activity size={18} /> Sistem Sağlığı Analizi
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                
+                {/* 1. Toplam Kullanıcı ve Son 24 Saat */}
+                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'rgba(96, 165, 250, 0.1)', padding: '0.6rem', borderRadius: '12px', color: '#60a5fa' }}>
+                      <Users size={24} />
+                    </div>
+                    <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '0.25rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                      <TrendingUp size={12} /> +{stats.newUsersToday} (24s)
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{stats.totalUsers}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam Kullanıcı</div>
+                  </div>
+                </div>
+
+                {/* 2. Toplam Oda ve Son 24 Saat */}
+                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'rgba(167, 139, 250, 0.1)', padding: '0.6rem', borderRadius: '12px', color: '#a78bfa' }}>
+                      <Home size={24} />
+                    </div>
+                    <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '0.25rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                      <TrendingUp size={12} /> +{stats.newRoomsToday} (24s)
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{stats.totalRooms}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Toplam Oda</div>
+                  </div>
+                </div>
+
+                {/* 3. Eşleşme Başarı Oranı */}
+                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'rgba(52, 211, 153, 0.1)', padding: '0.6rem', borderRadius: '12px', color: '#34d399' }}>
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>{stats.completedRooms} / {stats.totalRooms} Oda</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+                      {stats.totalRooms > 0 ? ((stats.completedRooms / stats.totalRooms) * 100).toFixed(1) : 0}%
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Eşleşme Başarı Oranı</div>
+                  </div>
+                </div>
+
+                {/* 4. Katılımcı Analizi */}
+                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'rgba(251, 191, 36, 0.1)', padding: '0.6rem', borderRadius: '12px', color: '#fbbf24' }}>
+                      <BarChart3 size={24} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{stats.multiUserRooms}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>çoklu vs</span>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#ff6b6b' }}>{stats.singleUserRooms}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>tekli</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Çok Katılımcılı Odalar (2+)</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Diğer Genel İstatistikler */}
+            <div>
+              <h3 style={{ marginBottom: '1.25rem', color: 'var(--text-muted)' }}>Genel Metrikler</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '1rem' }}>
+                <StatCard icon="👥" label="Toplam Kullanıcı" value={stats.totalUsers} color="#60a5fa" />
+                <StatCard icon="🏠" label="Toplam Oda" value={stats.totalRooms} color="#a78bfa" />
+                <StatCard icon="🟢" label="Aktif Odalar" value={stats.activeRooms} color="#4ade80" />
+                <StatCard icon="✅" label="Tamamlanan Odalar" value={stats.completedRooms} color="#34d399" />
+                <StatCard icon="👑" label="Host Kullanıcılar" value={stats.hostUsers} color="#fbbf24" />
+                <StatCard icon="👤" label="Misafir Kullanıcılar" value={stats.guestUsers} color="#94a3b8" />
+                <StatCard icon="🛡️" label="Admin Kullanıcılar" value={stats.adminUsers} color="#ff6b6b" />
+                <StatCard icon="🆕" label="Bu Hafta Yeni Üye" value={stats.newUsersThisWeek} color="#38bdf8" />
+              </div>
+            </div>
+
           </div>
         )}
 

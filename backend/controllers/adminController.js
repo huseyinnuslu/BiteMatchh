@@ -153,6 +153,8 @@ export const getStats = async (req, res, next) => {
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
     // Paralel: User istatistikleri + Room istatistikleri aynı anda
     const [userStats, roomStats] = await Promise.all([
@@ -165,6 +167,10 @@ export const getStats = async (req, res, next) => {
               { $match: { createdAt: { $gte: sevenDaysAgo } } },
               { $count: 'count' },
             ],
+            newToday: [
+              { $match: { createdAt: { $gte: oneDayAgo } } },
+              { $count: 'count' },
+            ],
             total: [{ $count: 'count' }],
           },
         },
@@ -174,6 +180,14 @@ export const getStats = async (req, res, next) => {
         {
           $facet: {
             byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+            newToday: [
+              { $match: { createdAt: { $gte: oneDayAgo } } },
+              { $count: 'count' },
+            ],
+            participantStats: [
+              { $project: { participantCount: { $size: { $ifNull: ['$participants', []] } } } },
+              { $group: { _id: { $cond: [{ $gte: ['$participantCount', 2] }, 'multi', 'single'] }, count: { $sum: 1 } } }
+            ],
             total: [{ $count: 'count' }],
           },
         },
@@ -188,12 +202,20 @@ export const getStats = async (req, res, next) => {
     const totalUsers = uData.total[0]?.count || 0;
     const newUsersThisWeek = uData.newThisWeek[0]?.count || 0;
 
+    const newUsersToday = uData.newToday[0]?.count || 0;
+
     // Room sonuçlarını parse et
     const rData = roomStats[0];
     const statusMap = Object.fromEntries(
       rData.byStatus.map(s => [s._id, s.count])
     );
+    const participantMap = Object.fromEntries(
+      rData.participantStats.map(p => [p._id, p.count])
+    );
     const totalRooms = rData.total[0]?.count || 0;
+    const newRoomsToday = rData.newToday[0]?.count || 0;
+    const singleUserRooms = participantMap['single'] || 0;
+    const multiUserRooms = participantMap['multi'] || 0;
 
     res.json({
       totalUsers,
@@ -204,6 +226,10 @@ export const getStats = async (req, res, next) => {
       activeRooms: (statusMap['waiting'] || 0) + (statusMap['voting'] || 0),
       completedRooms: statusMap['finished'] || 0,
       newUsersThisWeek,
+      newUsersToday,
+      newRoomsToday,
+      singleUserRooms,
+      multiUserRooms,
     });
   } catch (error) {
     next(error);
