@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
 
 const MatchHistory = () => {
@@ -11,6 +12,9 @@ const MatchHistory = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMatches, setSelectedMatches] = useState([]);
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -37,35 +41,44 @@ const MatchHistory = () => {
     });
   };
 
-  const handleDeleteMatch = async (roomId) => {
-    if (!window.confirm('Bu eşleşmeyi geçmişinizden silmek istediğinize emin misiniz?')) return;
-    try {
-      const res = await api.delete(`/rooms/${roomId}`);
-      if (res.status === 200) {
-        setMatches(matches => matches.filter(m => m._id !== roomId));
-        setSelectedMatches(prev => prev.filter(id => id !== roomId));
-        toast.success('Eşleşme geçmişinizden silindi.');
-      }
-    } catch (error) {
-      console.error('Silme hatası:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Silinirken bir hata oluştu.');
-    }
+  const requestDeleteMatch = (roomId) => {
+    setDeleteTarget(roomId);
+    setShowConfirm(true);
   };
 
-  const handleBulkDelete = async () => {
+  const requestBulkDelete = () => {
     if (selectedMatches.length === 0) return;
-    if (!window.confirm(`Seçilen ${selectedMatches.length} geçmiş eşleşmeyi silmek istediğinize emin misiniz?`)) return;
+    setDeleteTarget('bulk');
+    setShowConfirm(true);
+  };
 
-    setLoading(true);
-    try {
-      await Promise.all(selectedMatches.map(id => api.delete(`/rooms/${id}`)));
-      setMatches(matches => matches.filter(m => !selectedMatches.includes(m._id)));
-      setSelectedMatches([]);
-      toast.success('Seçilen eşleşmeler başarıyla silindi.');
-    } catch (error) {
-      toast.error('Toplu silme işlemi sırasında bir hata oluştu.');
-    } finally {
-      setLoading(false);
+  const executeDelete = async () => {
+    setShowConfirm(false);
+    
+    if (deleteTarget === 'bulk') {
+      setLoading(true);
+      try {
+        await Promise.all(selectedMatches.map(id => api.delete(`/rooms/${id}`)));
+        setMatches(matches => matches.filter(m => !selectedMatches.includes(m._id)));
+        setSelectedMatches([]);
+        toast.success('Seçilen eşleşmeler başarıyla silindi.');
+      } catch (error) {
+        toast.error('Toplu silme işlemi sırasında bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (deleteTarget) {
+      try {
+        const res = await api.delete(`/rooms/${deleteTarget}`);
+        if (res.status === 200) {
+          setMatches(matches => matches.filter(m => m._id !== deleteTarget));
+          setSelectedMatches(prev => prev.filter(id => id !== deleteTarget));
+          toast.success('Eşleşme geçmişinizden silindi.');
+        }
+      } catch (error) {
+        console.error('Silme hatası:', error.response?.data || error.message);
+        toast.error(error.response?.data?.message || 'Silinirken bir hata oluştu.');
+      }
     }
   };
 
@@ -119,7 +132,7 @@ const MatchHistory = () => {
         </div>
         {selectedMatches.length > 0 && (
           <button
-            onClick={handleBulkDelete}
+            onClick={requestBulkDelete}
             style={{
               background: 'rgba(239, 68, 68, 0.15)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
@@ -174,16 +187,19 @@ const MatchHistory = () => {
                   position: 'relative'
                 }}
               >
-                {/* Silme & Checkbox */}
-                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {/* Checkbox */}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 10, background: 'rgba(0,0,0,0.5)', borderRadius: '4px', padding: '4px', display: 'flex', alignItems: 'center' }}>
                   <input
                     type="checkbox"
                     checked={selectedMatches.includes(room._id)}
                     onChange={() => toggleSelection(room._id)}
-                    style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                    style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: 'var(--primary)', margin: 0 }}
                   />
+                </div>
+                {/* Silme Butonu */}
+                <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <button 
-                    onClick={() => handleDeleteMatch(room._id)}
+                    onClick={() => requestDeleteMatch(room._id)}
                     style={{ 
                       background: 'rgba(239, 68, 68, 0.1)', 
                       border: '1px solid rgba(239, 68, 68, 0.2)', 
@@ -370,6 +386,17 @@ const MatchHistory = () => {
             );
           })}
         </div>
+      )}
+
+      {showConfirm && (
+        <ConfirmModal
+          icon="🗑️"
+          title="Silmeyi Onayla"
+          message={deleteTarget === 'bulk' ? `Seçilen ${selectedMatches.length} geçmiş eşleşmeyi silmek istediğinize emin misiniz?` : "Bu eşleşmeyi geçmişinizden silmek istediğinize emin misiniz?"}
+          confirmText="Evet, Sil"
+          onConfirm={executeDelete}
+          onCancel={() => setShowConfirm(false)}
+        />
       )}
     </div>
   );
