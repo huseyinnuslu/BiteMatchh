@@ -280,31 +280,6 @@ const MatchHistory = () => {
                           {formatDate(room.updatedAt)}
                         </div>
                       </div>
-                      <button 
-                        onClick={() => handleDeleteMatch(room._id)}
-                        style={{
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: 'rgba(239, 68, 68, 0.15)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#ef4444',
-                          borderRadius: '8px',
-                          padding: '0.4rem 0.6rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          transition: 'all 0.2s',
-                          zIndex: 20
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; }}
-                      >
-                        <Trash2 size={16} /> Sil
-                      </button>
                     </div>
 
                     {/* Katılımcılar */}
