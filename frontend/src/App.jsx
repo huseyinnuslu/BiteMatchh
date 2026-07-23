@@ -16,6 +16,7 @@ import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 import Messages from './pages/Messages';
 import MatchHistory from './pages/MatchHistory';
+import Terms from './pages/Terms';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { ToastContainer, toast } from 'react-toastify';
@@ -99,6 +100,7 @@ function App() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/terms" element={<Terms />} />
           <Route 
             path="/dashboard" 
             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 

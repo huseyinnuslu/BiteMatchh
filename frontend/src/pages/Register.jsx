@@ -192,13 +192,17 @@ const Register = () => {
             <ErrorMsg field="password" />
           </div>
 
+          {/* KVKK Bilgilendirmesi */}
+          <div style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.5' }}>
+            Kayıt olarak <Link to="/terms" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni</Link>'ni okuduğunuzu ve kabul ettiğinizi beyan edersiniz.
+          </div>
+
           {/* Submit */}
           <button
             type="submit"
             className="btn btn-primary"
             style={{
               width: '100%',
-              marginTop: '1.5rem',
               opacity: isFormValid ? 1 : 0.55,
               cursor: isFormValid ? 'pointer' : 'not-allowed',
               transition: 'all 0.3s ease',
