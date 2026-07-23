@@ -103,17 +103,6 @@ const WaitingRoom = () => {
     try {
       await api.put(`/rooms/${currentRoom._id}/invite`, { friendId });
 
-      // Socket üzerinden davet fırlat
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('invite_to_room', {
-          friendId,
-          roomCode: currentRoom.name,
-          roomId: currentRoom._id,
-          inviterName: user.username,
-        });
-      }
-
       setInvitedIds(prev => new Set([...prev, friendId]));
       toast.success(`@${friendUsername} odaya davet edildi! 📩`);
       fetchRoomStatus(currentRoom._id); // Sayaç başlaması için odayı yenile
