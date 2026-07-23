@@ -10,6 +10,7 @@ const MatchHistory = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMatches, setSelectedMatches] = useState([]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -42,12 +43,36 @@ const MatchHistory = () => {
       const res = await api.delete(`/rooms/${roomId}`);
       if (res.status === 200) {
         setMatches(matches => matches.filter(m => m._id !== roomId));
+        setSelectedMatches(prev => prev.filter(id => id !== roomId));
         toast.success('Eşleşme geçmişinizden silindi.');
       }
     } catch (error) {
       console.error('Silme hatası:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Silinirken bir hata oluştu.');
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedMatches.length === 0) return;
+    if (!window.confirm(`Seçilen ${selectedMatches.length} geçmiş eşleşmeyi silmek istediğinize emin misiniz?`)) return;
+
+    setLoading(true);
+    try {
+      await Promise.all(selectedMatches.map(id => api.delete(`/rooms/${id}`)));
+      setMatches(matches => matches.filter(m => !selectedMatches.includes(m._id)));
+      setSelectedMatches([]);
+      toast.success('Seçilen eşleşmeler başarıyla silindi.');
+    } catch (error) {
+      toast.error('Toplu silme işlemi sırasında bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelection = (roomId) => {
+    setSelectedMatches(prev => 
+      prev.includes(roomId) ? prev.filter(id => id !== roomId) : [...prev, roomId]
+    );
   };
 
   const getPartnerList = (room) => {
@@ -84,14 +109,34 @@ const MatchHistory = () => {
         >
           <ArrowLeft size={20} />
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1.8rem', background: 'linear-gradient(135deg, #fff 40%, var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Eşleşme Geçmişim
           </h2>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Daha önce odalarda başarıyla ortak karar verdiğiniz tüm etkinlik ve mekanlar
+            Daha önce odalarda başarıyla ortak karar verdiğiniz etkinlik ve mekanlar
           </p>
         </div>
+        {selectedMatches.length > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '8px',
+              padding: '0.6rem 1.2rem',
+              color: '#ef4444',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            <Trash2 size={16} /> Seçilenleri Sil ({selectedMatches.length})
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -129,6 +174,35 @@ const MatchHistory = () => {
                   position: 'relative'
                 }}
               >
+                {/* Silme & Checkbox */}
+                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedMatches.includes(room._id)}
+                    onChange={() => toggleSelection(room._id)}
+                    style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                  />
+                  <button 
+                    onClick={() => handleDeleteMatch(room._id)}
+                    style={{ 
+                      background: 'rgba(239, 68, 68, 0.1)', 
+                      border: '1px solid rgba(239, 68, 68, 0.2)', 
+                      color: '#ef4444', 
+                      borderRadius: '8px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s'
+                    }}
+                    title="Bu geçmişi sil"
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
                 {/* Sol / Üst: Etkinlik Resmi */}
                 <div style={{ 
                   width: window.innerWidth <= 640 ? '100%' : '180px',

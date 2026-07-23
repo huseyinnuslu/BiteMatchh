@@ -13,6 +13,7 @@ import Room from './pages/Room';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 import Messages from './pages/Messages';
 import MatchHistory from './pages/MatchHistory';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -114,6 +115,10 @@ function App() {
           <Route 
             path="/profile" 
             element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/profile/:id" 
+            element={<ProtectedRoute><UserProfile /></ProtectedRoute>} 
           />
           <Route 
             path="/messages" 

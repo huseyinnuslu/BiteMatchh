@@ -168,6 +168,68 @@ export const getProfile = async (req, res, next) => {
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
+// @desc    Başka bir kullanıcının genel profilini getir
+// @route   GET /api/users/profile/:id
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const getUserProfile = async (req, res, next) => {
+  try {
+    const targetUserId = req.params.id;
+    const callerId = req.user._id.toString();
+
+    const userAgg = await User.findById(targetUserId)
+      .select('name username createdAt role friends isStatsPublic stats')
+      .lean();
+
+    if (!userAgg) {
+      res.status(404);
+      throw new Error('Kullanıcı bulunamadı');
+    }
+
+    const isFriend = (userAgg.friends || []).map(id => id.toString()).includes(callerId);
+
+    // Calculate stat logic similar to getProfile, but only if isStatsPublic is true
+    let statsData = null;
+    if (userAgg.isStatsPublic) {
+      let totalSwipes = userAgg.stats?.totalSwipes || 0;
+      let totalLikes = 0;
+      let categoryBreakdown = {};
+
+      if (userAgg.stats?.categoryDistribution) {
+        const catDist = userAgg.stats.categoryDistribution;
+        for (const [cat, count] of Object.entries(catDist)) {
+          totalLikes += count;
+        }
+        for (const [cat, count] of Object.entries(catDist)) {
+          if (totalLikes > 0) {
+            categoryBreakdown[cat] = Math.round((count / totalLikes) * 100);
+          }
+        }
+      }
+      statsData = {
+        totalSwipes,
+        totalLikes,
+        categoryBreakdown,
+      };
+    }
+
+    res.json({
+      _id: userAgg._id,
+      name: userAgg.name,
+      username: userAgg.username,
+      createdAt: userAgg.createdAt,
+      role: userAgg.role,
+      isFriend,
+      friendCount: (userAgg.friends || []).length,
+      isStatsPublic: userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true,
+      stats: statsData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
 // @desc    Kullanıcı arama
 // @route   GET /api/users/search?q=username
 // @access  Private

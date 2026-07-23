@@ -13,6 +13,7 @@
 import {
   useState, useEffect, useRef, useContext, useCallback,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { connectSocket, getSocket } from '../socket/socketClient';
 import api from '../api';
@@ -231,6 +232,7 @@ const Messages = () => {
   const [onlineIds, setOnlineIds]         = useState(new Set());
   const [loadingConvs, setLoadingConvs]   = useState(true);
   const [showBlocked, setShowBlocked]     = useState(false); // engellenenler bölümü aç/kapa
+  const navigate = useNavigate();
 
   const [activeUser, setActiveUser]     = useState(null);
   const [messages, setMessages]         = useState([]);
@@ -666,9 +668,17 @@ const Messages = () => {
                   <ArrowLeft size={19} />
                 </button>
 
-                <Avatar username={activeUser.username} size={40} online={onlineIds.has(activeUser._id?.toString())} />
+                <div 
+                  onClick={() => navigate(`/profile/${activeUser._id}`)} 
+                  style={{ cursor: 'pointer' }}
+                >
+                  <Avatar username={activeUser.username} size={40} online={onlineIds.has(activeUser._id?.toString())} />
+                </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div 
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                  onClick={() => navigate(`/profile/${activeUser._id}`)}
+                >
                   <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff' }}>@{activeUser.username}</div>
                   <div style={{ fontSize: '0.72rem', color: onlineIds.has(activeUser._id?.toString()) ? '#22c55e' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Circle size={7} fill="currentColor" strokeWidth={0} />

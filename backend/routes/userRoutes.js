@@ -21,6 +21,7 @@ import {
   blockUser,
   unblockUser,
   getBlockedUsers,
+  getUserProfile,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -31,6 +32,7 @@ router.use(protect);
 
 // Profil
 router.get('/profile', getProfile);
+router.get('/profile/:id', getUserProfile);
 
 // Kullanıcı arama
 router.get('/search', searchUsers);

@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -64,6 +65,7 @@ const ScoreBar = ({ score }) => (
 // ════════════════════════════════════════════════════════════════════════════
 const Profile = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('stats');
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -391,18 +393,27 @@ const Profile = () => {
                     className="glass-card"
                     style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
-                    <div style={{
-                      width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-                      background: 'linear-gradient(135deg,var(--surface-hover),var(--surface))',
-                      border: '2px solid rgba(255,75,75,0.3)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.1rem', fontWeight: 700, color: 'var(--primary)',
-                    }}>
+                    <div 
+                      onClick={() => navigate(`/profile/${f._id}`)}
+                      style={{
+                        width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
+                        background: 'linear-gradient(135deg,var(--surface-hover),var(--surface))',
+                        border: '2px solid rgba(255,75,75,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.1rem', fontWeight: 700, color: 'var(--primary)',
+                        cursor: 'pointer'
+                      }}
+                    >
                       {f.username?.[0]?.toUpperCase()}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>@{f.username}</div>
+                      <div 
+                        onClick={() => navigate(`/profile/${f._id}`)}
+                        style={{ fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        @{f.username}
+                      </div>
                       <div style={{ marginTop: '0.3rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                           <span>Uyum</span>

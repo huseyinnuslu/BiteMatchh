@@ -97,6 +97,16 @@ roomSchema.index(
   }
 );
 
+// Geçmiş Eşleşmelerin Otomatik Temizliği: 30 günden eski (2592000 saniye) 'finished' statüsündeki odaları otomatik sil
+// createdAt alanı baz alınarak 30 gün sonra otomatik silinecektir.
+roomSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 2592000,
+    partialFilterExpression: { status: 'finished' }
+  }
+);
+
 const Room = mongoose.model('Room', roomSchema);
 
 export default Room;
