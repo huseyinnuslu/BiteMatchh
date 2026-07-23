@@ -269,6 +269,8 @@ const Messages = () => {
     socket.on('friend_offline',  ({ userId }) => setOnlineIds(p => { const n = new Set(p); n.delete(userId); return n; }));
 
     socket.on('receive_direct_message', (msg) => {
+      console.log('socket event received:', msg);
+      
       const otherId = msg.sender?.toString() === user._id?.toString() ? msg.recipient : msg.sender;
       
       // SADECE aktif sohbet açık olan kişiden (veya bize) gelen mesajsa listeye ekle

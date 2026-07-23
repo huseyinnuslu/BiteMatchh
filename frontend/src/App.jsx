@@ -62,8 +62,6 @@ function App() {
       // Navbar bildirim listesini güncelle (custom event ile)
       window.dispatchEvent(new CustomEvent('bitematch_new_notif', { detail: notif }));
 
-      if (notif.type === 'message' && window.location.pathname.startsWith('/messages')) return;
-
       toast.info(
         <div 
           style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
