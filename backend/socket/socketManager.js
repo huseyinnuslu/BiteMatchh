@@ -119,7 +119,25 @@ export const initSocket = (io) => {
       };
       io.to(roomCode).emit('receive_message', msg);
       if (roomId) {
-        try { await Message.create({ room: roomId, sender: userId, senderName: username, text: text.slice(0, 500) }); }
+        try { 
+          await Message.create({ room: roomId, sender: userId, senderName: username, text: text.slice(0, 500) }); 
+          // Oda katılımcılarına genel bildirim de at (odada değilseler bile alsınlar)
+          const RoomModel = (await import('../models/Room.js')).default;
+          const room = await RoomModel.findById(roomId).select('participants name');
+          if (room) {
+            room.participants.forEach(async (pId) => {
+              if (pId.toString() !== userId) {
+                const notif = await Notification.create({
+                  user: pId,
+                  message: `${room.name} - ${username}: ${text.slice(0, 30)}`,
+                  type: 'message',
+                  link: `/room/${roomId}`
+                });
+                io.to(`user:${pId.toString()}`).emit('new_notification', notif);
+              }
+            });
+          }
+        }
         catch (e) { console.error('Mesaj kaydedilemedi:', e.message); }
       }
     });

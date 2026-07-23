@@ -241,10 +241,10 @@ const Navbar = () => {
                 </button>
                 {showNotifications && (
                   <div style={{
-                    position: 'absolute', top: '120%', right: 0, width: 'min(280px, 85vw)',
+                    position: 'fixed', top: '70px', left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: '350px',
                     background: 'rgba(15, 23, 42, 0.97)', border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 2000,
-                    maxHeight: '350px', display: 'flex', flexDirection: 'column'
+                    maxHeight: '60vh', display: 'flex', flexDirection: 'column'
                   }}>
                     <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h4 style={{ margin: 0, color: 'white', fontSize: '0.9rem' }}>Bildirimler</h4>

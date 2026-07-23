@@ -3,6 +3,8 @@ import Swipe from '../models/Swipe.js';
 import { mockOptions } from '../data/mockOptions.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
 import { sendPushToUser } from '../utils/webPush.js';
+import Notification from '../models/Notification.js';
+import { getIo } from '../server.js';
 
 // @desc    Oda oluştur
 // @route   POST /api/rooms
@@ -19,18 +21,28 @@ export const createRoom = async (req, res, next) => {
       let sourcePool = mockOptions[cleanCategory];
 
       if (activePriceRange.length > 0 && sourcePool.some(item => item.budget)) {
-        sourcePool = sourcePool.filter(item => {
+        const filteredPool = sourcePool.filter(item => {
           const b = item.budget ? item.budget.trim() : '';
           if (activePriceRange.includes('₺') && (b === '₺' || b.toLowerCase() === 'bedava')) return true;
           if (activePriceRange.includes('₺₺') && b === '₺₺') return true;
           if (activePriceRange.includes('₺₺₺') && (b === '₺₺₺' || b === '₺₺₺₺')) return true;
           return false;
         });
-        if (sourcePool.length === 0) sourcePool = mockOptions[cleanCategory];
+        // Eğer filtre sonucu çok az seçenek kalıyorsa, esneklik sağla (filtreyi yoksay)
+        if (filteredPool.length >= 4) {
+          sourcePool = filteredPool;
+        }
       }
 
-      const shuffled = [...sourcePool].sort(() => 0.5 - Math.random());
-      const count = Math.min(shuffled.length, Math.floor(Math.random() * 4) + 10);
+      // Fisher-Yates shuffle algoritması ile karıştırma
+      const shuffled = [...sourcePool];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      // Sınırsız süre de olsa, garantili olarak 10-15 arası kart getir
+      const count = Math.min(shuffled.length, Math.floor(Math.random() * 6) + 10);
       roomOptions = shuffled.slice(0, count);
     }
 
@@ -256,6 +268,11 @@ export const startRoom = async (req, res, next) => {
     room.votingStartedAt = new Date();
     await room.save();
 
+    const io = getIo();
+    if (io) {
+      io.to(room._id.toString()).emit('room_started', room);
+    }
+
     res.json(room);
   } catch (error) {
     next(error);
@@ -269,9 +286,11 @@ export const getMatchHistory = async (req, res, next) => {
   try {
     const matches = await Room.find({
       participants: req.user._id,
-      status: 'finished',
-      'matchResult.name': { $exists: true, $ne: null },
-      $expr: { $gte: [{ $size: "$participants" }, 2] } // Tek kişilik (yalnız oynanan) odaları filtrele
+      status: { $in: ['finished', 'completed'] },
+      $or: [
+        { 'matchResult.name': { $exists: true, $ne: null } },
+        { 'topOptions.0': { $exists: true } }
+      ]
     })
       .populate('participants', 'username name')
       .sort({ updatedAt: -1 })
@@ -311,6 +330,28 @@ export const inviteToRoom = async (req, res, next) => {
       body: `${req.user.username} sizi odaya davet etti! Katılmak için 15 dakikanız var.`,
       url: `/room/${room._id}`,
     }).catch(() => {});
+
+    // Socket.io ile anlık bildirim fırlat
+    try {
+      const message = `${req.user.username} sizi bir odaya davet etti!`;
+      const notif = await Notification.create({
+        user: friendId, message,
+        type: 'room_invite',
+        link: `/room/${room._id}`
+      });
+      const io = getIo();
+      if (io) {
+        io.to(`user:${friendId}`).emit('new_notification', notif);
+        io.to(`user:${friendId}`).emit('room_invitation', { 
+          roomCode: room.name, 
+          roomId: room._id, 
+          inviterName: req.user.username, 
+          message 
+        });
+      }
+    } catch (e) {
+      console.error('Bildirim gönderilemedi:', e.message);
+    }
 
     res.json(room);
   } catch (error) {

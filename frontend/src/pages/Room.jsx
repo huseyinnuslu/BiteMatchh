@@ -103,6 +103,12 @@ const Room = () => {
       socket.on('participant_left', ({ username: uname }) => {
         console.log(`👋 ${uname} ayrıldı`);
       });
+
+      // Oda başlama anlık bildirimi (gecikmeyi sıfırlar)
+      socket.on('room_started', (roomData) => {
+        console.log('Oda başladı:', roomData);
+        fetchRoomStatus(id);
+      });
     };
 
     init();
