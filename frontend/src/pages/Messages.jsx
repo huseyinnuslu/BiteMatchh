@@ -24,6 +24,7 @@ import {
   CheckCheck, Circle, ChevronDown, ChevronUp, ExternalLink,
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import Avatar from '../components/Avatar';
 
 /* ─── Yardımcılar ─────────────────────────────────────────────────────────── */
 
@@ -40,28 +41,6 @@ const fmtTime = (iso) => {
 const fmtDateLabel = (iso) =>
   new Date(iso).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-const Avatar = ({ username = '?', size = 40, online = false }) => (
-  <div style={{ position: 'relative', flexShrink: 0 }}>
-    <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: `hsl(${(username.charCodeAt(0) * 37) % 360},55%,45%)`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontWeight: 800, fontSize: size * 0.4, color: '#fff',
-      userSelect: 'none', letterSpacing: '-0.5px',
-    }}>
-      {username[0]?.toUpperCase()}
-    </div>
-    {online && (
-      <span style={{
-        position: 'absolute', bottom: 0, right: 0,
-        width: size * 0.3, height: size * 0.3,
-        borderRadius: '50%', background: '#22c55e',
-        border: `2px solid #0d1424`,
-        boxShadow: '0 0 8px rgba(34,197,94,0.7)',
-      }} />
-    )}
-  </div>
-);
 
 /* ─── ConvItem ────────────────────────────────────────────────────────────── */
 const ConvItem = ({ conv, active, online, onClick }) => {
@@ -84,7 +63,7 @@ const ConvItem = ({ conv, active, online, onClick }) => {
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
     >
-      <Avatar username={u?.username} size={44} online={online} />
+      <Avatar src={u?.profilePic} username={u?.username} size={44} online={online} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
           <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
@@ -205,13 +184,11 @@ const NewConvModal = ({ onClose, onSelect, blockedIds }) => {
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
-              <Avatar username={u.username} size={38} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.87rem', color: '#fff' }}>@{u.username}</div>
-                {u.name && u.name !== u.username && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.name}</div>
-                )}
-              </div>
+              <Avatar src={u.profilePic} username={u.username} size={38} />
+              <span style={{ fontWeight: 600, color: '#e2e8f0' }}>@{u.username}</span>
+              {u.name && u.name !== u.username && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.name}</div>
+              )}
             </div>
           ))}
         </div>
@@ -589,8 +566,10 @@ const Messages = () => {
                           borderRadius: '0 10px 10px 0',
                         }}
                       >
-                        <Avatar username={b.username || '?'} size={34} />
-                        <span style={{ flex: 1, fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>@{b.username}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                          <Avatar src={b.profilePic} username={b.username || '?'} size={34} />
+                          <span style={{ color: '#fff', fontWeight: 600 }}>@{b.username}</span>
+                        </div>
                         <button
                           onClick={() => handleUnblockFromListClick(b._id, b.username)}
                           title="Engeli Kaldır"
@@ -600,6 +579,7 @@ const Messages = () => {
                             color: '#22c55e', cursor: 'pointer',
                             fontSize: '0.68rem', fontWeight: 700,
                             transition: 'background 0.15s',
+                            marginLeft: 'auto'
                           }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.25)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(34,197,94,0.12)'; }}
@@ -672,7 +652,7 @@ const Messages = () => {
                   onClick={() => navigate(`/profile/${activeUser._id}`)} 
                   style={{ cursor: 'pointer' }}
                 >
-                  <Avatar username={activeUser.username} size={40} online={onlineIds.has(activeUser._id?.toString())} />
+                  <Avatar src={activeUser.profilePic} username={activeUser.username} size={40} online={onlineIds.has(activeUser._id?.toString())} />
                 </div>
 
                 <div 
@@ -737,7 +717,9 @@ const Messages = () => {
                   <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-muted)', fontSize: '0.83rem' }}>Yükleniyor...</div>
                 ) : messages.length === 0 ? (
                   <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--text-muted)' }}>
-                    <Avatar username={activeUser.username} size={56} />
+                    <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                      <Avatar src={activeUser.profilePic} username={activeUser.username} size={56} />
+                    </div>
                     <p style={{ marginTop: 12, fontSize: '0.85rem' }}>
                       <strong style={{ color: '#fff' }}>@{activeUser.username}</strong> ile henüz mesajlaşmadın.
                     </p>
@@ -773,7 +755,7 @@ const Messages = () => {
                         {/* Karşı taraf avatarı (sadece grubun ilk mesajında) */}
                         {!isMine && !sameAsPrev && (
                           <div style={{ marginRight: 8, alignSelf: 'flex-end', marginBottom: 2 }}>
-                            <Avatar username={activeUser.username} size={28} />
+                            <Avatar src={activeUser.profilePic} username={activeUser.username} size={28} />
                           </div>
                         )}
                         {!isMine && sameAsPrev && <div style={{ width: 36 }} />}

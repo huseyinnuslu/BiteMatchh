@@ -127,6 +127,11 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: msg };
     }
   };
+  const updateUser = (newData) => {
+    const updated = { ...user, ...newData };
+    setUser(updated);
+    localStorage.setItem('userInfo', JSON.stringify(updated));
+  };
 
   return (
     <AuthContext.Provider
@@ -141,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         resetPassword,
         googleLogin,
+        updateUser,
       }}
     >
       {children}

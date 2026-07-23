@@ -4,9 +4,11 @@ import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
-  Users, BarChart2, UserPlus, UserMinus, Clock, ArrowLeft
+  Users, BarChart2, UserPlus, UserMinus, Clock, ArrowLeft,
+  UserCheck, UserX
 } from 'lucide-react';
 import api from '../api';
+import Avatar from '../components/Avatar';
 import { getSocket } from '../socket/socketClient';
 
 const CATEGORY_ICONS = {
@@ -66,6 +68,26 @@ const UserProfile = () => {
     finally { setActionId(null); }
   };
 
+  const handleFollow = async () => {
+    setActionId('follow');
+    try {
+      await api.post(`/users/follow/${id}`);
+      toast.success('Takip ediliyor');
+      setProfile(prev => ({ ...prev, isFollowing: true, followersCount: (prev.followersCount || 0) + 1 }));
+    } catch { toast.error('Takip edilemedi'); }
+    finally { setActionId(null); }
+  };
+
+  const handleUnfollow = async () => {
+    setActionId('unfollow');
+    try {
+      await api.post(`/users/unfollow/${id}`);
+      toast.info('Takipten çıkıldı');
+      setProfile(prev => ({ ...prev, isFollowing: false, followersCount: Math.max(0, (prev.followersCount || 0) - 1) }));
+    } catch { toast.error('Takipten çıkılamadı'); }
+    finally { setActionId(null); }
+  };
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>Yükleniyor...</div>;
   }
@@ -86,9 +108,7 @@ const UserProfile = () => {
 
       <div className="glass-card" style={{ padding: '2rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '25px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, color: 'white', boxShadow: '0 8px 24px rgba(255,75,75,0.3)' }}>
-            {profile.name?.charAt(0).toUpperCase()}
-          </div>
+          <Avatar src={profile.profilePic} username={profile.name || profile.username} size={80} />
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: '0 0 0.3rem 0', fontSize: '1.6rem' }}>{profile.name}</h2>
             <p style={{ margin: 0, color: 'var(--primary)', fontWeight: 600, fontSize: '0.95rem' }}>@{profile.username}</p>
@@ -99,21 +119,36 @@ const UserProfile = () => {
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Users size={13} /> {profile.friendCount} arkadaş
               </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Users size={13} /> {profile.followersCount || 0} takipçi
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Users size={13} /> {profile.followingCount || 0} takip
+              </span>
             </div>
           </div>
-          
-          <div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {profile.isFriend ? (
               <button onClick={handleRemoveFriend} disabled={actionId === id} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.6rem 1rem' }}>
                 <UserMinus size={16} style={{ marginRight: 6 }} /> Çıkar
               </button>
             ) : profile.isPending ? (
-              <button disabled className="btn" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', cursor: 'not-allowed' }}>
+              <button disabled className="btn" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', cursor: 'not-allowed', padding: '0.6rem 1rem' }}>
                 İstek Gönderildi
               </button>
             ) : (
               <button onClick={handleSendRequest} disabled={actionId === id} className="btn btn-primary" style={{ padding: '0.6rem 1rem' }}>
                 <UserPlus size={16} style={{ marginRight: 6 }} /> Ekle
+              </button>
+            )}
+
+            {profile.isFollowing ? (
+              <button onClick={handleUnfollow} disabled={actionId === 'unfollow'} className="btn" style={{ background: 'rgba(255, 255, 255, 0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '0.6rem 1rem' }}>
+                <UserX size={16} style={{ marginRight: 6 }} /> Takipten Çık
+              </button>
+            ) : (
+              <button onClick={handleFollow} disabled={actionId === 'follow'} className="btn" style={{ background: 'var(--secondary)', color: 'white', padding: '0.6rem 1rem' }}>
+                <UserCheck size={16} style={{ marginRight: 6 }} /> Takip Et
               </button>
             )}
           </div>

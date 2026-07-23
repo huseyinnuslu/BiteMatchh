@@ -38,7 +38,7 @@ export const getProfile = async (req, res, next) => {
           let: { friendIds: '$friends' },
           pipeline: [
             { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$friendIds', []] }] } } },
-            { $project: { username: 1, name: 1, createdAt: 1 } },
+            { $project: { username: 1, name: 1, profilePic: 1, createdAt: 1 } },
           ],
           as: 'friendDocs',
         },
@@ -49,7 +49,7 @@ export const getProfile = async (req, res, next) => {
           let: { reqIds: '$pendingFriendRequests' },
           pipeline: [
             { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$reqIds', []] }] } } },
-            { $project: { username: 1, name: 1, createdAt: 1 } },
+            { $project: { username: 1, name: 1, profilePic: 1, createdAt: 1 } },
           ],
           as: 'pendingDocs',
         },
@@ -132,6 +132,7 @@ export const getProfile = async (req, res, next) => {
       _id:      f._id,
       username: f.username,
       name:     f.name,
+      profilePic: f.profilePic,
       createdAt: f.createdAt,
       compatibilityScore: scoreMap[f._id.toString()] || 0,
     }));
@@ -142,7 +143,10 @@ export const getProfile = async (req, res, next) => {
       username:  userAgg.username,
       email:     userAgg.email,
       role:      userAgg.role,
+      profilePic: userAgg.profilePic,
       isStatsPublic: userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true,
+      followersCount: (userAgg.followers || []).length,
+      followingCount: (userAgg.following || []).length,
       createdAt: userAgg.createdAt,
 
       stats: {
@@ -178,7 +182,7 @@ export const getUserProfile = async (req, res, next) => {
     const callerId = req.user._id.toString();
 
     const userAgg = await User.findById(targetUserId)
-      .select('name username createdAt role friends isStatsPublic stats')
+      .select('name username createdAt role friends isStatsPublic profilePic followers following')
       .lean();
 
     if (!userAgg) {
@@ -187,6 +191,7 @@ export const getUserProfile = async (req, res, next) => {
     }
 
     const isFriend = (userAgg.friends || []).map(id => id.toString()).includes(callerId);
+    const isFollowing = (userAgg.followers || []).map(id => id.toString()).includes(callerId);
 
     // Calculate stat logic similar to getProfile, but only if isStatsPublic is true
     let statsData = null;
@@ -250,8 +255,12 @@ export const getUserProfile = async (req, res, next) => {
       username: userAgg.username,
       createdAt: userAgg.createdAt,
       role: userAgg.role,
+      profilePic: userAgg.profilePic,
       isFriend,
+      isFollowing,
       friendCount: (userAgg.friends || []).length,
+      followersCount: (userAgg.followers || []).length,
+      followingCount: (userAgg.following || []).length,
       isStatsPublic: isPublic,
       stats: statsData,
     });
@@ -563,3 +572,72 @@ export const getBlockedUsers = async (req, res, next) => {
     res.json(me?.blockedUsers || []);
   } catch (e) { next(e); }
 };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Kullanıcıyı Takip Et
+// @route   POST /api/users/follow/:id
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const followUser = async (req, res, next) => {
+  try {
+    const targetId = req.params.id;
+    const myId = req.user._id;
+
+    if (targetId === myId.toString()) {
+      res.status(400);
+      throw new Error('Kendinizi takip edemezsiniz');
+    }
+
+    const targetUser = await User.findById(targetId);
+    if (!targetUser) {
+      res.status(404);
+      throw new Error('Kullanıcı bulunamadı');
+    }
+
+    // Zaten takip ediyorsa işlem yapma
+    if (targetUser.followers && targetUser.followers.includes(myId)) {
+      return res.json({ message: 'Zaten takip ediyorsunuz' });
+    }
+
+    // Karşı tarafa beni follower olarak ekle
+    await User.findByIdAndUpdate(targetId, {
+      $addToSet: { followers: myId }
+    });
+
+    // Kendi hesabıma karşı tarafı following olarak ekle
+    await User.findByIdAndUpdate(myId, {
+      $addToSet: { following: targetId }
+    });
+
+    res.json({ message: 'Kullanıcı takip edildi' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// @desc    Kullanıcıyı Takipten Çık
+// @route   POST /api/users/unfollow/:id
+// @access  Private
+// ──────────────────────────────────────────────────────────────────────────────
+export const unfollowUser = async (req, res, next) => {
+  try {
+    const targetId = req.params.id;
+    const myId = req.user._id;
+
+    // Karşı taraftan beni follower'dan çıkar
+    await User.findByIdAndUpdate(targetId, {
+      $pull: { followers: myId }
+    });
+
+    // Kendi hesabımdan karşı tarafı following'den çıkar
+    await User.findByIdAndUpdate(myId, {
+      $pull: { following: targetId }
+    });
+
+    res.json({ message: 'Kullanıcı takipten çıkarıldı' });
+  } catch (error) {
+    next(error);
+  }
+};
+

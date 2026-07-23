@@ -42,6 +42,25 @@ const userSchema = mongoose.Schema(
       type: Date,
     },
 
+    profilePic: {
+      type: String,
+      default: '',
+    },
+
+    // ── Takipçi ve Takip Edilenler ─────────────────────────────────────────
+    followers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
+    following: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
+
     // ── Arkadaş Listesi ────────────────────────────────────────────────────
     friends: [
       {

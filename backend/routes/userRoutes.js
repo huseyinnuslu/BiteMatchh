@@ -22,6 +22,8 @@ import {
   unblockUser,
   getBlockedUsers,
   getUserProfile,
+  followUser,
+  unfollowUser,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -56,5 +58,11 @@ router.delete('/friends/:id', removeFriend);
 router.get('/blocked',         getBlockedUsers);
 router.post('/block/:id',      blockUser);
 router.delete('/block/:id',    unblockUser);
+
+// ── Takip İşlemleri ───────────────────────────────────────────────────────
+// Kullanıcıyı takip et
+router.post('/follow/:id', followUser);
+// Kullanıcıyı takipten çık
+router.post('/unfollow/:id', unfollowUser);
 
 export default router;

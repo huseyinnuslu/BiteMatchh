@@ -1,6 +1,9 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -16,6 +19,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import cronRoutes from './routes/cronRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 
@@ -24,6 +28,9 @@ connectDB();
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── Güvenlik: Helmet (HTTP başlıkları) ─────────────────────────────────────
 app.use(helmet({
@@ -61,6 +68,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// ─── Statik Klasör (Uploads) ────────────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 // Genel API limiti: 15 dakikada 200 istek
 const apiLimiter = rateLimit({
@@ -89,6 +99,7 @@ app.use('/api/swipes', apiLimiter,  swipeRoutes);
 app.use('/api/admin',  apiLimiter,  adminRoutes);
 app.use('/api/users',  apiLimiter,  userRoutes);
 app.use('/api/events', apiLimiter,  eventRoutes);
+app.use('/api/upload', apiLimiter,  uploadRoutes);
 app.use('/api/notifications', apiLimiter, notificationRoutes);
 app.use('/api/messages', apiLimiter, messageRoutes);
 app.use('/api/cron', cronRoutes); // cron işlemlerine apiLimiter uygulamıyoruz

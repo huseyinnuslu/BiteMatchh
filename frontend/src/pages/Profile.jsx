@@ -6,9 +6,10 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle,
+  UserCircle, Camera,
 } from 'lucide-react';
 import api from '../api';
+import Avatar from '../components/Avatar';
 import { getSocket } from '../socket/socketClient';
 
 // ── Kategori emoji haritası ──────────────────────────────────────────────────
@@ -69,6 +70,8 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('stats');
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const { updateUser } = useContext(AuthContext);
 
   // Arama
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,6 +118,45 @@ const Profile = () => {
     }, 400);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  // ── Arkadaşlık isteği yolla ──────────────────────────────────────────────
+  const handleAddFriend = async (targetId) => {
+    setActionId(targetId);
+    try {
+      await api.post(`/users/friends/${targetId}`);
+      toast.success('Arkadaşlık isteği gönderildi');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'İstek gönderilemedi');
+    } finally { setActionId(null); }
+  };
+
+  // ── Avatar Yükle ────────────────────────────────────────────────────────
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error('Dosya boyutu en fazla 5MB olabilir.');
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploading(true);
+    try {
+      const { data } = await api.post('/upload/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success(data.message);
+      // Profil verisini ve Context'i güncelle
+      setProfile(prev => ({ ...prev, profilePic: data.avatarUrl }));
+      updateUser({ profilePic: data.avatarUrl });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Fotoğraf yüklenemedi');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // ── Arkadaşlık isteği gönder ──────────────────────────────────────────────
   const handleSendRequest = async (friendId) => {
@@ -211,15 +253,32 @@ const Profile = () => {
         }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-          {/* Avatar */}
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg,var(--primary),var(--secondary))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2rem', fontWeight: 800, color: 'white',
-            boxShadow: '0 4px 20px rgba(255,75,75,0.35)',
-          }}>
-            {profile.username?.[0]?.toUpperCase() || '?'}
+          {/* Avatar Yükleme Alanı */}
+          <div style={{ position: 'relative' }}>
+            <Avatar src={profile.profilePic} username={profile.username} size={80} />
+            
+            <label style={{
+              position: 'absolute', bottom: -5, right: -5,
+              background: 'var(--primary)', color: 'white',
+              width: 28, height: 28, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: uploading ? 'wait' : 'pointer',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+              border: '2px solid var(--glass-border)',
+              transition: 'transform 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Camera size={14} />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleAvatarChange} 
+                style={{ display: 'none' }} 
+                disabled={uploading}
+              />
+            </label>
           </div>
 
           <div style={{ flex: 1 }}>
@@ -230,7 +289,13 @@ const Profile = () => {
                 <Calendar size={13} /> {joinDate}'dan beri
               </span>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Users size={13} /> {profile.friendCount} arkadaş
+                <Users size={13} /> {profile.friendCount} Arkadaş
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Users size={13} /> {profile.followersCount || 0} Takipçi
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Users size={13} /> {profile.followingCount || 0} Takip
               </span>
               {pendingCount > 0 && (
                 <span

@@ -33,8 +33,8 @@ router.get('/conversations', protect, async (req, res, next) => {
       recipient: { $nin: blocked },
     })
       .sort({ createdAt: -1 })
-      .populate('sender',    'username')
-      .populate('recipient', 'username')
+      .populate('sender',    'username profilePic')
+      .populate('recipient', 'username profilePic')
       .lean();
 
     // Partner başına son mesajı grupla
