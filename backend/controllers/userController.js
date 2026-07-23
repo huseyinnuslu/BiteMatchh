@@ -190,7 +190,9 @@ export const getUserProfile = async (req, res, next) => {
 
     // Calculate stat logic similar to getProfile, but only if isStatsPublic is true
     let statsData = null;
-    if (userAgg.isStatsPublic) {
+    const isPublic = userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true;
+    
+    if (isPublic) {
       let totalSwipes = userAgg.stats?.totalSwipes || 0;
       let totalLikes = 0;
       let categoryBreakdown = {};
@@ -221,7 +223,7 @@ export const getUserProfile = async (req, res, next) => {
       role: userAgg.role,
       isFriend,
       friendCount: (userAgg.friends || []).length,
-      isStatsPublic: userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true,
+      isStatsPublic: isPublic,
       stats: statsData,
     });
   } catch (error) {
