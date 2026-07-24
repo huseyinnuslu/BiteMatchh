@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, MapPin, Share2, ExternalLink, Navigation } from 'lucide-react';
+import { Flame, MapPin, Share2, ExternalLink, Navigation, LogOut } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
 
@@ -84,7 +84,7 @@ const ActionBtn = ({ href, onClick, icon, label, color, bg }) => {
 };
 
 // ── Ana Modal ─────────────────────────────────────────────────────────────────
-const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat }) => {
+const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat, onExitRoom }) => {
   const name     = matchResult?.name     || '';
   const location = matchResult?.location || '';
   const isPlace  = !!(matchResult?.location || matchResult?.budget || matchResult?.rating);
@@ -242,6 +242,20 @@ const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat }) => {
               >
                 Oylamayı Bitir & Kapat
               </button>
+              {onExitRoom && (
+                <button
+                  onClick={onExitRoom}
+                  className="btn"
+                  style={{
+                    width: '100%', marginTop: '0.7rem', padding: '0.85rem', fontSize: '0.95rem',
+                    color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.18)',
+                    background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: '0.5rem',
+                  }}
+                >
+                  <LogOut size={17} /> Odadan Çık & Keşfete Dön
+                </button>
+              )}
             </motion.div>
           </motion.div>
         </>

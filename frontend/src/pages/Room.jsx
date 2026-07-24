@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, Loader } from 'lucide-react';
+import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, Loader, LogOut } from 'lucide-react';
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
@@ -352,6 +352,18 @@ const Room = () => {
                     <RotateCcw size={18} style={{ marginRight: '0.5rem' }} /> Yeni Bir Oylama Başlat
                   </button>
                 )}
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="btn"
+                  style={{
+                    width: '100%', marginTop: isHost ? '0.75rem' : 0, padding: '0.85rem',
+                    color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.18)',
+                    background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: '0.5rem',
+                  }}
+                >
+                  <LogOut size={17} /> Odadan Çık & Keşfete Dön
+                </button>
               </div>
             </motion.div>
           ) : !optionsFinished ? (
@@ -425,6 +437,7 @@ const Room = () => {
         isOpen={!!activeMatch}
         matchResult={activeMatch}
         onClose={() => navigate('/dashboard')}
+        onExitRoom={() => navigate('/dashboard')}
       />
       <ChatDrawer
         isOpen={chatOpen}
