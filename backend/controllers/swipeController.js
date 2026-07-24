@@ -2,6 +2,7 @@ import Swipe from '../models/Swipe.js';
 import Room from '../models/Room.js';
 import User from '../models/User.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
+import { getIo } from '../server.js';
 
 // @desc    Kaydırma (Like/Dislike) kaydet ve sonucu kontrol et
 // @route   POST /api/swipes
@@ -23,12 +24,20 @@ export const recordSwipe = async (req, res, next) => {
       throw new Error('Oda bulunamadı');
     }
 
-    if (room.status === 'finished') {
+    if (room.status !== 'voting') {
       return res.status(400).json({ message: 'Oylama zaten tamamlandı' });
     }
 
     // findOneAndUpdate + upsert: tek sorguda "varsa güncelle, yoksa oluştur"
     // isNew: daha önce swipe yapılmamışsa true — istatistik sadece yeni swipe'ta güncellenir
+    if (!room.participants.some((participant) => participant.toString() === req.user._id.toString())) {
+      return res.status(403).json({ message: 'Bu odada oy kullanma yetkiniz yok' });
+    }
+
+    if (!room.options.id(optionId)) {
+      return res.status(400).json({ message: 'Geçersiz seçenek' });
+    }
+
     const swipeResult = await Swipe.findOneAndUpdate(
       { room: roomId, user: req.user._id, optionId },
       { decision },
@@ -61,7 +70,7 @@ export const recordSwipe = async (req, res, next) => {
         decision: 'like',
       });
 
-      if (room.participants.length > 0 && likesForOption === room.participants.length) {
+      if (room.participants.length >= 2 && likesForOption === room.participants.length) {
         // ── Tam eşleşme ────────────────────────────────────────────────
         const matchedOption = room.options.id(optionId);
         const matchResult = matchedOption || { name: 'Eslesme Saglandi' };
@@ -70,6 +79,8 @@ export const recordSwipe = async (req, res, next) => {
           status: 'finished',
           matchResult,
         });
+
+        getIo()?.to(roomId.toString()).emit('match_success', { itemId: optionId });
 
         return res.json({ match: true, matchedOption: matchResult });
       }

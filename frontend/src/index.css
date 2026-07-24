@@ -141,9 +141,17 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 1.5rem;
 }
 
+/* Keşfet başlığını sticky navbar'dan dengeli biçimde ayırır. */
+.dashboard-page {
+  padding-top: 1.75rem !important;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 1rem;
+  }
+  .dashboard-page {
+    padding-top: 1.75rem !important;
   }
   .glass-card {
     padding: 1.25rem;
@@ -221,6 +229,23 @@ h1, h2, h3, h4, h5, h6 {
   .container {
     padding: 0 0.75rem;
     overflow-x: hidden;
+  }
+
+  /* Ortak mobil kenar boşlukları ve taşma koruması. */
+  .app-container > .container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .app-container > .container > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .glass-card,
+  img,
+  video {
+    max-width: 100%;
   }
 
   /* Başlıklar mobilde küçük */

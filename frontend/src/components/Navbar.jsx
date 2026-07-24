@@ -31,6 +31,7 @@ const Navbar = () => {
       } catch (err) { console.error('Bildirimler alınamadı', err); }
     };
     fetchNotifs();
+    const notificationPoll = setInterval(fetchNotifs, 15000);
 
     // App.jsx'teki global socket handler, yeni bildirim gelince
     // 'bitematch_new_notif' custom event'i fırlatır.
@@ -45,9 +46,21 @@ const Navbar = () => {
     window.addEventListener('bitematch_new_notif', handleNewNotif);
 
     return () => {
+      clearInterval(notificationPoll);
       window.removeEventListener('bitematch_new_notif', handleNewNotif);
     };
   }, [user?._id]);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const closeOnOutsideClick = (event) => {
+      if (!event.target.closest('[data-notification-menu]')) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [showNotifications]);
 
   const markAllAsRead = async () => {
     try {
@@ -126,7 +139,7 @@ const Navbar = () => {
               </Link>
 
               {/* Bildirim Çanı (Desktop) */}
-              <div style={{ position: 'relative' }}>
+              <div data-notification-menu style={{ position: 'relative' }}>
                 <button 
                   onClick={() => setShowNotifications(!showNotifications)}
                   style={{
@@ -138,7 +151,7 @@ const Navbar = () => {
                   <Bell size={18} />
                   {unreadCount > 0 && (
                     <span style={{
-                      position: 'absolute', top: '-4px', right: '-4px', background: 'var(--primary)',
+                      position: 'absolute', top: '2px', right: '2px', background: 'var(--primary)',
                       color: 'white', fontSize: '0.65rem', fontWeight: 'bold', width: '16px', height: '16px',
                       borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
@@ -218,7 +231,7 @@ const Navbar = () => {
           {isMobile && user && user._id && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {/* Bildirim Çanı */}
-              <div style={{ position: 'relative' }}>
+              <div data-notification-menu style={{ position: 'relative' }}>
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   style={{
@@ -231,7 +244,7 @@ const Navbar = () => {
                   <Bell size={17} />
                   {unreadCount > 0 && (
                     <span style={{
-                      position: 'absolute', top: '-4px', right: '-4px', background: 'var(--primary)',
+                      position: 'absolute', top: '2px', right: '2px', background: 'var(--primary)',
                       color: 'white', fontSize: '0.6rem', fontWeight: 'bold', width: '15px', height: '15px',
                       borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>

@@ -10,7 +10,10 @@
 
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// Keep Socket.IO on the same backend as the REST API. Without VITE_API_URL,
+// the previous localhost fallback made deployed clients miss invitations and
+// real-time room events.
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'https://bitematchh.onrender.com';
 
 let socket = null;
 

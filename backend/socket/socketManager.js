@@ -87,24 +87,35 @@ export const initSocket = (io) => {
       onlineUsers.get(userId).add(socket.id);
 
       const participants = getRoomParticipants(roomCode);
+      const isNewParticipant = !participants.has(userId);
       participants.add(userId);
-      socket.to(roomCode).emit('participant_joined', { userId, username, count: participants.size });
+      if (isNewParticipant) {
+        socket.to(roomCode).emit('participant_joined', { userId, username, count: participants.size });
+      }
       socket.emit('room_joined', { roomCode, participantCount: participants.size });
+    });
+
+    // ── leave_room (Odadan Çıkış) ──────────────────────────────────────────────
+    socket.on('leave_room', ({ roomCode, userId, username }) => {
+      if (!roomCode) return;
+      socket.leave(roomCode);
+      if (socket.data.roomCode === roomCode) {
+        socket.data.roomCode = null;
+      }
+      if (userId) {
+        const participants = getRoomParticipants(roomCode);
+        const wasParticipant = participants.delete(userId);
+        if (wasParticipant) {
+          socket.to(roomCode).emit('participant_left', { userId, username, count: participants.size });
+        }
+        if (participants.size === 0) { cleanupRoom(roomCode); }
+      }
     });
 
     // ── swipe_action ─────────────────────────────────────────────────────────
     socket.on('swipe_action', ({ roomCode, userId, itemId, direction }) => {
       if (!roomCode || !userId || !itemId) return;
       socket.to(roomCode).emit('user_swiped', { userId, username: socket.data.username, itemId, direction });
-      if (direction !== 'right') return;
-      const likes = getRoomLikes(roomCode);
-      if (!likes.has(itemId)) likes.set(itemId, new Set());
-      likes.get(itemId).add(userId);
-      const participants = getRoomParticipants(roomCode);
-      if (participants.size >= 2 && likes.get(itemId).size >= participants.size) {
-        io.to(roomCode).emit('match_success', { itemId, likedBy: [...likes.get(itemId)] });
-        likes.delete(itemId);
-      }
     });
 
     // ── send_message (Oda içi sohbet) ────────────────────────────────────────
@@ -200,22 +211,25 @@ export const initSocket = (io) => {
       };
 
       // ✅ Alıcıya ilet — kişisel oda sayesinde kaç cihazda açıksa hepsine gider
-      io.to(userRoom(toUserId)).emit('receive_direct_message', msgPayload);
 
       // ✅ Gönderene de gönder (birden fazla cihaz/sekme varsa diğerleri de görsün)
       // Ama sadece bu socket'ı değil, userRoom'u kullan (diğer cihazlar da alsın)
-      socket.to(userRoom(myId)).emit('receive_direct_message', { ...msgPayload, isMine: true });
 
       // DB'ye kaydet + bildirim
       try {
-        await Message.create({
+         const savedMessage = await Message.create({
           type: 'direct',
           sender: myId,
           senderName: msgPayload.senderName,
           recipient: toUserId,
           text: msgPayload.text,
-          sharedEvent,
-        });
+           sharedEvent,
+         });
+
+         msgPayload._id = savedMessage._id.toString();
+         msgPayload.createdAt = savedMessage.createdAt.toISOString();
+         io.to(userRoom(toUserId)).emit('receive_direct_message', msgPayload);
+         socket.to(userRoom(myId)).emit('receive_direct_message', { ...msgPayload, isMine: true });
 
         const notifMsg = msgPayload.text
           ? `${msgPayload.senderName}: ${msgPayload.text}`
@@ -250,8 +264,10 @@ export const initSocket = (io) => {
 
       if (roomCode && userId) {
         const participants = getRoomParticipants(roomCode);
-        participants.delete(userId);
-        socket.to(roomCode).emit('participant_left', { userId, username, count: participants.size });
+        const wasParticipant = participants.delete(userId);
+        if (wasParticipant) {
+          socket.to(roomCode).emit('participant_left', { userId, username, count: participants.size });
+        }
         if (participants.size === 0) { cleanupRoom(roomCode); }
       }
     });

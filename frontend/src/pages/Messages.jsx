@@ -236,6 +236,7 @@ const Messages = () => {
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
   const menuRef   = useRef(null);
+  const sendingRef = useRef(false);
   const activeUserRef = useRef(activeUser);
 
   // activeUserRef'i her activeUser değiştiğinde güncelle
@@ -347,6 +348,7 @@ const Messages = () => {
   const openChat = useCallback((u) => {
     setActiveUser(u);
     setMobileView('chat');
+    if (window.innerWidth <= 768) window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowMenu(false);
     setTimeout(() => inputRef.current?.focus(), 120);
     // Yoksa listeye ekle
@@ -360,7 +362,9 @@ const Messages = () => {
   /* ─── Mesaj gönder ── */
   const sendMsg = useCallback(() => {
     const txt = input.trim();
-    if (!txt || !activeUser) return;
+    if (!txt || !activeUser || sendingRef.current) return;
+    sendingRef.current = true;
+    setTimeout(() => { sendingRef.current = false; }, 400);
 
     const socket = getSocket();
     setInput('');

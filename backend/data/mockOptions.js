@@ -73,6 +73,20 @@ export const mockOptions = {
       description: 'Taze çipura, levrek, kalamar tava. Boğaz veya Marmara kenarında balık keyfi.'
     },
     {
+      name: 'Steakhouse & Et',
+      mapsQuery: 'steakhouse İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1594046243098-0fceea9d451e?w=600&q=80',
+      budget: '₺₺₺',
+      description: 'Özel dinlendirilmiş etler, antrikot, t-bone ve enfes şarap eşleşmeleri.'
+    },
+    {
+      name: 'Fine Dining & Şef Mutfağı',
+      mapsQuery: 'fine dining restaurant İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=80',
+      budget: '₺₺₺',
+      description: 'Ödüllü şeflerin imza tabakları, tadım menüleri ve şık bir atmosfer.'
+    },
+    {
       name: 'Ramen & Asya Mutfağı',
       mapsQuery: 'ramen Asya mutfağı İstanbul',
       imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',

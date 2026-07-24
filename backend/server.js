@@ -72,10 +72,12 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
-// Genel API limiti: 15 dakikada 200 istek
+// Oda durumu ve bildirimler istemcide düzenli yenilendiği için 200 istek,
+// normal kullanımda bile kısa sürede dolabiliyordu. Kimlik doğrulama için
+// ayrı, sıkı limit korunurken genel API kotası daha gerçekçi tutulur.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Çok fazla istek gönderdiniz. 15 dakika sonra tekrar deneyin.' },

@@ -511,7 +511,7 @@ const Profile = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      {f.username?.[0]?.toUpperCase()}
+                      <Avatar src={f.profilePic} username={f.username} size={42} />
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>

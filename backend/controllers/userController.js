@@ -13,6 +13,8 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Swipe from '../models/Swipe.js';
 import Room from '../models/Room.js';
+import Notification from '../models/Notification.js';
+import { getIo } from '../server.js';
 import {
   calculateCompatibility,
   calculateFriendCompatibilities,
@@ -388,6 +390,14 @@ export const sendFriendRequest = async (req, res, next) => {
       $addToSet: { pendingFriendRequests: fromId },
     });
 
+    const notification = await Notification.create({
+      user: toId,
+      message: `${req.user.username} size arkadaşlık isteği gönderdi`,
+      type: 'friend_request',
+      link: '/profile',
+    });
+    getIo()?.to(`user:${toId}`).emit('new_notification', notification);
+
     res.status(200).json({ message: 'Arkadaşlık isteği gönderildi' });
   } catch (error) {
     next(error);
@@ -511,7 +521,7 @@ export const getFriends = async (req, res, next) => {
           let: { friendIds: '$friends' },
           pipeline: [
             { $match: { $expr: { $in: ['$_id', { $ifNull: ['$$friendIds', []] }] } } },
-            { $project: { username: 1, name: 1, createdAt: 1 } },
+            { $project: { username: 1, name: 1, profilePic: 1, createdAt: 1 } },
           ],
           as: 'friendDocs',
         },
@@ -529,6 +539,7 @@ export const getFriends = async (req, res, next) => {
         _id:      f._id,
         username: f.username,
         name:     f.name,
+        profilePic: f.profilePic,
         createdAt: f.createdAt,
         compatibilityScore: scoreMap[f._id.toString()] || 0,
       }))
@@ -661,4 +672,3 @@ export const unfollowUser = async (req, res, next) => {
     next(error);
   }
 };
-

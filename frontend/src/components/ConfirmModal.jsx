@@ -19,7 +19,7 @@ const ConfirmModal = ({
   onConfirm,
   onCancel,
 }) => {
-  return (
+  return createPortal(
     <div
       onClick={onCancel}
       style={{
@@ -103,7 +103,8 @@ const ConfirmModal = ({
         </div>
       </div>
     </div>
-  );
+  , document.body);
 };
 
 export default ConfirmModal;
+import { createPortal } from 'react-dom';

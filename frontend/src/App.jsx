@@ -62,6 +62,7 @@ function App() {
     const handleNewNotification = (notif) => {
       // Navbar bildirim listesini güncelle (custom event ile)
       window.dispatchEvent(new CustomEvent('bitematch_new_notif', { detail: notif }));
+      if (notif.type === 'room_invite') return;
 
       toast.info(
         <div 
@@ -79,7 +80,17 @@ function App() {
       );
     };
 
+    const handleRoomInvitation = ({ roomId, inviterName, message }) => {
+      // This is a dedicated fallback for invitations. It keeps the invitation
+      // visible even if the generic notification event is delayed.
+      toast.info(`${message || `${inviterName} sizi bir odaya davet etti!`}`, {
+        autoClose: 6000,
+        onClick: () => { window.location.href = `/room/${roomId}`; },
+      });
+    };
+
     socket.on('new_notification', handleNewNotification);
+    socket.on('room_invitation', handleRoomInvitation);
 
     // Her bağlanmada (ilk + reconnect) user_online emit et
     socket.on('connect', emitOnline);
@@ -88,6 +99,7 @@ function App() {
     return () => { 
       socket.off('connect', emitOnline); 
       socket.off('new_notification', handleNewNotification);
+      socket.off('room_invitation', handleRoomInvitation);
     };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────

@@ -11,8 +11,6 @@ router.get('/live', protect, async (req, res, next) => {
     const now = new Date();
     const query = {
       isLiveEvent: true,
-      eventDate:   { $gte: now },
-      expireAt:    { $gt:  now },
     };
 
     // Opsiyonel şehir filtresi

@@ -8,7 +8,7 @@ const Avatar = ({ src, username = '?', size = 40, online = false }) => {
   const getImageUrl = (url) => {
     if (url.startsWith('http')) return url;
     // vite env yoksa varsayılan olarak API host'u varsayalım
-    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://bitematchh.onrender.com';
     return `${baseUrl}${url}`;
   };
 

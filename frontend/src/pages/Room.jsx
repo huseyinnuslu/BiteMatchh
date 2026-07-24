@@ -3,19 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw } from 'lucide-react';
+import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, Loader } from 'lucide-react';
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
 import ChatDrawer from '../components/ChatDrawer';
+import Avatar from '../components/Avatar';
 import { connectSocket, disconnectSocket, getSocket } from '../socket/socketClient';
+import { toast } from 'react-toastify';
 
 const Room = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom, setMatchResult } =
+  const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom, setMatchResult } =
     useContext(RoomContext);
   const { user } = useContext(AuthContext);
+
+  const roomRef = useRef(currentRoom);
+  useEffect(() => {
+    roomRef.current = currentRoom;
+  }, [currentRoom]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -25,6 +32,18 @@ const Room = () => {
   const [chatOpen, setChatOpen]         = useState(false);
   const [chatMatchItem, setChatMatchItem] = useState(null);
   const pollingRef = useRef(null);
+
+  useEffect(() => {
+    const isThisRoomFinished =
+      String(currentRoom?._id) === String(id) &&
+      currentRoom?.status === 'finished' &&
+      currentRoom?.matchResult;
+
+    if (isThisRoomFinished) {
+      setChatMatchItem(currentRoom.matchResult);
+      setChatOpen(true);
+    }
+  }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult, id]);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
 
   // ── Geri sayım ─────────────────────────────────────────────────────────────
@@ -53,26 +72,37 @@ const Room = () => {
 
   // ── Socket + Oda Başlangıcı ────────────────────────────────────────────────
   useEffect(() => {
+    let disposed = false;
+    let socket;
+    let handleConnect;
     const init = async () => {
       // 1. REST: oda durumunu al
       const room = await fetchRoomStatus(id);
+      if (disposed) return;
       if (room) {
         if (!room.participants.some((p) => (p._id || p) === user._id)) {
           await joinRoom(id);
+          if (disposed) return;
         }
         if (room.userSwipes) setCurrentIndex(room.userSwipes.length);
       }
 
       // 2. Socket bağlantısı
       const token = JSON.parse(localStorage.getItem('userInfo'))?.token;
-      const socket = connectSocket(token);
+      socket = connectSocket(token);
 
-      // join_room: socket odasına katıl
-      socket.emit('join_room', {
-        roomCode: id,
-        userId: user._id,
-        username: user.username,
-      });
+      handleConnect = () => {
+        socket.emit('join_room', {
+          roomCode: id,
+          userId: user._id,
+          username: user.username,
+        });
+      };
+
+      if (socket.connected) {
+        handleConnect();
+      }
+      socket.on('connect', handleConnect);
 
       // user_swiped: diğer katılımcı kaydırdı → UI güncelle (opsiyonel bilgi)
       socket.on('user_swiped', ({ userId, username, itemId, direction: dir }) => {
@@ -82,32 +112,41 @@ const Room = () => {
 
       // match_success: eşleşme socket'tan geldi → anlık modal aç
       socket.on('match_success', ({ itemId }) => {
+        // En güncel odayı ref'ten al
+        const latestRoom = roomRef.current;
+        if (!latestRoom || String(latestRoom._id) !== String(id)) return;
+        
+        // Eşleşen seçeneğin BU ODANIN seçenekleri arasında olduğunu doğrula
+        const matched = latestRoom?.options?.find((o) => String(o._id) === String(itemId));
+        if (!matched) return; // Eski odanın id'si ise yoksay
+        
         if (socketMatchFired.current) return;
         socketMatchFired.current = true;
-
-        // Eşleşen seçeneği bul
-        const matched =
-          currentRoom?.options?.find((o) => String(o._id) === String(itemId)) || null;
+        
         setSocketMatch(matched);
         setChatMatchItem(matched);
         setTimeout(() => setChatOpen(true), 1200);
 
-        // Backend'i de güncelle (status=finished yapması için)
+        // Arka planda DB state'ini senkronize et
         fetchRoomStatus(id);
       });
 
       // participant_joined / left
       socket.on('participant_joined', ({ username: uname, count }) => {
-        console.log(`👥 ${uname} katıldı (${count} kişi)`);
+        toast.info(`👥 ${uname} odaya katıldı! (${count} kişi)`);
+        fetchRoomStatus(id); // Katılımcı listesini güncellemek için DB'den tekrar çek
       });
       socket.on('participant_left', ({ username: uname }) => {
-        console.log(`👋 ${uname} ayrıldı`);
+        toast.warning(`👋 ${uname} odadan ayrıldı`);
+        fetchRoomStatus(id);
       });
 
       // Oda başlama anlık bildirimi (gecikmeyi sıfırlar)
       socket.on('room_started', (roomData) => {
         console.log('Oda başladı:', roomData);
-        fetchRoomStatus(id);
+        // Anında arayüzü güncelle, REST gecikmesini bekleme!
+        if (roomData) setCurrentRoom(roomData);
+        fetchRoomStatus(id); // arka planda yedek senkronizasyon
       });
     };
 
@@ -119,13 +158,19 @@ const Room = () => {
     }, 5000);
 
     return () => {
+      disposed = true;
       clearInterval(pollingRef.current);
       const socket = getSocket();
       if (socket) {
+        // Eski odadan tamamen ayrıl (match_success vs. sızmasını önlemek için)
+        socket.emit('leave_room', { roomCode: id, userId: user?._id, username: user?.username });
+        
+        socket.off('connect', handleConnect);
         socket.off('user_swiped');
         socket.off('match_success');
         socket.off('participant_joined');
         socket.off('participant_left');
+        socket.off('room_started');
       }
       resetRoom();
     };
@@ -190,12 +235,15 @@ const Room = () => {
   };
 
   const optionsFinished = currentIndex >= currentRoom.options.length;
-  const isFinished = currentRoom.status === 'finished';
+  const isFinished = String(currentRoom._id) === String(id) && currentRoom.status === 'finished';
   const showResults = isFinished && !matchResult && !socketMatch;
   const isHost = currentRoom.host._id === user._id || currentRoom.host === user._id;
 
   // Socket match → RoomContext match önceliği
-  const activeMatch = matchResult || socketMatch;
+  // A result may only be rendered when it belongs to the room in the URL.
+  // Do not use the context-wide/socket value here: either may belong to an
+  // earlier room while navigation or a socket update is in progress.
+  const activeMatch = isFinished ? currentRoom.matchResult : socketMatch;
 
   return (
     <div
@@ -357,9 +405,9 @@ const Room = () => {
               currentRoom.participantStatuses.map((p, idx) => (
                 <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                   {p.status === 'finished' ? (
-                    <><span style={{ color: 'var(--success)' }}>🟢</span> {p.user.username} (Oylamayı Bitirdi)</>
+                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><span style={{ color: 'var(--success)' }}>🟢</span> {p.user.username} (Oylamayı Bitirdi)</>
                   ) : (
-                    <><span style={{ color: 'gold' }}>🟡</span> {p.user.username} (Seçim yapıyor...)</>
+                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><span style={{ color: 'gold' }}>🟡</span> {p.user.username} (Seçim yapıyor...)</>
                   )}
                 </div>
               ))

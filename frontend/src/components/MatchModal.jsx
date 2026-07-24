@@ -84,7 +84,7 @@ const ActionBtn = ({ href, onClick, icon, label, color, bg }) => {
 };
 
 // ── Ana Modal ─────────────────────────────────────────────────────────────────
-const MatchModal = ({ isOpen, matchResult, onClose }) => {
+const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat }) => {
   const name     = matchResult?.name     || '';
   const location = matchResult?.location || '';
   const isPlace  = !!(matchResult?.location || matchResult?.budget || matchResult?.rating);
@@ -139,10 +139,10 @@ const MatchModal = ({ isOpen, matchResult, onClose }) => {
                 textShadow: '0 4px 10px rgba(0,0,0,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
               }}>
-                <Flame color="var(--primary)" /> EŞLEŞME! <Flame color="var(--primary)" />
+                <Flame color="var(--primary)" /> EŞLEŞME SAĞLANDI! <Flame color="var(--primary)" />
               </h1>
               <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                Grubunuz ortak karara vardı 🎉
+                Grubunuz ortak karara vardı🎉
               </p>
 
               {/* Eşleşme kartı */}
@@ -221,6 +221,15 @@ const MatchModal = ({ isOpen, matchResult, onClose }) => {
                       color="white"
                       bg="rgba(99,102,241,0.85)"
                     />
+                    {false && onOpenChat && (
+                      <ActionBtn
+                        onClick={onOpenChat}
+                        icon={<span style={{ fontSize: '15px' }}>💬</span>}
+                        label="Sohbeti Aç"
+                        color="white"
+                        bg="var(--primary)"
+                      />
+                    )}
                   </div>
                 </div>
               )}

@@ -43,7 +43,7 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
       <div style={{
         width: '100%', maxWidth: 480,
         background: 'rgba(15,23,42,0.97)', backdropFilter: 'blur(20px)',

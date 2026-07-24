@@ -11,6 +11,8 @@ export const RoomProvider = ({ children }) => {
 
   const createRoom = async (name, options, category, priceRange, timeLimit) => {
     setLoading(true);
+    // A match belongs to one room only; never carry it into a newly created room.
+    setMatchResult(null);
     try {
       const { data } = await api.post('/rooms', { name, options, category, priceRange, timeLimit });
       setCurrentRoom(data);
@@ -27,6 +29,7 @@ export const RoomProvider = ({ children }) => {
 
   const joinRoom = async (roomId) => {
     setLoading(true);
+    setMatchResult(null);
     try {
       const { data } = await api.put(`/rooms/${roomId}/join`);
       setCurrentRoom(data);
@@ -76,9 +79,8 @@ export const RoomProvider = ({ children }) => {
     try {
       const { data } = await api.get(`/rooms/${roomId}`);
       setCurrentRoom(data);
-      if (data.status === 'finished') {
-        setMatchResult(data.matchResult);
-      }
+      // Clear any result from a previously viewed room unless this room is finished.
+      setMatchResult(data.status === 'finished' ? data.matchResult : null);
       return data;
     } catch (error) {
       console.error("Room status error", error);
@@ -105,7 +107,7 @@ export const RoomProvider = ({ children }) => {
 
   return (
     <RoomContext.Provider value={{ 
-      currentRoom, loading, matchResult, 
+      currentRoom, setCurrentRoom, loading, matchResult, 
       createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, startRoom, setMatchResult
     }}>
       {children}

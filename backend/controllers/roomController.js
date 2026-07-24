@@ -92,8 +92,8 @@ export const getRoomById = async (req, res, next) => {
     const roomId = req.params.id;
 
     const room = await Room.findById(roomId)
-      .populate('host', 'username')
-      .populate('participants', 'username');
+      .populate('host', 'username profilePic')
+      .populate('participants', 'username profilePic');
 
     if (!room) {
       res.status(404);

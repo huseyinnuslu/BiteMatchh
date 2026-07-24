@@ -125,25 +125,29 @@ const WaitingRoom = () => {
         <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>{currentRoom.name}</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Bekleme Salonu</p>
 
-        {/* Canlı Sayaç Göstergesi */}
-        {currentRoom.inviteExpiresAt && timeLeft !== null && (
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.4rem 0.8rem', borderRadius: '20px',
-            background: timeLeft < 60000 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${timeLeft < 60000 ? 'var(--danger)' : 'rgba(255,255,255,0.1)'}`,
-            color: timeLeft < 60000 ? 'var(--danger)' : 'var(--primary)',
-            fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '1.5rem',
-          }}>
-            <Clock size={14} /> Davet Süresi: {formatTimeLeft(timeLeft)}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', width: '100%' }}>
+          {/* Davet Süresi (En Üstte) */}
+          {currentRoom.inviteExpiresAt && timeLeft !== null && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.5rem 1rem', borderRadius: '20px',
+              background: timeLeft < 60000 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${timeLeft < 60000 ? 'var(--danger)' : 'rgba(255,255,255,0.1)'}`,
+              color: timeLeft < 60000 ? 'var(--danger)' : 'var(--primary)',
+              fontSize: '0.9rem', fontWeight: 'bold',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+            }}>
+              <Clock size={16} /> Davet Süresi: {formatTimeLeft(timeLeft)}
+            </div>
+          )}
+          
+          {/* QR Kod (Ortada) */}
+          <div style={{ background: 'white', padding: '0.5rem', borderRadius: '12px', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+            <QRCodeSVG value={inviteLink} size={140} />
           </div>
-        )}
 
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', display: 'inline-block', marginBottom: '1rem' }}>
-          <QRCodeSVG value={inviteLink} size={150} />
-        </div>
-
-        <div style={{ marginBottom: '1.5rem' }}>
+          {/* Kopyala Butonu (En Altta) */}
           <button 
             onClick={handleCopyLink} 
             className="btn btn-outline" 
@@ -155,7 +159,8 @@ const WaitingRoom = () => {
               borderColor: 'var(--primary)', 
               color: 'var(--primary)',
               transition: 'all 0.3s',
-              backgroundColor: 'rgba(99, 102, 241, 0.1)'
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              whiteSpace: 'nowrap'
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--primary)';
