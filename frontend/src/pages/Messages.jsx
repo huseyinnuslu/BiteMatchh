@@ -234,6 +234,7 @@ const Messages = () => {
   }, []);
 
   const bottomRef = useRef(null);
+  const messagesScrollRef = useRef(null);
   const inputRef  = useRef(null);
   const menuRef   = useRef(null);
   const sendingRef = useRef(false);
@@ -332,7 +333,10 @@ const Messages = () => {
 
   /* ─── Scroll ── */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const messageList = messagesScrollRef.current;
+    if (messageList) {
+      messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
+    }
   }, [messages]);
 
   /* ─── Menü dışına tıkla → kapat ── */
@@ -754,7 +758,7 @@ const Messages = () => {
               </div>
 
               {/* ── Mesajlar ── */}
-              <div style={{
+              <div ref={messagesScrollRef} style={{
                 flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '16px 20px',
                 display: 'flex', flexDirection: 'column', gap: 4,
                 scrollbarWidth: 'thin',
