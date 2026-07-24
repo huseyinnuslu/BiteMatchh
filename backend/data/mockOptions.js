@@ -177,7 +177,8 @@ export const mockOptions = {
     {
       name: 'Wok & Noodle',
       mapsQuery: 'wok noodle İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=1200&q=85',
+      // Önceki görsel "Cajun dirty rice" idi. Bu fotoğraf doğrudan stir-fry noodle gösterir.
+      imageUrl: 'https://unsplash.com/photos/cVqU6I87fjQ/download?force=true&w=1200',
       budget: '₺₺',
       discoveryGroup: 'asian-noodle',
       venueConcept: 'Hızlı Asya mutfağı',
@@ -478,7 +479,8 @@ export const mockOptions = {
     {
       name: 'Seramik Atölyesi',
       mapsQuery: 'seramik atölyesi İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1459908676235-d5f02a50184b?w=1200&q=85',
+      // Unsplash başlığı: “Messy hands sculpting on a pottery wheel in motion”.
+      imageUrl: 'https://unsplash.com/photos/xEy9QNUCdRI/download?force=true&w=1200',
       budget: '₺₺',
       discoveryGroup: 'workshop',
       venueConcept: 'Yaratıcı atölye',
@@ -496,7 +498,8 @@ export const mockOptions = {
     {
       name: 'Buz Pateni',
       mapsQuery: 'buz pateni İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1519505907962-0a6cb0167c73?w=1200&q=85',
+      // Bu URL daha önce kürek ergometresi gösteriyordu; kart şimdi doğrudan buz pistindeki patenciyi gösterir.
+      imageUrl: 'https://images.pexels.com/photos/6539392/pexels-photo-6539392.jpeg?auto=compress&cs=tinysrgb&w=1200',
       budget: '₺₺',
       discoveryGroup: 'active',
       venueConcept: 'Spor & eğlence',

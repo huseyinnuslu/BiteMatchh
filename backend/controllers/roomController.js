@@ -6,6 +6,26 @@ import { sendPushToUser } from '../utils/webPush.js';
 import Notification from '../models/Notification.js';
 import { getIo } from '../server.js';
 
+// Oda oluşturulduktan sonra kartlar oda belgesine kopyalanır. Görsel havuzu
+// düzeltildiğinde eski/açık odaların da yeni doğru görseli alabilmesi için,
+// yalnızca API cevabındaki kart görselini güncel katalogla eşitliyoruz.
+const currentCardImages = new Map(
+  [...mockOptions.mekan, ...mockOptions.film, ...mockOptions.aktivite]
+    .map((item) => [item.name, item.imageUrl])
+);
+
+const hydrateCurrentCardImage = (card) => {
+  const imageUrl = currentCardImages.get(card?.name);
+  return imageUrl ? { ...card, imageUrl } : card;
+};
+
+const hydrateRoomCardImages = (room) => ({
+  ...room,
+  options: (room.options || []).map(hydrateCurrentCardImage),
+  matchResult: room.matchResult ? hydrateCurrentCardImage(room.matchResult) : room.matchResult,
+  topOptions: (room.topOptions || []).map(hydrateCurrentCardImage),
+});
+
 // @desc    Oda oluştur
 // @route   POST /api/rooms
 // @access  Private
@@ -126,7 +146,7 @@ export const getRoomById = async (req, res, next) => {
         }));
 
         return res.json({
-          ...updatedRoom,
+          ...hydrateRoomCardImages(updatedRoom),
           userSwipes: userSwipes.map(s => s.optionId.toString()),
           participantStatuses,
         });
@@ -155,7 +175,7 @@ export const getRoomById = async (req, res, next) => {
     }));
 
     res.json({
-      ...room.toObject(),
+      ...hydrateRoomCardImages(room.toObject()),
       userSwipes: userSwipes.map(s => s.optionId.toString()),
       participantStatuses,
     });
