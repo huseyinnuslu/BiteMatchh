@@ -47,21 +47,24 @@ export const mockOptions = {
     {
       name: 'Tantuni',
       mapsQuery: 'tantuni İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=600&q=80',
+      // Unsplash'ta doğrudan “Turkish Street food. A meat durum called Tantuni” olarak etiketlenmiş fotoğraf.
+      imageUrl: 'https://unsplash.com/photos/0bEl03R6jVY/download?force=true&w=1200',
       budget: '₺',
       description: 'İnce kıyma, lavaş, domates, maydanoz ve bol sumak. Hızlı ve lezzetli sokak yemeği.'
     },
     {
       name: 'Döner',
       mapsQuery: 'döner İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600&q=80',
+      // Dönerin dikey şişte pişmesini gösteren, başlıkla birebir eşleşen fotoğraf.
+      imageUrl: 'https://unsplash.com/photos/9Lsxip60s20/download?force=true&w=1200',
       budget: '₺',
       description: 'Çıtır ekmek, bol et, közlenmiş sebze. Türkiye\'nin en sevilen fast food klasiği.'
     },
     {
       name: 'Lahmacun & Pide',
       mapsQuery: 'lahmacun pide İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=80',
+      // Unsplash başlığı: “Delicious looking turkish lahmacun ready to be served”.
+      imageUrl: 'https://unsplash.com/photos/CAmLnpQXcIY/download?force=true&w=1200',
       budget: '₺',
       description: 'Çıtır ince hamurda kıymalı lahmacun veya fırın pidesi. Rulo yapıp maydanozla ye!'
     },
@@ -89,14 +92,14 @@ export const mockOptions = {
     {
       name: 'Ramen & Asya Mutfağı',
       mapsQuery: 'ramen Asya mutfağı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+      imageUrl: 'https://unsplash.com/photos/qom5MPOER-I/download?force=true&w=1200',
       budget: '₺₺',
       description: 'Sıcak et suyunda el yapımı noodle, marine yumurta ve zengin umami lezzeti.'
     },
     {
       name: 'Serpme Kahvaltı',
       mapsQuery: 'serpme kahvaltı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80',
+      imageUrl: 'https://unsplash.com/photos/2zvJVYujXVk/download?force=true&w=1200',
       budget: '₺₺',
       description: 'Bal, kaymak, peynir çeşitleri, zeytin, sıcak pişi ve demlik çay. Bol çeşitli serpme kahvaltı.'
     },
@@ -124,16 +127,106 @@ export const mockOptions = {
     {
       name: 'Makarna & İtalyan',
       mapsQuery: 'İtalyan restaurant makarna İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1556761223-4c4282c73f77?w=600&q=80',
+      imageUrl: 'https://unsplash.com/photos/971_E-LvZuc/download?force=true&w=1200',
       budget: '₺₺',
       description: 'El yapımı taze makarna, carbonara, risotto. Otantik İtalyan lezzeti şehirde.'
     },
     {
       name: 'Köfte',
       mapsQuery: 'köfte restaurant İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1529042410759-befb1204b468?w=600&q=80',
+      imageUrl: 'https://unsplash.com/photos/5oKQi6bug2A/download?force=true&w=1200',
       budget: '₺',
       description: 'Izgarada çıtırdayan köfte, kavurma patates ve cacık. Türk mutfağının vazgeçilmezi.'
+    },
+    {
+      name: 'Kıymalı Pide',
+      mapsQuery: 'kıymalı pide İstanbul',
+      imageUrl: 'https://unsplash.com/photos/ASu5R2cd25E/download?force=true&w=1200',
+      budget: '₺',
+      discoveryGroup: 'turkish-bakery',
+      venueConcept: 'Fırın & esnaf lokantası',
+      description: 'Taş fırından çıkan kıymalı pideyle hızlı, sıcak ve paylaşmalık bir öğün.'
+    },
+    {
+      name: 'Tavuk Kanat & Çıtır Tavuk',
+      mapsQuery: 'tavuk kanat çıtır tavuk İstanbul',
+      imageUrl: 'https://unsplash.com/photos/gE28aTnlqJA/download?force=true&w=1200',
+      budget: '₺₺',
+      discoveryGroup: 'chicken',
+      venueConcept: 'Casual dining',
+      description: 'Soslu kanat, çıtır tavuk ve paylaşmalık atıştırmalıklar için rahat bir akşam seçeneği.'
+    },
+    {
+      name: 'Vegan & Healthy Bowl',
+      mapsQuery: 'vegan healthy bowl İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'healthy',
+      venueConcept: 'Sağlıklı kafe',
+      description: 'Taze sebzeler, tahıllar ve bitkisel proteinlerle hafif ama doyurucu bir buluşma.'
+    },
+    {
+      name: 'Hint Mutfağı & Köri',
+      mapsQuery: 'Hint mutfağı köri İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'international-spice',
+      venueConcept: 'Dünya mutfağı',
+      description: 'Baharatlı köri, pilav ve naan eşliğinde aroması güçlü bir dünya mutfağı molası.'
+    },
+    {
+      name: 'Wok & Noodle',
+      mapsQuery: 'wok noodle İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'asian-noodle',
+      venueConcept: 'Hızlı Asya mutfağı',
+      description: 'Sebze, et veya tofu seçerek kişiselleştirilebilen sıcak wok tabakları.'
+    },
+    {
+      name: 'Salata & Akdeniz Mutfağı',
+      mapsQuery: 'Akdeniz mutfağı salata İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'healthy',
+      venueConcept: 'Günlük kafe',
+      description: 'Renkli mevsim sebzeleri, zeytinyağlılar ve ferah Akdeniz tabakları.'
+    },
+    {
+      name: 'Brunch & Kafe',
+      mapsQuery: 'brunch kafe İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'brunch',
+      venueConcept: 'Kafe & brunch',
+      description: 'Yumurta, ekşi mayalı ekmek ve kahveyle uzun sohbetlere uygun geç kahvaltı.'
+    },
+    {
+      name: 'Kahve & Pastane',
+      mapsQuery: 'kahve pastane İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=85',
+      budget: '₺',
+      discoveryGroup: 'cafe-dessert',
+      venueConcept: 'Üçüncü nesil kafe',
+      description: 'Nitelikli kahve, taze pasta ve kısa bir buluşma için sıcak bir kafe seçeneği.'
+    },
+    {
+      name: 'Falafel & Levanten',
+      mapsQuery: 'falafel Levanten mutfağı İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb0?w=1200&q=85',
+      budget: '₺',
+      discoveryGroup: 'middle-east',
+      venueConcept: 'Sokak lezzetleri',
+      description: 'Falafel, humus ve tahin eşliğinde paylaşmaya uygun Levanten lezzetleri.'
+    },
+    {
+      name: 'Tatlı & Waffle',
+      mapsQuery: 'waffle tatlı İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1562376552-0d160a2f35c5?w=1200&q=85',
+      budget: '₺',
+      discoveryGroup: 'cafe-dessert',
+      venueConcept: 'Tatlıcı',
+      description: 'Meyve, çikolata ve dondurmayla keyifli bir tatlı kaçamağı.'
     },
   ],
 
@@ -373,7 +466,149 @@ export const mockOptions = {
       budget: '₺',
       description: 'Çimenlere yay, yiyecekleri hazırla, müziği aç. Emirgan, Fenerbahçe Parkı veya Çamlıca.'
     },
+    {
+      name: 'Canlı Sahne Performansı',
+      mapsQuery: 'canlı performans İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'live-stage',
+      venueConcept: 'Canlı sahne',
+      description: 'Müzik, komedi veya akustik performanslarla akşamı canlı ve kolay planlanır bir buluşmaya çevirin.'
+    },
+    {
+      name: 'Seramik Atölyesi',
+      mapsQuery: 'seramik atölyesi İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1459908676235-d5f02a50184b?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'workshop',
+      venueConcept: 'Yaratıcı atölye',
+      description: 'Çamura şekil verip kendi kupanızı veya küçük objenizi üretebileceğiniz sakin bir aktivite.'
+    },
+    {
+      name: 'Tırmanış Duvarı',
+      mapsQuery: 'tırmanış duvarı boulder İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'active',
+      venueConcept: 'Spor & macera',
+      description: 'Başlangıç rotalarıyla da keyifli olan, birlikte hareket etmeye teşvik eden boulder deneyimi.'
+    },
+    {
+      name: 'Buz Pateni',
+      mapsQuery: 'buz pateni İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1519505907962-0a6cb0167c73?w=1200&q=85',
+      budget: '₺₺',
+      discoveryGroup: 'active',
+      venueConcept: 'Spor & eğlence',
+      description: 'Müzik eşliğinde piste çıkıp birlikte yeni bir şey denemek için eğlenceli bir seçenek.'
+    },
+    {
+      name: 'Yemek Atölyesi',
+      mapsQuery: 'yemek atölyesi İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&q=85',
+      budget: '₺₺₺',
+      discoveryGroup: 'workshop',
+      venueConcept: 'Mutfak atölyesi',
+      description: 'Bir şef eşliğinde tarif öğrenip sonunda hazırladıklarınızı birlikte tadabileceğiniz deneyim.'
+    },
+    {
+      name: 'Fotoğraf Yürüyüşü',
+      mapsQuery: 'fotoğraf yürüyüşü İstanbul',
+      imageUrl: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200&q=85',
+      budget: 'Bedava',
+      discoveryGroup: 'outdoor',
+      venueConcept: 'Şehir keşfi',
+      description: 'Telefon veya fotoğraf makinesiyle şehrin farklı bir semtini keşfedin; rota tamamen size ait.'
+    },
   ]
+};
+
+// Aynı konseptin art arda gelmesini önlemek için eski kartlara da keşif grubu verilir.
+// Bu alan, kart bileşenleri tarafından kullanılmaz; yalnızca havuzun dengeli seçimi içindir.
+const foodGroups = {
+  'Hamburger': 'burger',
+  'Pizza': 'italian',
+  'Sushi & Japon': 'japanese',
+  'Adana Kebap': 'turkish-grill',
+  'Tantuni': 'turkish-street-food',
+  'Döner': 'turkish-street-food',
+  'Lahmacun & Pide': 'turkish-bakery',
+  'Deniz Ürünleri': 'seafood',
+  'Steakhouse & Et': 'steakhouse',
+  'Fine Dining & Şef Mutfağı': 'fine-dining',
+  'Ramen & Asya Mutfağı': 'asian-noodle',
+  'Serpme Kahvaltı': 'brunch',
+  'Pasta & Tatlı Kafe': 'cafe-dessert',
+  'Tost & Sandviç': 'sandwich',
+  'Meksika & Taco': 'mexican',
+  'Makarna & İtalyan': 'italian',
+  'Köfte': 'turkish-grill',
+};
+
+const activityGroups = {
+  'Sinemaya Git': 'screen',
+  'Bowling': 'game',
+  'Lunapark & Tema Parkı': 'adrenaline',
+  'Sahil & Park Yürüyüşü': 'outdoor',
+  'Canlı Konser': 'live-stage',
+  'Müze & Galeri': 'culture',
+  'Karaoke': 'live-stage',
+  'Tiyatro': 'live-stage',
+  'Trambolin Parkı': 'active',
+  'Go-Kart': 'adrenaline',
+  'Boğaz Turu': 'outdoor',
+  'Board Game Kafe': 'game',
+  'SPA & Masaj': 'wellness',
+  'Bisiklet Turu': 'outdoor',
+  'Piknik': 'outdoor',
+};
+
+mockOptions.mekan.forEach((item) => {
+  item.discoveryGroup ||= foodGroups[item.name] || 'food';
+});
+mockOptions.aktivite.forEach((item) => {
+  item.discoveryGroup ||= activityGroups[item.name] || 'activity';
+});
+
+const shuffleCards = (items) => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+/**
+ * Oda havuzunu rastgele tutarken her mutfak/etkinlik konseptinden önce bir temsilci alır.
+ * Böylece örneğin art arda birkaç kebap veya yalnızca tek bütçe bandı gösterilmez.
+ */
+export const selectDiverseOptions = (sourcePool, count) => {
+  const grouped = new Map();
+  const budgetGroups = new Map();
+
+  sourcePool.forEach((item) => {
+    const group = item.discoveryGroup || 'other';
+    grouped.set(group, [...(grouped.get(group) || []), item]);
+
+    const budget = item.budget || 'unspecified';
+    budgetGroups.set(budget, [...(budgetGroups.get(budget) || []), item]);
+  });
+
+  const selected = new Set();
+  const addRepresentative = (items) => {
+    const next = shuffleCards(items).find((item) => !selected.has(item));
+    if (next && selected.size < count) selected.add(next);
+  };
+
+  // Birden fazla fiyat seviyesi mevcutsa, her seviyeden önce bir temsilci alınır.
+  shuffleCards([...budgetGroups.values()]).forEach(addRepresentative);
+  // Ardından farklı mutfak/etkinlik konseptleriyle keşif çeşitliliği tamamlanır.
+  shuffleCards([...grouped.values()]).forEach(addRepresentative);
+
+  const remaining = sourcePool.filter((item) => !selected.has(item));
+
+  return shuffleCards([...selected, ...shuffleCards(remaining)]).slice(0, count);
 };
 
 // English aliases

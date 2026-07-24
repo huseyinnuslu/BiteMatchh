@@ -1,6 +1,6 @@
 import Room from '../models/Room.js';
 import Swipe from '../models/Swipe.js';
-import { mockOptions } from '../data/mockOptions.js';
+import { mockOptions, selectDiverseOptions } from '../data/mockOptions.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
 import { sendPushToUser } from '../utils/webPush.js';
 import Notification from '../models/Notification.js';
@@ -34,16 +34,10 @@ export const createRoom = async (req, res, next) => {
         }
       }
 
-      // Fisher-Yates shuffle algoritması ile karıştırma
-      const shuffled = [...sourcePool];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      
-      // Sınırsız süre de olsa, garantili olarak 10-15 arası kart getir
-      const count = Math.min(shuffled.length, Math.floor(Math.random() * 6) + 10);
-      roomOptions = shuffled.slice(0, count);
+      // Sınırsız süre de olsa, garantili olarak 10-15 arası kart getir.
+      // Seçim rastgele kalır; ancak aynı mutfak/aktivite konseptinin tekrarlanması engellenir.
+      const count = Math.min(sourcePool.length, Math.floor(Math.random() * 6) + 10);
+      roomOptions = selectDiverseOptions(sourcePool, count);
     }
 
     const room = await Room.create({
