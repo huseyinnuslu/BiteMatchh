@@ -16,6 +16,23 @@ import { getIo } from '../server.js';
 
 const router = express.Router();
 
+// Socket kapalıyken kullanılan HTTP yolu da etkinlik kartını socket yolu ile
+// birebir aynı kurallarla kaydeder; yarım kartlar bildirim oluşturamaz.
+const normalizeSharedEvent = (event) => {
+  if (!event || typeof event !== 'object') return null;
+
+  const name = typeof event.name === 'string' ? event.name.trim() : '';
+  if (!name) return null;
+
+  const normalized = { name };
+  ['imageUrl', 'location', 'ticketUrl', 'mapsQuery'].forEach((key) => {
+    if (typeof event[key] === 'string' && event[key].trim()) {
+      normalized[key] = event[key].trim();
+    }
+  });
+  return normalized;
+};
+
 // ── GET /api/messages/conversations ─────────────────────────────────────────
 // Kullanıcının DM yaptığı kişileri ve son mesajı döndürür.
 router.get('/conversations', protect, async (req, res, next) => {
@@ -95,7 +112,9 @@ router.get('/dm/:userId', protect, async (req, res, next) => {
 router.post('/dm/:userId', protect, async (req, res, next) => {
   try {
     const { text, sharedEvent } = req.body;
-    if (!text?.trim() && !sharedEvent) { res.status(400); throw new Error('Mesaj boş olamaz'); }
+    const messageText = text?.trim().slice(0, 500) || '';
+    const eventCard = normalizeSharedEvent(sharedEvent);
+    if (!messageText && !eventCard) { res.status(400); throw new Error('Mesaj boş olamaz'); }
 
     const otherId = req.params.userId;
     if (!mongoose.isValidObjectId(otherId)) {
@@ -110,8 +129,8 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
       sender:     req.user._id,
       senderName: req.user.username,
       recipient:  otherId,
-      text:       text?.trim() || '',
-      sharedEvent,
+      text:       messageText,
+      sharedEvent: eventCard,
     });
 
     // HTTP fallback ile gönderilse bile alıcıya socket üzerinden anlık ilet!
@@ -124,8 +143,8 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
           sender:     req.user._id.toString(),
           senderName: req.user.username,
           recipient:  otherId.toString(),
-          text:       text?.trim() || '',
-          sharedEvent,
+          text:       messageText,
+          sharedEvent: msg.sharedEvent?.toObject?.() || eventCard,
           createdAt:  msg.createdAt,
         };
         

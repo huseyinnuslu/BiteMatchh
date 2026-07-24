@@ -89,6 +89,7 @@ const Dashboard = () => {
     }
     socket.emit('send_direct_message', {
       toUserId: selectedFriendId,
+      fromUserId: user._id,
       text: shareMessage,
       senderName: user.username,
       sharedEvent: {

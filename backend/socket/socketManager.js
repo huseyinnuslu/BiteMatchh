@@ -24,6 +24,23 @@ const cleanupRoom         = (rc) => { roomLikes.delete(rc); roomParticipants.del
 // Kullanıcının kişisel socket odasının adı
 const userRoom = (userId) => `user:${userId}`;
 
+// Paylaşılan kart, socket ve veritabanında aynı ve eksiksiz şekle sahip olmalı.
+// Boş/yarım bir nesne “etkinlik paylaştı” bildirimi üretmez.
+const normalizeSharedEvent = (event) => {
+  if (!event || typeof event !== 'object') return null;
+
+  const name = typeof event.name === 'string' ? event.name.trim() : '';
+  if (!name) return null;
+
+  const normalized = { name };
+  ['imageUrl', 'location', 'ticketUrl', 'mapsQuery'].forEach((key) => {
+    if (typeof event[key] === 'string' && event[key].trim()) {
+      normalized[key] = event[key].trim();
+    }
+  });
+  return normalized;
+};
+
 export const initSocket = (io) => {
   io.on('connection', (socket) => {
     console.log(`Baglandi: ${socket.id}`);
@@ -191,7 +208,9 @@ export const initSocket = (io) => {
       // fromUserId: frontend artık açıkça gönderiyor (güvenilir fallback)
       const myId = fromUserId || socket.data.userId;
       if (!myId || !toUserId) return;
-      if (!text?.trim() && !sharedEvent) return;
+      const messageText = text?.trim().slice(0, 500) || '';
+      const eventCard = normalizeSharedEvent(sharedEvent);
+      if (!messageText && !eventCard) return;
 
       // socket.data.userId her zaman güncel kalsın
       if (!socket.data.userId) {
@@ -205,8 +224,8 @@ export const initSocket = (io) => {
         sender:     myId,
         senderName: senderName || socket.data.username,
         recipient:  toUserId,
-        text:       text?.trim() || '',
-        sharedEvent,
+        text:       messageText,
+        sharedEvent: eventCard,
         createdAt:  new Date().toISOString(),
       };
 
@@ -223,11 +242,13 @@ export const initSocket = (io) => {
           senderName: msgPayload.senderName,
           recipient: toUserId,
           text: msgPayload.text,
-           sharedEvent,
+          sharedEvent: eventCard,
          });
 
          msgPayload._id = savedMessage._id.toString();
          msgPayload.createdAt = savedMessage.createdAt.toISOString();
+         // İletilen kart, MongoDB'ye gerçekten kaydedilmiş karttır.
+         msgPayload.sharedEvent = savedMessage.sharedEvent?.toObject?.() || eventCard;
          io.to(userRoom(toUserId)).emit('receive_direct_message', msgPayload);
          socket.to(userRoom(myId)).emit('receive_direct_message', { ...msgPayload, isMine: true });
 

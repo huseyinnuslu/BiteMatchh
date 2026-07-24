@@ -286,7 +286,12 @@ const Messages = () => {
       // Konuşma listesini güncelle (alıcı veya gönderen taraf için)
       setConversations(prev => {
         const idx = prev.findIndex(c => c.user?._id?.toString() === otherId?.toString());
-        const upd = { text: msg.text, createdAt: msg.createdAt, isMe: msg.sender?.toString() === user._id?.toString() };
+        const upd = {
+          text: msg.text,
+          createdAt: msg.createdAt,
+          isMe: msg.sender?.toString() === user._id?.toString(),
+          hasSharedEvent: Boolean(msg.sharedEvent?.name),
+        };
         if (idx !== -1) { 
           const arr = [...prev]; 
           arr[idx] = { ...arr[idx], lastMessage: upd }; 
