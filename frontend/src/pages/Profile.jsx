@@ -74,6 +74,7 @@ const Profile = () => {
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
+  const [resendingWelcomeEmail, setResendingWelcomeEmail] = useState(false);
   const { updateUser } = useContext(AuthContext);
 
   // Arama
@@ -137,6 +138,18 @@ const Profile = () => {
       toast.error(error.response?.data?.message || 'Kullanıcı adı güncellenemedi.');
     } finally {
       setSavingUsername(false);
+    }
+  };
+
+  const handleResendWelcomeEmail = async () => {
+    setResendingWelcomeEmail(true);
+    try {
+      const { data } = await api.post('/auth/resend-welcome-email');
+      toast.success(data.message || 'Hoş geldin e-postası yeniden gönderildi.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'E-posta gönderilemedi.');
+    } finally {
+      setResendingWelcomeEmail(false);
     }
   };
 
@@ -457,6 +470,18 @@ const Profile = () => {
             Bir sonraki değişiklik: {nextUsernameChangeAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         )}
+
+        <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: '1rem', paddingTop: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Hoş geldin e-postası gelmedi mi?</span>
+          <button
+            type="button"
+            onClick={handleResendWelcomeEmail}
+            disabled={resendingWelcomeEmail}
+            style={{ border: 'none', borderRadius: '8px', padding: '0.5rem 0.75rem', background: 'rgba(255,75,75,0.12)', color: 'var(--primary)', fontWeight: 700, cursor: resendingWelcomeEmail ? 'wait' : 'pointer' }}
+          >
+            {resendingWelcomeEmail ? 'Gönderiliyor...' : 'Tekrar Gönder'}
+          </button>
+        </div>
       </div>
 
       {/* ── Sekmeler ────────────────────────────────────────────────────── */}

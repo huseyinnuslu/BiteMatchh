@@ -24,6 +24,10 @@ const userSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    welcomeEmailLastAttemptAt: {
+      type: Date,
+      default: null,
+    },
     email: {
       type: String,
       required: [true, 'E-posta adresi zorunludur'],
