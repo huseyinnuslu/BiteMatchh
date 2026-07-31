@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera, Trash2, Inbox
+  UserCircle, Camera, Trash2, Inbox, Pencil
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -71,6 +71,9 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [savingUsername, setSavingUsername] = useState(false);
   const { updateUser } = useContext(AuthContext);
 
   // Arama
@@ -102,6 +105,38 @@ const Profile = () => {
       toast.success(`İstatistikleriniz artık ${newValue ? 'herkese açık' : 'gizli'}!`);
     } catch {
       toast.error('Gizlilik ayarı güncellenemedi.');
+    }
+  };
+
+  const handleUsernameEditStart = () => {
+    setUsernameDraft(profile.username);
+    setEditingUsername(true);
+  };
+
+  const handleUsernameChange = async (event) => {
+    event.preventDefault();
+    const username = usernameDraft.trim();
+
+    if (username === profile.username) {
+      setEditingUsername(false);
+      return;
+    }
+
+    setSavingUsername(true);
+    try {
+      const { data } = await api.put('/auth/profile', { username });
+      setProfile(prev => ({
+        ...prev,
+        username: data.username,
+        usernameChangedAt: data.usernameChangedAt,
+      }));
+      updateUser({ username: data.username, usernameChangedAt: data.usernameChangedAt });
+      setEditingUsername(false);
+      toast.success('Kullanıcı adınız güncellendi.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Kullanıcı adı güncellenemedi.');
+    } finally {
+      setSavingUsername(false);
     }
   };
 
@@ -262,6 +297,10 @@ const Profile = () => {
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
   const topCategory = categoryEntries[0];
+  const nextUsernameChangeAt = profile.usernameChangedAt
+    ? new Date(new Date(profile.usernameChangedAt).getTime() + 7 * 24 * 60 * 60 * 1000)
+    : null;
+  const canChangeUsername = !nextUsernameChangeAt || nextUsernameChangeAt <= new Date();
 
   return (
     <div style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
@@ -368,6 +407,57 @@ const Profile = () => {
           </div>
         </div>
       </motion.div>
+
+      <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ color: 'white', fontWeight: 700, marginBottom: '0.2rem' }}>Kullanıcı Adı</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>@{profile.username} · Kullanıcı adı 7 günde bir değiştirilebilir.</div>
+          </div>
+          {!editingUsername && (
+            <button
+              type="button"
+              onClick={handleUsernameEditStart}
+              disabled={!canChangeUsername}
+              title={!canChangeUsername ? `Tekrar değiştirebileceğiniz tarih: ${nextUsernameChangeAt.toLocaleDateString('tr-TR')}` : 'Kullanıcı adını değiştir'}
+              style={{
+                border: '1px solid var(--primary)', borderRadius: '9px', padding: '0.55rem 0.85rem',
+                background: canChangeUsername ? 'rgba(255,75,75,0.1)' : 'rgba(255,255,255,0.04)',
+                color: canChangeUsername ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700,
+                cursor: canChangeUsername ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.4rem',
+              }}
+            >
+              <Pencil size={14} /> {canChangeUsername ? 'Değiştir' : nextUsernameChangeAt.toLocaleDateString('tr-TR')}
+            </button>
+          )}
+        </div>
+
+        {editingUsername && (
+          <form onSubmit={handleUsernameChange} style={{ display: 'flex', gap: '0.6rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            <input
+              value={usernameDraft}
+              onChange={(event) => setUsernameDraft(event.target.value)}
+              maxLength={15}
+              autoComplete="username"
+              autoFocus
+              aria-label="Yeni kullanıcı adı"
+              style={{ flex: '1 1 180px', minWidth: 0, padding: '0.65rem 0.8rem', borderRadius: '9px', border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'white' }}
+            />
+            <button type="submit" disabled={savingUsername} style={{ border: 'none', borderRadius: '9px', padding: '0.65rem 0.95rem', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: savingUsername ? 'wait' : 'pointer' }}>
+              {savingUsername ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
+            <button type="button" onClick={() => setEditingUsername(false)} disabled={savingUsername} style={{ border: '1px solid var(--glass-border)', borderRadius: '9px', padding: '0.65rem 0.95rem', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              Vazgeç
+            </button>
+          </form>
+        )}
+
+        {!canChangeUsername && !editingUsername && (
+          <p style={{ margin: '0.75rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+            Bir sonraki değişiklik: {nextUsernameChangeAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        )}
+      </div>
 
       {/* ── Sekmeler ────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px', flexWrap: 'wrap' }}>

@@ -16,6 +16,10 @@ const userSchema = mongoose.Schema(
         'Kullanıcı adı 3-15 karakter arasında olmalı, sadece harf, rakam, alt çizgi (_) veya nokta (.) içerebilir.',
       ],
     },
+    usernameChangedAt: {
+      type: Date,
+      default: null,
+    },
     email: {
       type: String,
       required: [true, 'E-posta adresi zorunludur'],

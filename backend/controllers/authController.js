@@ -100,16 +100,21 @@ export const registerUser = async (req, res, next) => {
 
     // TEK sorguyla hem username hem email cakismasini kontrol et
     const existing = await User.findOne(
-      { $or: [{ username }, { email }] },
+      {
+        $or: [
+          { email },
+          { $expr: { $eq: [{ $toLower: '$username' }, username.toLowerCase()] } },
+        ],
+      },
       'username email'
     ).lean();
 
     if (existing) {
       res.status(400);
       throw new Error(
-        existing.username === username
-          ? 'Bu kullanici adi zaten alinmis!'
-          : 'Bu e-posta adresi ile zaten bir hesap mevcut!'
+        existing.email === email
+          ? 'Bu e-posta adresi ile zaten bir hesap mevcut!'
+          : 'Bu kullanici adi zaten alinmis!'
       );
     }
 
@@ -223,7 +228,44 @@ export const updateUserProfile = async (req, res, next) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      user.username = req.body.username || user.username;
+      const isUsernameUpdateRequested = Object.prototype.hasOwnProperty.call(req.body, 'username');
+
+      if (isUsernameUpdateRequested) {
+        const requestedUsername = typeof req.body.username === 'string'
+          ? req.body.username.trim()
+          : '';
+        const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
+
+        if (!usernameRegex.test(requestedUsername)) {
+          res.status(400);
+          throw new Error('Kullanici adi 3-15 karakter olmali; sadece harf, rakam, alt cizgi ve nokta icerebilir.');
+        }
+
+        if (requestedUsername !== user.username) {
+          const now = Date.now();
+          const previousChangeAt = user.usernameChangedAt?.getTime();
+
+          if (previousChangeAt && now - previousChangeAt < 7 * 24 * 60 * 60 * 1000) {
+            const remainingDays = Math.ceil((7 * 24 * 60 * 60 * 1000 - (now - previousChangeAt)) / (24 * 60 * 60 * 1000));
+            res.status(429);
+            throw new Error('Kullanici adinizi ' + remainingDays + ' gun sonra tekrar degistirebilirsiniz.');
+          }
+
+          const existingUsername = await User.findOne({
+            _id: { $ne: user._id },
+            $expr: { $eq: [{ $toLower: '$username' }, requestedUsername.toLowerCase()] },
+          }).select('_id').lean();
+
+          if (existingUsername) {
+            res.status(409);
+            throw new Error('Bu kullanici adi zaten alinmis. Lutfen baska bir ad deneyin.');
+          }
+
+          user.username = requestedUsername;
+          user.usernameChangedAt = new Date(now);
+        }
+      }
+
       user.email = req.body.email || user.email;
 
       if (req.body.isStatsPublic !== undefined) {
@@ -238,9 +280,13 @@ export const updateUserProfile = async (req, res, next) => {
 
       res.json({
         _id: updatedUser._id,
+        name: updatedUser.name,
         username: updatedUser.username,
         email: updatedUser.email,
+        role: updatedUser.role,
+        profilePic: updatedUser.profilePic,
         isStatsPublic: updatedUser.isStatsPublic,
+        usernameChangedAt: updatedUser.usernameChangedAt,
         token: generateToken(updatedUser._id),
       });
     } else {

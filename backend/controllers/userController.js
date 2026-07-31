@@ -147,6 +147,7 @@ export const getProfile = async (req, res, next) => {
       role:      userAgg.role,
       profilePic: userAgg.profilePic,
       isStatsPublic: userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true,
+      usernameChangedAt: userAgg.usernameChangedAt || null,
       followersCount: (userAgg.followers || []).length,
       followingCount: (userAgg.following || []).length,
       createdAt: userAgg.createdAt,
