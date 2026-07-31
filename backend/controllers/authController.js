@@ -13,6 +13,9 @@ const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
 const createTransporter = () =>
   nodemailer.createTransport({
     service: 'gmail',
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -141,7 +144,8 @@ export const registerUser = async (req, res, next) => {
       role: role || 'Host',
     });
 
-    await sendWelcomeEmailIfNeeded(user);
+    // E-posta teslimatı kayıt yanıtını geciktirmemeli.
+    void sendWelcomeEmailIfNeeded(user);
 
     res.status(201).json({
       _id: user._id,
@@ -489,7 +493,8 @@ export const googleLogin = async (req, res, next) => {
 
     if (user) {
       // İlk kayıt denemesinde e-posta gönderilemediyse, Google ile sonraki girişte tekrar dener.
-      await sendWelcomeEmailIfNeeded(user);
+      // Bu işlem giriş ekranını asla bekletmez.
+      void sendWelcomeEmailIfNeeded(user);
 
       // ── Mevcut kullanıcı: direkt JWT ver
       return res.json({
@@ -529,7 +534,8 @@ export const googleLogin = async (req, res, next) => {
       role: 'Host',
     });
 
-    await sendWelcomeEmailIfNeeded(user);
+    // E-posta teslimatı Google girişini bekletmemeli.
+    void sendWelcomeEmailIfNeeded(user);
 
     res.status(201).json({
       _id: user._id,
