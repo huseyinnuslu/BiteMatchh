@@ -19,6 +19,52 @@ const createTransporter = () =>
     },
   });
 
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+// Kayıt akışını e-posta sağlayıcısına bağımlı bırakmadan, yalnızca yeni
+// gerçek kullanıcılara hoş geldin e-postası gönderir.
+const sendWelcomeEmail = async (user) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !user?.email) {
+    return;
+  }
+
+  const username = escapeHtml(user.username || user.name || 'BiteMatch kullanıcısı');
+  const appUrl = process.env.FRONTEND_URL || 'https://bite-matchh.vercel.app';
+
+  try {
+    await createTransporter().sendMail({
+      from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "BiteMatch'e Hoş Geldin! 🎉",
+      text: `Merhaba ${user.username || user.name},\n\nBiteMatch ailesine katıldığın için çok mutluyuz! Artık arkadaş grubunla "Bana Fark Etmez Ya!" krizlerine son verebilirsin.\n\nUygulamayı hemen incelemeye başlayabilir, odanı kurup arkadaşlarınla eşleşmenin tadını çıkarabilirsin.\n\nKeyifli eşleşmeler dileriz!\nBiteMatch Ekibi`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 36px; background: #0f172a; color: #f8fafc; border-radius: 16px;">
+          <div style="text-align: center; margin-bottom: 28px;">
+            <div style="font-size: 34px; margin-bottom: 8px;">🍽️</div>
+            <h1 style="margin: 0; color: #ffffff; font-size: 28px;">BiteMatch'e Hoş Geldin! 🎉</h1>
+          </div>
+          <p style="font-size: 16px; line-height: 1.7; margin: 0 0 18px;">Merhaba <strong>${username}</strong>,</p>
+          <p style="font-size: 16px; line-height: 1.7; margin: 0 0 18px;">BiteMatch ailesine katıldığın için çok mutluyuz! Artık arkadaş grubunla <strong>“Bana Fark Etmez Ya!”</strong> krizlerine son verebilirsin.</p>
+          <p style="font-size: 16px; line-height: 1.7; margin: 0 0 28px;">Uygulamayı hemen incelemeye başlayabilir, odanı kurup arkadaşlarınla eşleşmenin tadını çıkarabilirsin.</p>
+          <div style="text-align: center; margin-bottom: 30px;">
+            <a href="${appUrl}" style="display: inline-block; padding: 13px 22px; border-radius: 10px; background: #ff4b4b; color: #ffffff; text-decoration: none; font-weight: 700;">BiteMatch'i Keşfet</a>
+          </div>
+          <p style="font-size: 16px; line-height: 1.7; margin: 0;">Keyifli eşleşmeler dileriz!<br/><strong>BiteMatch Ekibi</strong></p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    // E-posta hatası kaydı veya Google kaydını geri almamalı.
+    console.error('Hoş geldin e-postası gönderilemedi:', error.message);
+  }
+};
+
 // ──────────────────────────────────────────────────────────────────────────────
 // @desc    Yeni kullanıcı kaydı
 // @route   POST /api/auth/register
@@ -74,6 +120,8 @@ export const registerUser = async (req, res, next) => {
       password,
       role: role || 'Host',
     });
+
+    void sendWelcomeEmail(user);
 
     res.status(201).json({
       _id: user._id,
@@ -416,6 +464,8 @@ export const googleLogin = async (req, res, next) => {
       password: randomPassword,
       role: 'Host',
     });
+
+    void sendWelcomeEmail(user);
 
     res.status(201).json({
       _id: user._id,
