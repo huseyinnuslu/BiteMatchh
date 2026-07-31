@@ -21,9 +21,10 @@ import cronRoutes from './routes/cronRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
+import { startEventCron } from './services/eventFetcherService.js';
 
 dotenv.config();
-connectDB();
+connectDB().then(() => startEventCron());
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';

@@ -15,6 +15,11 @@
 import cron from 'node-cron';
 import Candidate from '../models/Candidate.js';
 
+const fallbackEventId = (name) => `fallback_${name
+  .toLocaleLowerCase('tr-TR')
+  .replace(/[^a-z0-9çğıöşü]+/g, '_')
+  .replace(/^_+|_+$/g, '')}`;
+
 // ── İstanbul Etkinlik Mock Veri Havuzu ──────────────────────────────────────
 // Gerçek entegrasyonda bu veriler Biletix/Passo API yanıtından parse edilir.
 
@@ -159,41 +164,37 @@ const generateMockEvents = () => {
 
 // ── Veritabanına Kaydet ─────────────────────────────────────────────────────
 /**
- * Mevcut olmayan etkinlikleri DB'ye ekler.
- * Aynı isim + kategori + eventDate kombinasyonu tekrar eklenmez.
+ * Etkinlik havuzunu günceller.
+ * Sabit dış kimlik sayesinde her günlük çalışmada aynı kartlar çoğalmaz.
  */
 export const fetchAndStoreEvents = async () => {
   try {
     const events = generateMockEvents();
     const now = new Date();
 
-    let added = 0;
-    let skipped = 0;
+    let created = 0;
+    let refreshed = 0;
 
     for (const ev of events) {
       // Tarihi geçmiş etkinlikleri ekleme
       if (ev.eventDate < now) {
-        skipped++;
         continue;
       }
 
-      // Zaten mevcut mu? (name + eventDate benzersiz kombinasyon)
-      const exists = await Candidate.exists({
-        name: ev.name,
-        isLiveEvent: true,
-        eventDate: ev.eventDate,
-      });
-
-      if (!exists) {
-        await Candidate.create(ev);
-        added++;
-      } else {
-        skipped++;
-      }
+      // Tarih her yenilemede göreceli hesaplanır. Sabit kimlikle upsert yapmak,
+      // aynı kartın her gün yeniden eklenmesini engeller ve tarihini güncel tutar.
+      const externalId = fallbackEventId(ev.name);
+      const result = await Candidate.updateOne(
+        { externalId },
+        { $set: { ...ev, externalId } },
+        { upsert: true }
+      );
+      if (result.upsertedCount) created++;
+      else refreshed++;
     }
 
-    console.log(`📅 Canlı etkinlikler güncellendi: ${added} yeni eklendi, ${skipped} atlandı`);
-    return { added, skipped };
+    console.log(`📅 Canlı etkinlikler güncellendi: ${created} yeni, ${refreshed} yenilendi`);
+    return { created, refreshed };
   } catch (error) {
     console.error('❌ Canlı etkinlik çekme hatası:', error.message);
   }
