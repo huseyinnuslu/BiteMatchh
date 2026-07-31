@@ -31,7 +31,8 @@ const escapeHtml = (value = '') =>
 // gerçek kullanıcılara hoş geldin e-postası gönderir.
 const sendWelcomeEmail = async (user) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !user?.email) {
-    return;
+    console.warn('Hoş geldin e-postası atlandı: e-posta yapılandırması eksik.');
+    return false;
   }
 
   const username = escapeHtml(user.username || user.name || 'BiteMatch kullanıcısı');
@@ -59,9 +60,23 @@ const sendWelcomeEmail = async (user) => {
         </div>
       `,
     });
+    return true;
   } catch (error) {
     // E-posta hatası kaydı veya Google kaydını geri almamalı.
     console.error('Hoş geldin e-postası gönderilemedi:', error.message);
+    return false;
+  }
+};
+
+const sendWelcomeEmailIfNeeded = async (user) => {
+  if (!user || user.welcomeEmailSentAt) {
+    return;
+  }
+
+  const sent = await sendWelcomeEmail(user);
+  if (sent) {
+    user.welcomeEmailSentAt = new Date();
+    await user.save({ validateBeforeSave: false });
   }
 };
 
@@ -126,7 +141,7 @@ export const registerUser = async (req, res, next) => {
       role: role || 'Host',
     });
 
-    void sendWelcomeEmail(user);
+    await sendWelcomeEmailIfNeeded(user);
 
     res.status(201).json({
       _id: user._id,
@@ -473,6 +488,9 @@ export const googleLogin = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (user) {
+      // İlk kayıt denemesinde e-posta gönderilemediyse, Google ile sonraki girişte tekrar dener.
+      await sendWelcomeEmailIfNeeded(user);
+
       // ── Mevcut kullanıcı: direkt JWT ver
       return res.json({
         _id: user._id,
@@ -511,7 +529,7 @@ export const googleLogin = async (req, res, next) => {
       role: 'Host',
     });
 
-    void sendWelcomeEmail(user);
+    await sendWelcomeEmailIfNeeded(user);
 
     res.status(201).json({
       _id: user._id,
