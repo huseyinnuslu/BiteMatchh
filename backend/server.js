@@ -109,7 +109,11 @@ app.use('/api/cron', cronRoutes); // cron işlemlerine apiLimiter uygulamıyoruz
 
 // Health check — Render keep-alive için
 app.get('/',        (_req, res) => res.json({ status: 'ok', app: 'BiteMatch API' }));
-app.get('/health',  (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get('/health',  (_req, res) => res.json({
+  status: 'ok',
+  uptime: process.uptime(),
+  emailConfigured: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+}));
 
 // ─── Hata Middleware ─────────────────────────────────────────────────────────
 app.use(notFound);
