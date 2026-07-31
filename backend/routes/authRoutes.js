@@ -4,7 +4,6 @@ import {
   loginUser,
   guestLogin,
   updateUserProfile,
-  resendWelcomeEmail,
   forgotPassword,
   resetPassword,
   googleLogin,
@@ -18,7 +17,6 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
-router.post('/resend-welcome-email', protect, resendWelcomeEmail);
 
 // Şifre sıfırlama – Gmail OTP akışı
 router.post('/forgot-password', forgotPassword);

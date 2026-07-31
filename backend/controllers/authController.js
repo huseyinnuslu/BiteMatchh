@@ -71,19 +71,16 @@ const sendWelcomeEmail = async (user) => {
   }
 };
 
-const sendWelcomeEmailIfNeeded = async (user, { force = false } = {}) => {
-  if (!user || (!force && user.welcomeEmailSentAt)) {
-    return true;
+const sendWelcomeEmailIfNeeded = async (user) => {
+  if (!user || user.welcomeEmailSentAt) {
+    return;
   }
 
-  user.welcomeEmailLastAttemptAt = new Date();
   const sent = await sendWelcomeEmail(user);
   if (sent) {
     user.welcomeEmailSentAt = new Date();
+    await user.save({ validateBeforeSave: false });
   }
-
-  await user.save({ validateBeforeSave: false });
-  return sent;
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -325,35 +322,6 @@ export const updateUserProfile = async (req, res, next) => {
 // @route   POST /api/auth/forgot-password
 // @access  Public
 // ──────────────────────────────────────────────────────────────────────────────
-// @desc    Hoş geldin e-postasını kullanıcı isteğiyle yeniden gönder
-// @route   POST /api/auth/resend-welcome-email
-// @access  Private
-export const resendWelcomeEmail = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      res.status(404);
-      throw new Error('Kullanıcı bulunamadı');
-    }
-
-    const lastAttemptAt = user.welcomeEmailLastAttemptAt?.getTime();
-    if (lastAttemptAt && Date.now() - lastAttemptAt < 60 * 1000) {
-      res.status(429);
-      throw new Error('Lütfen e-postayı yeniden göndermek için 1 dakika bekleyin.');
-    }
-
-    const sent = await sendWelcomeEmailIfNeeded(user, { force: true });
-    if (!sent) {
-      res.status(503);
-      throw new Error('Hoş geldin e-postası şu anda gönderilemedi. Lütfen biraz sonra tekrar deneyin.');
-    }
-
-    res.json({ message: 'Hoş geldin e-postası yeniden gönderildi.' });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
