@@ -36,16 +36,49 @@ const createTransporter = async () => {
 };
 
 const isEmailConfigured = () =>
-  process.env.RESEND_API_KEY
+  process.env.BREVO_API_KEY || process.env.RESEND_API_KEY
     ? Boolean(process.env.EMAIL_FROM)
     : Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 
 const getEmailFrom = () =>
   process.env.EMAIL_FROM || `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`;
 
+const getBrevoSender = () => {
+  const from = getEmailFrom();
+  const match = from.match(/^(?:"?(.+?)"?\s*)?<([^>]+)>$/);
+
+  return match
+    ? { name: match[1]?.trim() || 'BiteMatch', email: match[2].trim() }
+    : { name: 'BiteMatch', email: from.trim() };
+};
+
 // Render'ın ücretsiz servisleri SMTP portlarını engellediği için üretimde Resend'in
 // HTTPS API'si kullanılır. SMTP fallback'i yerel geliştirme ve ücretli sunucular için korunur.
 const sendEmail = async (mailOptions) => {
+  if (process.env.BREVO_API_KEY) {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: getBrevoSender(),
+        to: [{ email: mailOptions.to }],
+        subject: mailOptions.subject,
+        htmlContent: mailOptions.html,
+        textContent: mailOptions.text,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Brevo e-posta hatası: ${await response.text()}`);
+    }
+
+    return response.json();
+  }
+
   if (process.env.RESEND_API_KEY) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
