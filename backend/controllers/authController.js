@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { resolve4 } from 'node:dns/promises';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
@@ -10,12 +11,20 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
 
 // ─── Yardımcı: Nodemailer transporter ──────────────────────────────────────
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+const createTransporter = async () => {
+  // Nodemailer kendi DNS fallback mekanizmasında IPv6'yı da deneyebiliyor.
+  // Render'ın IPv6 çıkışı olmadığı için SMTP ana bilgisayarını özellikle A kaydından alıyoruz.
+  const [smtpIpv4] = await resolve4('smtp.gmail.com');
+
+  if (!smtpIpv4) {
+    throw new Error('Gmail SMTP için IPv4 adresi bulunamadı');
+  }
+
+  return nodemailer.createTransport({
+    host: smtpIpv4,
     port: 465,
     secure: true,
-    family: 4,
+    tls: { servername: 'smtp.gmail.com' },
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 10000,
@@ -24,6 +33,7 @@ const createTransporter = () =>
       pass: process.env.EMAIL_PASS,
     },
   });
+};
 
 const escapeHtml = (value = '') =>
   String(value)
@@ -45,7 +55,8 @@ const sendWelcomeEmail = async (user) => {
   const appUrl = process.env.FRONTEND_URL || 'https://bite-matchh.vercel.app';
 
   try {
-    await createTransporter().sendMail({
+    const transporter = await createTransporter();
+    await transporter.sendMail({
       from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "BiteMatch'e Hoş Geldin! 🎉",
@@ -348,7 +359,7 @@ export const forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Gmail ile gönder
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     const mailOptions = {
       from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
