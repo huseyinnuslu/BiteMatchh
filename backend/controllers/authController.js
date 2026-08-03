@@ -12,7 +12,10 @@ const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
 // ─── Yardımcı: Nodemailer transporter ──────────────────────────────────────
 const createTransporter = () =>
   nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4,
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 10000,
