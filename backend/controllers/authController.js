@@ -35,6 +35,44 @@ const createTransporter = async () => {
   });
 };
 
+const isEmailConfigured = () =>
+  process.env.RESEND_API_KEY
+    ? Boolean(process.env.EMAIL_FROM)
+    : Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+const getEmailFrom = () =>
+  process.env.EMAIL_FROM || `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`;
+
+// Render'ın ücretsiz servisleri SMTP portlarını engellediği için üretimde Resend'in
+// HTTPS API'si kullanılır. SMTP fallback'i yerel geliştirme ve ücretli sunucular için korunur.
+const sendEmail = async (mailOptions) => {
+  if (process.env.RESEND_API_KEY) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: mailOptions.from,
+        to: [mailOptions.to],
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+        text: mailOptions.text,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Resend e-posta hatası: ${await response.text()}`);
+    }
+
+    return response.json();
+  }
+
+  const transporter = await createTransporter();
+  return transporter.sendMail(mailOptions);
+};
+
 const escapeHtml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -46,7 +84,7 @@ const escapeHtml = (value = '') =>
 // Kayıt akışını e-posta sağlayıcısına bağımlı bırakmadan, yalnızca yeni
 // gerçek kullanıcılara hoş geldin e-postası gönderir.
 const sendWelcomeEmail = async (user) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !user?.email) {
+  if (!isEmailConfigured() || !user?.email) {
     console.warn('Hoş geldin e-postası atlandı: e-posta yapılandırması eksik.');
     return false;
   }
@@ -55,9 +93,8 @@ const sendWelcomeEmail = async (user) => {
   const appUrl = process.env.FRONTEND_URL || 'https://bite-matchh.vercel.app';
 
   try {
-    const transporter = await createTransporter();
-    await transporter.sendMail({
-      from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
+    await sendEmail({
+      from: getEmailFrom(),
       to: user.email,
       subject: "BiteMatch'e Hoş Geldin! 🎉",
       text: `Merhaba ${user.username || user.name},\n\nBiteMatch ailesine katıldığın için çok mutluyuz! Artık arkadaş grubunla "Bana Fark Etmez Ya!" krizlerine son verebilirsin.\n\nUygulamayı hemen incelemeye başlayabilir, odanı kurup arkadaşlarınla eşleşmenin tadını çıkarabilirsin.\n\nKeyifli eşleşmeler dileriz!\nBiteMatch Ekibi`,
@@ -358,11 +395,8 @@ export const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 dakika
     await user.save({ validateBeforeSave: false });
 
-    // Gmail ile gönder
-    const transporter = await createTransporter();
-
     const mailOptions = {
-      from: `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`,
+      from: getEmailFrom(),
       to: user.email,
       subject: 'BiteMatch – Şifre Sıfırlama Kodu',
       html: `
@@ -393,7 +427,11 @@ export const forgotPassword = async (req, res, next) => {
       `,
     };
 
-    await transporter.sendMail(mailOptions);
+    if (!isEmailConfigured()) {
+      throw new Error('E-posta servisi yapılandırılmamış');
+    }
+
+    await sendEmail(mailOptions);
 
     res.json({
       message: `Doğrulama kodu ${email} adresine gönderildi. 10 dakika içinde girmeniz gerekmektedir.`,
