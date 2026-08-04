@@ -129,10 +129,14 @@ function parseBubiletCardDate(value = '') {
     let year = now.getFullYear();
     const hour = Number(match[3] || 20);
     const minute = Number(match[4] || 0);
-    let date = new Date(year, TURKISH_MONTHS[match[2]], Number(match[1]), hour, minute, 0, 0);
+    // BuBilet metinleri Türkiye saatidir. GitHub/Render UTC'de çalıştığı için
+    // normal `new Date(y, m, d, h)` kullanımı saati ekranda +3 kaydırıyordu.
+    const createIstanbulDate = targetYear =>
+      new Date(Date.UTC(targetYear, TURKISH_MONTHS[match[2]], Number(match[1]), hour - 3, minute, 0, 0));
+    let date = createIstanbulDate(year);
     if (date < now) {
       year += 1;
-      date = new Date(year, TURKISH_MONTHS[match[2]], Number(match[1]), hour, minute, 0, 0);
+      date = createIstanbulDate(year);
     }
     return date;
   }
