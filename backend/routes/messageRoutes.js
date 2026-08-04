@@ -92,18 +92,23 @@ router.get('/dm/:userId', protect, async (req, res, next) => {
       res.status(400); throw new Error('Geçersiz kullanıcı ID');
     }
 
-    const messages = await Message.find({
+    // Önce en yeni 100 kaydı alıyoruz. `createdAt: 1` ile `limit(100)`
+    // kullanmak, yoğun konuşmalarda yanlışlıkla en eski 100 mesajı döndürür;
+    // bu da son paylaşılan etkinlik kartının solda görünmesine rağmen sohbetten
+    // kaybolmuş gibi görünmesine sebep olur.
+    const latestMessages = await Message.find({
       type: 'direct',
       $or: [
         { sender: myId,    recipient: otherId },
         { sender: otherId, recipient: myId    },
       ],
     })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .limit(100)
       .lean();
 
-    res.json(messages);
+    // Arayüzde soldan sağa/doğal konuşma akışı için tekrar eskiden yeniye dön.
+    res.json(latestMessages.reverse());
   } catch (e) { next(e); }
 });
 
