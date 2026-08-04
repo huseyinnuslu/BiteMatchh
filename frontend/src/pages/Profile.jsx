@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera, Trash2, Inbox, Pencil
+  UserCircle, Camera, Trash2, Inbox, Pencil, Settings
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -392,6 +392,18 @@ const Profile = () => {
               )}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            style={{
+              alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+              border: '1px solid rgba(255,255,255,0.14)', borderRadius: '10px', padding: '0.55rem 0.75rem',
+              background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+            }}
+          >
+            <Settings size={15} /> Ayarlar
+          </button>
 
           {/* Rozet */}
           <div style={{
