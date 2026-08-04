@@ -69,6 +69,11 @@ function safeTicketUrl(url) {
   return url;
 }
 
+function bubiletExternalId(citySlug, name, startDate, ticketUrl) {
+  const stableValue = ticketUrl || `${name}|${startDate.toISOString()}`;
+  return `bubilet_${citySlug}_${Buffer.from(stableValue).toString('base64url').slice(0, 96)}`;
+}
+
 function detectCategory(title = '') {
   const t = title.toLowerCase();
   if (/stand.?up|komedi|comedy|güldürü|şov/.test(t))                 return 'Stand-Up';
@@ -100,6 +105,41 @@ function categoryImage(category = '', title = '') {
   return 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=85';
 }
 
+const TURKISH_MONTHS = {
+  ocak: 0, şubat: 1, mart: 2, nisan: 3, mayıs: 4, haziran: 5,
+  temmuz: 6, ağustos: 7, eylül: 8, ekim: 9, kasım: 10, aralık: 11,
+};
+
+function decodeHtml(value = '') {
+  return String(value)
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+}
+
+function parseBubiletCardDate(value = '') {
+  const now = new Date();
+  const normalized = decodeHtml(value).toLocaleLowerCase('tr-TR');
+  const matches = [...normalized.matchAll(/(\d{1,2})\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?:\s+\S+)?(?:\s+(\d{1,2}):(\d{2}))?/gi)];
+
+  for (const match of matches) {
+    let year = now.getFullYear();
+    const hour = Number(match[3] || 20);
+    const minute = Number(match[4] || 0);
+    let date = new Date(year, TURKISH_MONTHS[match[2]], Number(match[1]), hour, minute, 0, 0);
+    if (date < now) {
+      year += 1;
+      date = new Date(year, TURKISH_MONTHS[match[2]], Number(match[1]), hour, minute, 0, 0);
+    }
+    return date;
+  }
+
+  return null;
+}
+
 // ── Gerçek tarayıcı header'ları ile HTTP GET ──────────────────────────────────
 function httpGet(url, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
@@ -110,7 +150,6 @@ function httpGet(url, timeoutMs = 12000) {
         'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Referer':         'https://www.google.com/',
         'Cache-Control':   'no-cache',
         'Pragma':          'no-cache',
@@ -185,7 +224,7 @@ async function scrapeBubiletCity(cityName, citySlug) {
             const imageUrl = (imgRaw && imgRaw.startsWith('http')) ? imgRaw : categoryImage(category, name);
 
             events.push({
-              externalId:  `bubilet_${citySlug}_${name.slice(0, 40).replace(/\s+/g, '_').replace(/[^\w_]/g, '')}`,
+              externalId:  bubiletExternalId(citySlug, name, startDate, ticketUrl),
               name,
               description: (item.description || '').slice(0, 300),
               imageUrl,
@@ -206,6 +245,44 @@ async function scrapeBubiletCity(cityName, citySlug) {
       }
 
       // ── Strateji 2: Href tabanlı etkinlik linkleri ───────────────────────
+      if (events.length === 0) {
+        // Güncel BuBilet sayfası tarih bilgisini HTML kartında yayımlıyor.
+        // Her kartı kendi href/title/img/venue/date alanlarıyla eşleştiririz;
+        // farklı kartların görsel ve başlıkları asla çaprazlanmaz.
+        const cardPattern = /<a[^>]*title="([^"]+)"[^>]*href="(\/[a-z-]+\/etkinlik\/[^"?#]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+
+        for (const match of html.matchAll(cardPattern)) {
+          const name = decodeHtml(match[1]);
+          const ticketUrl = safeTicketUrl(`https://www.bubilet.com.tr${match[2]}`);
+          const cardHtml = match[3];
+          const imageUrl = cardHtml.match(/<img[^>]*\ssrc="([^"]+)"/i)?.[1] || '';
+          const details = [...cardHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map(item => decodeHtml(item[1]));
+          const venue = details[0] || cityName;
+          const eventDate = parseBubiletCardDate(details[1] || '');
+
+          if (!name || name.length < 3 || !eventDate) continue;
+
+          const category = detectCategory(name);
+          events.push({
+            externalId: bubiletExternalId(citySlug, name, eventDate, ticketUrl),
+            name,
+            description: `BuBilet'ten güncel ${category.toLocaleLowerCase('tr-TR')} etkinliği.`,
+            imageUrl: imageUrl || categoryImage(category, name),
+            category,
+            location: `${venue}, ${cityName}`,
+            mapsQuery: `${venue} ${cityName}`,
+            ticketUrl,
+            isLiveEvent: true,
+            eventDate,
+            expireAt: expireIn10Days(eventDate),
+            eventSource: 'Bubilet',
+            city: cityName,
+            isFeatured: false,
+            budget: '₺₺',
+          });
+        }
+      }
+
       if (events.length === 0) {
         // Bubilet URL pattern: /istanbul/etkinlik/... veya /bilet/...
         const linkPatterns = [
@@ -240,7 +317,7 @@ async function scrapeBubiletCity(cityName, citySlug) {
           const category = detectCategory(rawTitle);
 
           events.push({
-            externalId:  `bubilet_${citySlug}_href_${i}`,
+            externalId:  bubiletExternalId(citySlug, rawTitle, eventDate, ticketUrl),
             name:        rawTitle,
             description: '',
             imageUrl:    (imgUrl && imgUrl.startsWith('http')) ? imgUrl : categoryImage(category, rawTitle),
@@ -261,7 +338,7 @@ async function scrapeBubiletCity(cityName, citySlug) {
 
       if (events.length > 0) {
         console.log(`      ✅ ${cityName}: ${events.length} etkinlik bulundu`);
-        return events;
+        return { city: cityName, events, success: true };
       } else {
         console.warn(`      ⚠️  ${cityName} → ${url}: HTML alındı ama etkinlik parse edilemedi`);
       }
@@ -271,29 +348,32 @@ async function scrapeBubiletCity(cityName, citySlug) {
   }
 
   console.warn(`      ⚠️  ${cityName}: Tüm URL'ler başarısız — bu şehir için etkinlik eklenmeyecek.`);
-  return [];
+  return { city: cityName, events: [], success: false };
 }
 
 // ── Ana Fonksiyon ─────────────────────────────────────────────────────────────
 async function main() {
+  const isDryRun = process.env.DRY_RUN === '1';
   const MONGO_URI = process.env.MONGO_URI;
-  if (!MONGO_URI) { console.error('❌ MONGO_URI tanımlı değil!'); process.exit(1); }
+  if (!isDryRun && !MONGO_URI) { console.error('❌ MONGO_URI tanımlı değil!'); process.exit(1); }
 
-  console.log('🔌 MongoDB bağlanıyor...');
-  await mongoose.connect(MONGO_URI);
-  console.log('✅ Bağlandı.\n');
+  if (!isDryRun) {
+    console.log('🔌 MongoDB bağlanıyor...');
+    await mongoose.connect(MONGO_URI);
+    console.log('✅ Bağlandı.\n');
+  } else {
+    console.log('🧪 DRY_RUN: Veritabanına yazılmayacak.\n');
+  }
 
-  // ADIM 1: Eski etkinlikleri temizle
-  console.log('🧹 Eski canlı etkinlikler siliniyor...');
-  const { deletedCount } = await Candidate.deleteMany({ isLiveEvent: true, eventSource: 'Bubilet' });
-  console.log(`   ${deletedCount} eski etkinlik silindi.\n`);
+  // Yeni veri doğrulanana kadar mevcut gerçek etkinlikler korunur.
+  console.log('🛡️ Mevcut etkinlikler korunuyor; yeni veri önce doğrulanacak.');
 
   // ADIM 2: Bubilet scraping
   console.log('📡 Bubilet scraping başlıyor...\n');
   let allEvents = [];
   for (const city of CITIES) {
-    const events = await scrapeBubiletCity(city.name, city.slug);
-    allEvents = allEvents.concat(events);
+    const result = await scrapeBubiletCity(city.name, city.slug);
+    allEvents = allEvents.concat(result.events);
     await new Promise(r => setTimeout(r, 1200)); // Rate limit arası bekleme
   }
 
@@ -302,8 +382,8 @@ async function main() {
     console.warn('\n⚠️  Scraping başarısız — hiçbir etkinlik bulunamadı.');
     console.warn("   DB'ye SAHTE VERİ eklenmedi. İşlem sonlandırıldı.");
     console.warn('   Öneri: node scripts/seedEvents.js ile manuel seed yapın.');
-    await mongoose.disconnect();
-    process.exit(0); // Beklenen durum — hata kodu değil
+    if (!isDryRun) await mongoose.disconnect();
+    process.exit(1); // GitHub Actions başarısızlığı görünür kılar; mevcut veri korunur.
   }
 
   // ADIM 4: Deduplicate
@@ -314,10 +394,21 @@ async function main() {
     return true;
   });
 
+  if (isDryRun) {
+    console.log(`\n✅ DRY_RUN: ${unique.length} gerçek etkinlik bulundu; veritabanına yazılmadı.`);
+    return;
+  }
+
   // ADIM 5: Kaydet
   try {
+    // Yeni listeyi doğrulamadan eski kayıtları silmeyiz. Böylece kaynak geçici
+    // olarak erişilemezse uygulamada boş etkinlik alanı oluşmaz.
+    const { deletedCount } = await Candidate.deleteMany({
+      isLiveEvent: true,
+      eventSource: 'Bubilet',
+    });
     await Candidate.insertMany(unique, { ordered: false });
-    console.log(`\n✅ ${unique.length} gerçek etkinlik veritabanına kaydedildi.`);
+    console.log(`\n✅ ${unique.length} gerçek etkinlik veritabanına kaydedildi (${deletedCount} eski kayıt yenilendi).`);
   } catch (err) {
     console.warn('⚠️  Bazı kayıtlar atlandı (duplicate):', err.message?.slice(0, 120));
   }

@@ -168,6 +168,13 @@ const generateMockEvents = () => {
  * Sabit dış kimlik sayesinde her günlük çalışmada aynı kartlar çoğalmaz.
  */
 export const fetchAndStoreEvents = async () => {
+  // Gerçek etkinlik havuzu GitHub Actions üzerinden güncellenir. Eski mock
+  // akışı yalnızca yerel demo gerektiğinde açıkça etkinleştirilir.
+  if (process.env.ENABLE_MOCK_EVENTS !== 'true') {
+    console.log('ℹ️ Mock etkinlik üretimi kapalı; gerçek etkinlik sync bekleniyor.');
+    return { created: 0, refreshed: 0 };
+  }
+
   try {
     const events = generateMockEvents();
     const now = new Date();

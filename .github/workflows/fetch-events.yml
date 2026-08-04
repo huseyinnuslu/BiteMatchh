@@ -5,6 +5,10 @@ on:
     - cron: '0 3 * * *'   # Her gece 03:00 UTC (Türkiye 06:00)
   workflow_dispatch:       # Manuel tetikleme
 
+concurrency:
+  group: bite-match-live-event-sync
+  cancel-in-progress: false
+
 jobs:
   fetch-events:
     name: 📡 Etkinlik Verisi Çek & Kaydet

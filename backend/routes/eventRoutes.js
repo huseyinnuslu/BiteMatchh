@@ -24,6 +24,8 @@ router.get('/live', protect, async (req, res, next) => {
       isLiveEvent: true,
       eventDate: { $gte: now },
       expireAt: { $gt: now },
+      // Eski demo üreticisinin kartları gerçek BuBilet havuzuyla karışmasın.
+      externalId: { $not: /^fallback_/ },
     };
 
     // Opsiyonel şehir filtresi
