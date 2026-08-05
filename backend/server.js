@@ -22,6 +22,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 import { startEventCron } from './services/eventFetcherService.js';
+import { isEmailConfigured } from './controllers/authController.js';
 
 dotenv.config();
 connectDB().then(() => startEventCron());
@@ -112,7 +113,7 @@ app.get('/',        (_req, res) => res.json({ status: 'ok', app: 'BiteMatch API'
 app.get('/health',  (_req, res) => res.json({
   status: 'ok',
   uptime: process.uptime(),
-  emailConfigured: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+  emailConfigured: isEmailConfigured(),
 }));
 
 // ─── Hata Middleware ─────────────────────────────────────────────────────────

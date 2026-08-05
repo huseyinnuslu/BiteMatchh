@@ -1,11 +1,16 @@
 import nodemailer from 'nodemailer';
 import { resolve4 } from 'node:dns/promises';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 
 // ─── Google OAuth2 client ───────────────────────────────────────────────────
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+const GMAIL_API_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
+const GMAIL_SETUP_MAX_AGE_MS = 10 * 60 * 1000;
 
 // ─── Yardımcı: 6 haneli OTP üret ───────────────────────────────────────────
 const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -35,10 +40,31 @@ const createTransporter = async () => {
   });
 };
 
-const isEmailConfigured = () =>
-  process.env.BREVO_API_KEY || process.env.RESEND_API_KEY
+const getEmailProvider = () => process.env.EMAIL_PROVIDER?.trim().toLowerCase();
+
+const hasGmailApiClient = () =>
+  Boolean(
+    process.env.GMAIL_API_CLIENT_ID &&
+      process.env.GMAIL_API_CLIENT_SECRET &&
+      process.env.GMAIL_API_REDIRECT_URI
+  );
+
+const isGmailApiConfigured = () =>
+  hasGmailApiClient() &&
+  Boolean(process.env.GMAIL_API_REFRESH_TOKEN && process.env.EMAIL_FROM);
+
+export const isEmailConfigured = () => {
+  const provider = getEmailProvider();
+
+  if (provider === 'gmail_api') return isGmailApiConfigured();
+  if (provider === 'brevo') return Boolean(process.env.BREVO_API_KEY && process.env.EMAIL_FROM);
+  if (provider === 'resend') return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+
+  // Eski ortam değişkenleri kullanılan kurulumlarda mevcut önceliği koru.
+  return process.env.BREVO_API_KEY || process.env.RESEND_API_KEY
     ? Boolean(process.env.EMAIL_FROM)
     : Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+};
 
 const getEmailFrom = () =>
   process.env.EMAIL_FROM || `"BiteMatch 🍽️" <${process.env.EMAIL_USER}>`;
@@ -52,10 +78,90 @@ const getBrevoSender = () => {
     : { name: 'BiteMatch', email: from.trim() };
 };
 
+const createGmailApiClient = () =>
+  new OAuth2Client(
+    process.env.GMAIL_API_CLIENT_ID,
+    process.env.GMAIL_API_CLIENT_SECRET,
+    process.env.GMAIL_API_REDIRECT_URI
+  );
+
+const base64Url = (value) =>
+  Buffer.from(value, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const safeHeader = (value = '') => String(value).replace(/[\r\n]+/g, ' ').trim();
+
+const encodeHeader = (value) => `=?UTF-8?B?${Buffer.from(safeHeader(value), 'utf8').toString('base64')}?=`;
+
+const createGmailRawMessage = (mailOptions) => {
+  const boundary = `bitematch_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const text = Buffer.from(mailOptions.text || '', 'utf8').toString('base64');
+  const html = Buffer.from(mailOptions.html || '', 'utf8').toString('base64');
+
+  return [
+    `From: ${safeHeader(mailOptions.from)}`,
+    `To: ${safeHeader(mailOptions.to)}`,
+    `Subject: ${encodeHeader(mailOptions.subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    text,
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    html,
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
+};
+
+const sendWithGmailApi = async (mailOptions) => {
+  const gmailClient = createGmailApiClient();
+  gmailClient.setCredentials({ refresh_token: process.env.GMAIL_API_REFRESH_TOKEN });
+
+  const accessToken = await gmailClient.getAccessToken();
+  if (!accessToken.token) {
+    throw new Error('Gmail API erişim belirteci alınamadı');
+  }
+
+  const response = await fetch(GMAIL_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ raw: base64Url(createGmailRawMessage(mailOptions)) }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gmail API e-posta hatası: ${await response.text()}`);
+  }
+
+  return response.json();
+};
+
 // Render'ın ücretsiz servisleri SMTP portlarını engellediği için üretimde Resend'in
 // HTTPS API'si kullanılır. SMTP fallback'i yerel geliştirme ve ücretli sunucular için korunur.
 const sendEmail = async (mailOptions) => {
-  if (process.env.BREVO_API_KEY) {
+  const provider = getEmailProvider();
+
+  if (provider === 'gmail_api') {
+    if (!isGmailApiConfigured()) {
+      throw new Error('Gmail API e-posta ayarları eksik');
+    }
+
+    return sendWithGmailApi(mailOptions);
+  }
+
+  if (provider === 'brevo' || (!provider && process.env.BREVO_API_KEY)) {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -79,7 +185,7 @@ const sendEmail = async (mailOptions) => {
     return response.json();
   }
 
-  if (process.env.RESEND_API_KEY) {
+  if (provider === 'resend' || (!provider && process.env.RESEND_API_KEY)) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -113,6 +219,118 @@ const escapeHtml = (value = '') =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+
+const createGmailSetupState = () => {
+  const setupToken = process.env.GMAIL_API_SETUP_TOKEN;
+  if (!setupToken) {
+    throw new Error('Gmail API geçici kurulum anahtarı eksik');
+  }
+
+  const payload = base64Url(JSON.stringify({ issuedAt: Date.now() }));
+  const signature = createHmac('sha256', setupToken).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+};
+
+const isValidGmailSetupState = (state) => {
+  const setupToken = process.env.GMAIL_API_SETUP_TOKEN;
+  const [payload, signature] = String(state || '').split('.');
+  if (!setupToken || !payload || !signature) return false;
+
+  const expectedSignature = createHmac('sha256', setupToken).update(payload).digest('base64url');
+  const provided = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    return false;
+  }
+
+  try {
+    const { issuedAt } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return Number.isFinite(issuedAt) && Date.now() - issuedAt >= 0 && Date.now() - issuedAt <= GMAIL_SETUP_MAX_AGE_MS;
+  } catch {
+    return false;
+  }
+};
+
+// Bu iki rota yalnızca geçici test kurulumunda refresh token üretmek içindir.
+// GMAIL_API_SETUP_TOKEN kaldırılınca ikisi de tamamen devre dışı kalır.
+export const startGmailApiAuthorization = (req, res, next) => {
+  try {
+    const suppliedToken = String(req.query.setupToken || '');
+    const configuredToken = String(process.env.GMAIL_API_SETUP_TOKEN || '');
+    const supplied = Buffer.from(suppliedToken);
+    const configured = Buffer.from(configuredToken);
+
+    if (
+      !configuredToken ||
+      supplied.length !== configured.length ||
+      !timingSafeEqual(supplied, configured)
+    ) {
+      res.status(404);
+      throw new Error('Kurulum bağlantısı bulunamadı');
+    }
+
+    if (!hasGmailApiClient()) {
+      res.status(503);
+      throw new Error('Gmail API istemci ayarları eksik');
+    }
+
+    const gmailClient = createGmailApiClient();
+    const authorizationUrl = gmailClient.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: [GMAIL_SEND_SCOPE],
+      state: createGmailSetupState(),
+    });
+
+    res.redirect(authorizationUrl);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const completeGmailApiAuthorization = async (req, res, next) => {
+  try {
+    if (!isValidGmailSetupState(req.query.state)) {
+      res.status(400);
+      throw new Error('Gmail kurulum isteğinin süresi doldu veya geçersiz');
+    }
+
+    if (req.query.error) {
+      res.status(400);
+      throw new Error('Gmail yetkisi verilmedi');
+    }
+
+    if (!req.query.code || !hasGmailApiClient()) {
+      res.status(400);
+      throw new Error('Gmail yetkilendirme kodu veya istemci ayarları eksik');
+    }
+
+    const gmailClient = createGmailApiClient();
+    const { tokens } = await gmailClient.getToken(req.query.code);
+    if (!tokens.refresh_token) {
+      res.status(400);
+      throw new Error('Gmail kalıcı erişim anahtarı üretilemedi. Kurulum bağlantısını tekrar açıp izin verin.');
+    }
+
+    res.set({
+      'Cache-Control': 'no-store, max-age=0',
+      'Referrer-Policy': 'no-referrer',
+    });
+    res.type('html').send(`<!doctype html>
+      <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gmail kurulum tamamlandı</title></head>
+      <body style="margin:0;background:#0f172a;color:#f8fafc;font-family:Arial,sans-serif;display:grid;min-height:100vh;place-items:center;padding:24px">
+        <main style="width:min(680px,100%);background:#1e293b;border:1px solid #334155;border-radius:16px;padding:28px;box-sizing:border-box">
+          <h1 style="margin-top:0">Gmail bağlantısı hazır</h1>
+          <p>Bu anahtarı yalnızca Render'da <code>GMAIL_API_REFRESH_TOKEN</code> olarak kaydedin. Sonra bu sayfayı kapatın ve geçici kurulum anahtarını silin.</p>
+          <textarea readonly aria-label="Gmail refresh token" style="width:100%;min-height:112px;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #64748b;background:#020617;color:#f8fafc">${escapeHtml(tokens.refresh_token)}</textarea>
+          <p style="color:#fbbf24;margin-bottom:0">Bu değer gizlidir; GitHub'a, sohbet mesajına veya ekran görüntüsüne koymayın.</p>
+        </main>
+      </body></html>`);
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Kayıt akışını e-posta sağlayıcısına bağımlı bırakmadan, yalnızca yeni
 // gerçek kullanıcılara hoş geldin e-postası gönderir.
