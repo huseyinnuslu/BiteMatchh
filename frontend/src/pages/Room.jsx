@@ -16,7 +16,7 @@ import { toast } from 'react-toastify';
 const Room = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom, setMatchResult } =
+  const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom } =
     useContext(RoomContext);
   const { user } = useContext(AuthContext);
 
@@ -36,6 +36,7 @@ const Room = () => {
   const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
   const pollingRef = useRef(null);
   const autoOpenedChatForMatchRef = useRef(null);
+  const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
 
   useEffect(() => {
     const isThisRoomFinished =
@@ -58,8 +59,6 @@ const Room = () => {
       setChatOpen(true);
     }
   }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name, id]);
-  const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
-
   useEffect(() => {
     // Yeni bir oda/sonuç geldiğinde modal ve devam akışını sıfırdan başlat.
     setMatchModalDismissed(false);
@@ -96,9 +95,15 @@ const Room = () => {
     let socket;
     let handleConnect;
     const init = async () => {
+      socketMatchFired.current = false;
+      autoOpenedChatForMatchRef.current = null;
+
       // 1. REST: oda durumunu al
       const room = await fetchRoomStatus(id);
       if (disposed) return;
+      setSocketMatch(null);
+      setChatMatchItem(null);
+      setChatOpen(false);
       if (room) {
         if (!room.participants.some((p) => (p._id || p) === user._id)) {
           await joinRoom(id);
@@ -263,7 +268,12 @@ const Room = () => {
   // A result may only be rendered when it belongs to the room in the URL.
   // Do not use the context-wide/socket value here: either may belong to an
   // earlier room while navigation or a socket update is in progress.
-  const activeMatch = isFinished ? currentRoom.matchResult : socketMatch;
+  const socketMatchBelongsToCurrentRoom = !!socketMatch && (currentRoom.options || []).some(
+    (option) => String(option._id) === String(socketMatch._id)
+  );
+  const activeMatch = isFinished
+    ? currentRoom.matchResult
+    : socketMatchBelongsToCurrentRoom ? socketMatch : null;
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
   const closeMatchModal = () => {
