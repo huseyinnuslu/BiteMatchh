@@ -239,7 +239,20 @@ const personalizeStoredRecommendations = (recommendations, requesterLocation) =>
   });
 
 const ensureStoredRecommendations = async ({ room, locations, userId }) => {
-  if (room.restaurantRecommendations?.length) return room.restaurantRecommendations;
+  if (room.restaurantRecommendations?.length) {
+    const needsFallback = room.restaurantRecommendations.some((venue) => !venue.fallbackImageUrl);
+    if (!needsFallback || !room.matchResult.imageUrl) return room.restaurantRecommendations;
+
+    const upgradedRecommendations = room.restaurantRecommendations.map((venue) => ({
+      ...(venue.toObject ? venue.toObject() : venue),
+      fallbackImageUrl: venue.fallbackImageUrl || room.matchResult.imageUrl,
+    }));
+    await Room.updateOne(
+      { _id: room._id },
+      { $set: { restaurantRecommendations: upgradedRecommendations } }
+    );
+    return upgradedRecommendations;
+  }
 
   const venues = await getLiveVenueOptions({ room, locations, userId, limit: 3 });
   const storedVenues = venues.map(recommendationForStorage);
