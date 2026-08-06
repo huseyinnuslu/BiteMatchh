@@ -19,6 +19,7 @@ import eventRoutes from './routes/eventRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import cronRoutes from './routes/cronRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import placeRoutes from './routes/placeRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 import { startEventCron } from './services/eventFetcherService.js';
@@ -106,6 +107,7 @@ app.use('/api/events', apiLimiter,  eventRoutes);
 app.use('/api/upload', apiLimiter,  uploadRoutes);
 app.use('/api/notifications', apiLimiter, notificationRoutes);
 app.use('/api/messages', apiLimiter, messageRoutes);
+app.use('/api/places', apiLimiter, placeRoutes);
 app.use('/api/cron', cronRoutes); // cron işlemlerine apiLimiter uygulamıyoruz
 
 // Health check — Render keep-alive için
@@ -114,6 +116,7 @@ app.get('/health',  (_req, res) => res.json({
   status: 'ok',
   uptime: process.uptime(),
   emailConfigured: isEmailConfigured(),
+  placesConfigured: Boolean(process.env.GOOGLE_MAPS_API_KEY),
 }));
 
 // ─── Hata Middleware ─────────────────────────────────────────────────────────
