@@ -388,7 +388,8 @@ export const submitRestaurantQuickVote = async (req, res, next) => {
             ],
           },
         },
-      }]
+      }],
+      { updatePipeline: true }
     );
 
     let decisionRoom = await Room.findById(room._id).select('participants restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
