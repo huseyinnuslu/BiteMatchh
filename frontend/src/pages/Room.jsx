@@ -13,6 +13,11 @@ import RestaurantRecommendations from '../components/RestaurantRecommendations';
 import { connectSocket, getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
 
+// Restoran verisi doğrulanabilir bir Places sağlayıcısından gelene kadar bu
+// deneyimi beta kullanıcılarına göstermiyoruz. Akış/kod korunuyor; sağlayıcı
+// hazır olduğunda yalnızca bu bayrak açılarak yeniden etkinleştirilecek.
+const RESTAURANT_RECOMMENDATIONS_BETA_ENABLED = false;
+
 const Room = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -294,7 +299,7 @@ const Room = () => {
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
   const closeMatchModal = () => {
-    if (isFoodMatch) {
+    if (isFoodMatch && RESTAURANT_RECOMMENDATIONS_BETA_ENABLED) {
       setMatchModalDismissed(true);
       setShowRestaurantFlow(true);
       setChatOpen(false);
@@ -494,7 +499,7 @@ const Room = () => {
         </>
       )}
 
-      {showRestaurantFlow && isFoodMatch && (
+      {RESTAURANT_RECOMMENDATIONS_BETA_ENABLED && showRestaurantFlow && isFoodMatch && (
         <RestaurantRecommendations
           roomId={id}
           cuisine={activeMatch?.name}
