@@ -20,6 +20,7 @@ const roomSchema = mongoose.Schema(
     options: [{ 
       name: String, 
       imageUrl: String,
+      fallbackImageUrl: String,
       rating: Number,
       budget: String,
       description: String,
@@ -55,6 +56,7 @@ const roomSchema = mongoose.Schema(
     matchResult: {
       name: String,
       imageUrl: String,
+      fallbackImageUrl: String,
       rating: Number,
       budget: String,
       description: String,
@@ -71,6 +73,7 @@ const roomSchema = mongoose.Schema(
     topOptions: [{
       name: String,
       imageUrl: String,
+      fallbackImageUrl: String,
       rating: Number,
       budget: String,
       description: String,
@@ -103,6 +106,7 @@ const roomSchema = mongoose.Schema(
       name: String,
       address: String,
       imageUrl: String,
+      fallbackImageUrl: String,
       imageIsRepresentative: Boolean,
       imageAttribution: String,
       imageSourceUrl: String,
@@ -128,6 +132,7 @@ const roomSchema = mongoose.Schema(
       venueId: String,
       name: String,
       imageUrl: String,
+      fallbackImageUrl: String,
       imageIsRepresentative: Boolean,
       imageAttribution: String,
       imageSourceUrl: String,

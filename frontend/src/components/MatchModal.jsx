@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, MapPin, Share2, ExternalLink, Navigation, LogOut } from 'lucide-react';
+import { Flame, MapPin, Share2, Navigation, LogOut } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
+import RestaurantImage from './RestaurantImage';
 
 // ── Yardımcı: URL oluşturucular ──────────────────────────────────────────────
 
@@ -88,7 +89,6 @@ const MatchModal = ({
   isOpen,
   matchResult,
   onClose,
-  onOpenChat,
   onExitRoom,
   title = 'EŞLEŞME SAĞLANDI!',
   subtitle = 'Grubunuz ortak karara vardı 🎉',
@@ -161,16 +161,8 @@ const MatchModal = ({
                   padding: '1.25rem', width: '100%', marginBottom: '1.5rem',
                   boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                 }}>
-                  {matchResult.imageUrl && (
-                    <div style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', marginBottom: '1rem', position: 'relative' }}>
-                      <img src={matchResult.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      {matchResult.imageIsRepresentative && (
-                        <span style={{ position: 'absolute', left: 8, bottom: 8, padding: '.25rem .5rem', borderRadius: 7, background: 'rgba(2,6,23,.8)', color: '#e2e8f0', fontSize: '.68rem', fontWeight: 700 }}>Temsili görsel</span>
-                      )}
-                      {!matchResult.imageIsRepresentative && matchResult.imageSourceUrl && (
-                        <a href={matchResult.imageSourceUrl} target="_blank" rel="noreferrer" style={{ position: 'absolute', left: 8, bottom: 8, padding: '.25rem .5rem', borderRadius: 7, background: 'rgba(2,6,23,.8)', color: 'white', fontSize: '.68rem', fontWeight: 700, textDecoration: 'none' }}>{matchResult.imageAttribution || 'Görsel kaynağı'}</a>
-                      )}
-                    </div>
+                  {(matchResult.imageUrl || matchResult.fallbackImageUrl) && (
+                    <RestaurantImage key={matchResult._id || matchResult.venueId || matchResult.imageUrl} item={matchResult} alt={name} containerStyle={{ width: '100%', height: 180, borderRadius: 12, marginBottom: '1rem' }} />
                   )}
 
                   <h2 style={{ fontSize: '1.7rem', color: 'white', margin: '0 0 0.5rem 0' }}>{name}</h2>
@@ -236,15 +228,6 @@ const MatchModal = ({
                       color="white"
                       bg="rgba(99,102,241,0.85)"
                     />
-                    {false && onOpenChat && (
-                      <ActionBtn
-                        onClick={onOpenChat}
-                        icon={<span style={{ fontSize: '15px' }}>💬</span>}
-                        label="Sohbeti Aç"
-                        color="white"
-                        bg="var(--primary)"
-                      />
-                    )}
                   </div>
                 </div>
               )}

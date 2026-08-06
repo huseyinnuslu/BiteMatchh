@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Star, MapPin, Clock, Tv, Calendar } from 'lucide-react';
+import RestaurantImage from './RestaurantImage';
 
 // Tarih formatlayıcı — "23 Tem, Çrş 20:00" formatı
 const formatEventDate = (dateStr) => {
@@ -29,9 +30,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
 
   const isCustom    = category === 'custom';
   const isFilm      = category === 'film' || category === 'movie';
-  const isMekan     = category === 'mekan' || category === 'food';
   const isRestaurant = category === 'restaurant';
-  const isAktivite  = category === 'aktivite' || category === 'activity';
   const isLive      = option.isLiveEvent === true;
 
   return (
@@ -63,7 +62,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
     >
       {/* ── Görsel Alan ────────────────────────────────────────────────── */}
       {!isCustom && (
-        option.imageUrl ? (
+        option.imageUrl && !isRestaurant ? (
           <div style={{
             height: '55%', width: '100%',
             backgroundImage: `url(${option.imageUrl})`,
@@ -116,34 +115,14 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                 <Tv size={14} /> {option.platform}
               </div>
             )}
-
-            {isRestaurant && (
-              option.imageSourceUrl ? (
-                <a
-                  href={option.imageSourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    position: 'absolute', left: '10px', bottom: '10px',
-                    background: 'rgba(2,6,23,.78)', color: 'white',
-                    padding: '.28rem .55rem', borderRadius: '7px',
-                    fontSize: '.68rem', fontWeight: 700, textDecoration: 'none',
-                  }}
-                >
-                  {option.imageAttribution || 'Görsel kaynağı'}
-                </a>
-              ) : (
-                <div style={{
-                  position: 'absolute', left: '10px', bottom: '10px',
-                  background: 'rgba(2,6,23,.78)', color: '#e2e8f0',
-                  padding: '.28rem .55rem', borderRadius: '7px',
-                  fontSize: '.68rem', fontWeight: 700,
-                }}>
-                  Temsili görsel
-                </div>
-              )
-            )}
           </div>
+        ) : isRestaurant && (option.imageUrl || option.fallbackImageUrl) ? (
+          <RestaurantImage
+            key={option._id || option.imageUrl}
+            item={option}
+            alt={option.name}
+            containerStyle={{ height: '55%', width: '100%' }}
+          />
         ) : (
           <div style={{
             height: '55%', width: '100%',

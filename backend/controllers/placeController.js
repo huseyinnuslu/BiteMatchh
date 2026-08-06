@@ -37,6 +37,7 @@ const getVenueImage = (place, fallbackImageUrl) => {
       const encodedFileName = encodeURIComponent(fileName);
       return {
         imageUrl: `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFileName}?width=1000`,
+        fallbackImageUrl: fallbackImageUrl || '',
         imageIsRepresentative: false,
         imageAttribution: 'Wikimedia Commons',
         imageSourceUrl: `https://commons.wikimedia.org/wiki/File:${encodedFileName}`,
@@ -46,6 +47,7 @@ const getVenueImage = (place, fallbackImageUrl) => {
 
   return {
     imageUrl: fallbackImageUrl || '',
+    fallbackImageUrl: fallbackImageUrl || '',
     imageIsRepresentative: true,
     imageAttribution: fallbackImageUrl ? 'Temsili kategori görseli' : '',
     imageSourceUrl: '',
@@ -214,6 +216,7 @@ const recommendationForStorage = (venue) => ({
   name: venue.name,
   address: venue.address,
   imageUrl: venue.imageUrl,
+  fallbackImageUrl: venue.fallbackImageUrl,
   imageIsRepresentative: venue.imageIsRepresentative,
   imageAttribution: venue.imageAttribution,
   imageSourceUrl: venue.imageSourceUrl,
@@ -385,6 +388,7 @@ export const submitRestaurantQuickVote = async (req, res, next) => {
         venueId: commonVenue.venueId,
         name: commonVenue.name,
         imageUrl: commonVenue.imageUrl,
+        fallbackImageUrl: commonVenue.fallbackImageUrl,
         imageIsRepresentative: commonVenue.imageIsRepresentative,
         imageAttribution: commonVenue.imageAttribution,
         imageSourceUrl: commonVenue.imageSourceUrl,
@@ -477,6 +481,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       existingRoom.options.forEach((option) => {
         if (!option.imageUrl && room.matchResult.imageUrl) {
           option.imageUrl = room.matchResult.imageUrl;
+          option.fallbackImageUrl = room.matchResult.imageUrl;
           option.imageIsRepresentative = true;
           option.imageAttribution = 'Temsili kategori görseli';
           imageAdded = true;
@@ -515,6 +520,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       options: venues.map((venue) => ({
         name: venue.name,
         imageUrl: venue.imageUrl,
+        fallbackImageUrl: venue.fallbackImageUrl,
         imageIsRepresentative: venue.imageIsRepresentative,
         imageAttribution: venue.imageAttribution,
         imageSourceUrl: venue.imageSourceUrl,

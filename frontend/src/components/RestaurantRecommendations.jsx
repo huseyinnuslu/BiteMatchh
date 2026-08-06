@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import api from '../api';
 import { getSocket } from '../socket/socketClient';
 import MatchModal from './MatchModal';
+import RestaurantImage from './RestaurantImage';
 
 const getCurrentPosition = () => new Promise((resolve, reject) => {
   if (!navigator.geolocation) {
@@ -235,16 +236,13 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
               <div style={{ width: `${((recommendationIndex + 1) / recommendations.length) * 100}%`, height: '100%', background: 'linear-gradient(90deg,#6366f1,#a855f7)', transition: 'width .25s ease' }} />
             </div>
             <article style={{ padding: '.9rem', borderRadius: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {currentPlace.imageUrl && (
-                <div style={{ height: 190, margin: '-.25rem -.25rem .85rem', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                  <img src={currentPlace.imageUrl} alt={currentPlace.imageIsRepresentative ? `${cuisine} temsili görseli` : currentPlace.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {currentPlace.imageSourceUrl ? (
-                    <a href={currentPlace.imageSourceUrl} target="_blank" rel="noreferrer" style={{ position: 'absolute', left: 8, bottom: 8, padding: '.22rem .45rem', borderRadius: 6, background: 'rgba(2,6,23,.8)', color: 'white', fontSize: '.65rem', textDecoration: 'none', fontWeight: 700 }}>{currentPlace.imageAttribution || 'Görsel kaynağı'}</a>
-                  ) : (
-                    <span style={{ position: 'absolute', left: 8, bottom: 8, padding: '.22rem .45rem', borderRadius: 6, background: 'rgba(2,6,23,.8)', color: '#e2e8f0', fontSize: '.65rem', fontWeight: 700 }}>Temsili görsel</span>
-                  )}
-                </div>
-              )}
+              <RestaurantImage
+                key={currentPlace.id || currentPlace.imageUrl}
+                item={currentPlace}
+                alt={currentPlace.imageIsRepresentative ? `${cuisine} temsili görseli` : currentPlace.name}
+                containerStyle={{ height: 190, margin: '-.25rem -.25rem .85rem', borderRadius: 12 }}
+                badgeStyle={{ fontSize: '.65rem', padding: '.22rem .45rem', borderRadius: 6 }}
+              />
               <div style={{ display: 'flex', gap: '.65rem', justifyContent: 'space-between' }}>
                 <div style={{ minWidth: 0 }}>
                   <h3 style={{ margin: '0 0 .35rem', color: 'white', fontSize: '1.15rem' }}>{currentPlace.name}</h3>
