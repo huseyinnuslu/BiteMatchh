@@ -209,8 +209,60 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
     .slice(0, limit);
 };
 
+const recommendationForStorage = (venue) => ({
+  venueId: venue.id,
+  name: venue.name,
+  address: venue.address,
+  imageUrl: venue.imageUrl,
+  imageIsRepresentative: venue.imageIsRepresentative,
+  imageAttribution: venue.imageAttribution,
+  imageSourceUrl: venue.imageSourceUrl,
+  mapsUrl: venue.mapsUrl,
+  latitude: venue.latitude,
+  longitude: venue.longitude,
+  maxGroupDistanceKm: venue.maxGroupDistanceKm,
+});
+
+const personalizeStoredRecommendations = (recommendations, requesterLocation) =>
+  recommendations.map((venue) => {
+    const plainVenue = venue.toObject ? venue.toObject() : venue;
+    return {
+      ...plainVenue,
+      id: plainVenue.venueId,
+      distanceFromYouKm: requesterLocation
+        ? Number(haversineKm(requesterLocation, plainVenue).toFixed(1))
+        : null,
+    };
+  });
+
+const ensureStoredRecommendations = async ({ room, locations, userId }) => {
+  if (room.restaurantRecommendations?.length) return room.restaurantRecommendations;
+
+  const venues = await getLiveVenueOptions({ room, locations, userId, limit: 3 });
+  const storedVenues = venues.map(recommendationForStorage);
+  if (!storedVenues.length) return [];
+
+  const updatedRoom = await Room.findOneAndUpdate(
+    { _id: room._id, 'restaurantRecommendations.0': { $exists: false } },
+    { $set: { restaurantRecommendations: storedVenues, restaurantDecisionStatus: 'pending' } },
+    { new: true }
+  ).select('restaurantRecommendations');
+
+  if (updatedRoom) return updatedRoom.restaurantRecommendations;
+  const currentRoom = await Room.findById(room._id).select('restaurantRecommendations');
+  return currentRoom?.restaurantRecommendations || [];
+};
+
+const restaurantDecisionPayload = (room, userId) => ({
+  decisionStatus: room.restaurantDecisionStatus || 'pending',
+  completedCount: room.restaurantQuickVotes?.length || 0,
+  participantCount: room.participants.length,
+  hasVoted: (room.restaurantQuickVotes || []).some((vote) => vote.user.toString() === userId.toString()),
+  decisionResult: room.restaurantDecisionResult?.name ? room.restaurantDecisionResult : null,
+});
+
 const getEligibleRoom = async (roomId, userId) => {
-  const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom');
+  const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
   if (!room) { const error = new Error('Oda bulunamadı'); error.statusCode = 404; throw error; }
   if (!isRoomParticipant(room, userId)) { const error = new Error('Bu oda için mekan önerisi alma yetkiniz yok'); error.statusCode = 403; throw error; }
   if (room.status !== 'finished' || !room.matchResult?.name) { const error = new Error('Mekan önerileri için önce yemek eşleşmesi tamamlanmalıdır'); error.statusCode = 400; throw error; }
@@ -254,14 +306,120 @@ export const getRestaurantRecommendations = async (req, res, next) => {
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor', sharedCount: locations.length, participantCount: room.participants.length });
     }
-    const recommendations = await getLiveVenueOptions({
+    const storedRecommendations = await ensureStoredRecommendations({
       room,
       locations,
       userId: req.user._id,
-      limit: 3,
     });
+    const latestRoom = await Room.findById(room._id).select('participants restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+    const requesterLocation = locations.find((item) => item.user.toString() === req.user._id.toString());
+    const recommendations = personalizeStoredRecommendations(storedRecommendations, requesterLocation);
 
-    res.json({ cuisine: room.matchResult.name, participantCount: room.participants.length, recommendations });
+    res.json({
+      cuisine: room.matchResult.name,
+      recommendations,
+      ...restaurantDecisionPayload(latestRoom, req.user._id),
+    });
+  } catch (error) {
+    if (error.statusCode) res.status(error.statusCode);
+    next(error);
+  }
+};
+
+// POST /api/places/rooms/:id/quick-vote
+// Üç hızlı öneri gizlice değerlendirilir. Kullanıcıların bireysel tercihleri
+// hiçbir istemciye gönderilmez; yalnızca tamamlayan kişi sayısı paylaşılır.
+export const submitRestaurantQuickVote = async (req, res, next) => {
+  try {
+    const room = await getEligibleRoom(req.params.id, req.user._id);
+    const locations = await LocationShare.find({
+      room: room._id,
+      user: { $in: room.participants },
+      expiresAt: { $gt: new Date() },
+    }).lean();
+    if (locations.length < room.participants.length) {
+      return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor' });
+    }
+
+    const recommendations = await ensureStoredRecommendations({ room, locations, userId: req.user._id });
+    if (recommendations.length < 2) {
+      return res.status(404).json({ code: 'VENUES_NOT_FOUND', message: 'Hızlı seçim için yeterli gerçek restoran bulunamadı.' });
+    }
+
+    const latestState = await Room.findById(room._id).select('participants restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+    if (latestState.restaurantDecisionStatus !== 'pending') {
+      return res.json(restaurantDecisionPayload(latestState, req.user._id));
+    }
+
+    const allowedVenueIds = new Set(latestState.restaurantRecommendations.map((venue) => venue.venueId));
+    const likedVenueIds = [...new Set(Array.isArray(req.body?.likedVenueIds) ? req.body.likedVenueIds : [])]
+      .filter((venueId) => allowedVenueIds.has(venueId));
+
+    await Room.updateOne(
+      { _id: room._id, restaurantDecisionStatus: 'pending' },
+      [{
+        $set: {
+          restaurantQuickVotes: {
+            $concatArrays: [
+              {
+                $filter: {
+                  input: { $ifNull: ['$restaurantQuickVotes', []] },
+                  as: 'vote',
+                  cond: { $ne: ['$$vote.user', req.user._id] },
+                },
+              },
+              [{ user: req.user._id, likedVenueIds, completedAt: new Date() }],
+            ],
+          },
+        },
+      }]
+    );
+
+    let decisionRoom = await Room.findById(room._id).select('participants restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+    if (decisionRoom.restaurantQuickVotes.length >= decisionRoom.participants.length) {
+      const commonVenue = decisionRoom.restaurantRecommendations.find((venue) =>
+        decisionRoom.restaurantQuickVotes.every((vote) => vote.likedVenueIds.includes(venue.venueId))
+      );
+      const nextStatus = commonVenue ? 'matched' : 'no_match';
+      const decisionResult = commonVenue ? {
+        venueId: commonVenue.venueId,
+        name: commonVenue.name,
+        imageUrl: commonVenue.imageUrl,
+        imageIsRepresentative: commonVenue.imageIsRepresentative,
+        imageAttribution: commonVenue.imageAttribution,
+        imageSourceUrl: commonVenue.imageSourceUrl,
+        location: commonVenue.address,
+        mapsQuery: `${commonVenue.name} ${commonVenue.address}`,
+        latitude: commonVenue.latitude,
+        longitude: commonVenue.longitude,
+      } : null;
+
+      const finalizedRoom = await Room.findOneAndUpdate(
+        { _id: room._id, restaurantDecisionStatus: 'pending' },
+        { $set: { restaurantDecisionStatus: nextStatus, restaurantDecisionResult: decisionResult } },
+        { new: true }
+      ).select('participants restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+
+      if (finalizedRoom) {
+        decisionRoom = finalizedRoom;
+        getIo()?.to(room._id.toString()).emit('restaurant_quick_vote_updated', {
+          parentRoomId: room._id.toString(),
+          ...restaurantDecisionPayload(decisionRoom, req.user._id),
+          hasVoted: undefined,
+        });
+      } else {
+        decisionRoom = await Room.findById(room._id).select('participants restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+      }
+    } else {
+      getIo()?.to(room._id.toString()).emit('restaurant_quick_vote_updated', {
+        parentRoomId: room._id.toString(),
+        decisionStatus: 'pending',
+        completedCount: decisionRoom.restaurantQuickVotes.length,
+        participantCount: decisionRoom.participants.length,
+      });
+    }
+
+    res.json(restaurantDecisionPayload(decisionRoom, req.user._id));
   } catch (error) {
     if (error.statusCode) res.status(error.statusCode);
     next(error);
