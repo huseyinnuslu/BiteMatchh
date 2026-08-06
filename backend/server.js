@@ -116,7 +116,8 @@ app.get('/health',  (_req, res) => res.json({
   status: 'ok',
   uptime: process.uptime(),
   emailConfigured: isEmailConfigured(),
-  placesConfigured: Boolean(process.env.GOOGLE_MAPS_API_KEY),
+  placesConfigured: true,
+  placesProvider: 'OpenStreetMap / Nominatim',
 }));
 
 // ─── Hata Middleware ─────────────────────────────────────────────────────────

@@ -26,10 +26,56 @@ const groupCenter = (locations) => ({
   longitude: locations.reduce((sum, item) => sum + item.longitude, 0) / locations.length,
 });
 
-const priceLabel = (value) => ({
-  PRICE_LEVEL_INEXPENSIVE: '₺', PRICE_LEVEL_MODERATE: '₺₺',
-  PRICE_LEVEL_EXPENSIVE: '₺₺₺', PRICE_LEVEL_VERY_EXPENSIVE: '₺₺₺₺',
-}[value] || '');
+const osmMapsUrl = (latitude, longitude) =>
+  `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`;
+
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+const NOMINATIM_CACHE_TTL_MS = 5 * 60 * 1000;
+const nominatimCache = new Map();
+let nominatimQueue = Promise.resolve();
+let lastNominatimRequestAt = 0;
+
+// Nominatim'in ortak sunucusu en fazla saniyede bir istek ister. Testte de
+// buna uyuyor, ayni aramayi bes dakika bellekte tutuyoruz.
+const fetchNominatim = (url) => {
+  const request = async () => {
+    const waitMs = Math.max(0, 1100 - (Date.now() - lastNominatimRequestAt));
+    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    lastNominatimRequestAt = Date.now();
+    return fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'BiteMatch/0.1 (bitematchinfo@gmail.com)',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+  };
+  const scheduledRequest = nominatimQueue.then(request, request);
+  nominatimQueue = scheduledRequest.catch(() => undefined);
+  return scheduledRequest;
+};
+
+const searchNominatimPlaces = async ({ query, center, radiusMeters }) => {
+  const cacheKey = `${query}:${center.latitude.toFixed(3)}:${center.longitude.toFixed(3)}:${radiusMeters}`;
+  const cached = nominatimCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.places;
+
+  const latitudeDelta = radiusMeters / 111320;
+  const longitudeDelta = radiusMeters / (111320 * Math.max(Math.cos((center.latitude * Math.PI) / 180), 0.1));
+  const params = new URLSearchParams({
+    format: 'jsonv2', q: query, bounded: '1', limit: '30', addressdetails: '1',
+    viewbox: `${center.longitude - longitudeDelta},${center.latitude + latitudeDelta},${center.longitude + longitudeDelta},${center.latitude - latitudeDelta}`,
+  });
+  const response = await fetchNominatim(`${NOMINATIM_URL}?${params}`);
+  if (!response.ok) {
+    const error = new Error('Mekan verisi su anda alinamadi. Lutfen biraz sonra tekrar deneyin.');
+    error.statusCode = 502;
+    throw error;
+  }
+  const places = await response.json();
+  nominatimCache.set(cacheKey, { places, expiresAt: Date.now() + NOMINATIM_CACHE_TTL_MS });
+  return places;
+};
 
 const getEligibleRoom = async (roomId, userId) => {
   const room = await Room.findById(roomId).select('participants status category matchResult');
@@ -76,42 +122,44 @@ export const getRestaurantRecommendations = async (req, res, next) => {
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor', sharedCount: locations.length, participantCount: room.participants.length });
     }
-    if (!process.env.GOOGLE_MAPS_API_KEY) { res.status(503); throw new Error('Gerçek mekan verisi için Places API henüz yapılandırılmamış'); }
-
     const center = groupCenter(locations);
     const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
     const radiusMeters = Math.min(50000, Math.max(5000, Math.ceil((farthestMemberKm + 8) * 1000)));
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.googleMapsUri,places.primaryType',
-      },
-      body: JSON.stringify({
-        textQuery: `${room.matchResult.name} restaurant`, languageCode: 'tr', regionCode: 'TR', pageSize: 20,
-        locationBias: { circle: { center, radius: radiusMeters } },
-      }),
-    });
-    if (!response.ok) throw new Error(`Places API hatası: ${await response.text()}`);
-
-    const { places = [] } = await response.json();
     const requesterLocation = locations.find((item) => item.user.toString() === req.user._id.toString());
-    const recommendations = places
-      .filter((place) => place.location && place.displayName?.text)
+    const matchingPlaces = await searchNominatimPlaces({ query: `${room.matchResult.name} restaurant`, center, radiusMeters });
+    const genericPlaces = matchingPlaces.length >= 3
+      ? []
+      : await searchNominatimPlaces({ query: 'restaurant', center, radiusMeters });
+    const allowedTypes = room.matchResult.name.toLocaleLowerCase('tr-TR').includes('kahve')
+      ? ['restaurant', 'fast_food', 'cafe']
+      : ['restaurant', 'fast_food'];
+    const candidates = [...matchingPlaces, ...genericPlaces]
+      .filter((place, index, list) =>
+        Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lon)) &&
+        place.name && place.category === 'amenity' && allowedTypes.includes(place.type) &&
+        list.findIndex((item) => item.osm_type === place.osm_type && item.osm_id === place.osm_id) === index
+      );
+    const recommendations = candidates
       .map((place) => {
-        const distances = locations.map((location) => haversineKm(location, place.location));
+        const coordinates = { latitude: Number(place.lat), longitude: Number(place.lon) };
+        const distances = locations.map((location) => haversineKm(location, coordinates));
         const maxGroupDistanceKm = Math.max(...distances);
         const distanceScore = Math.max(0, 1 - maxGroupDistanceKm / (radiusMeters / 1000));
-        const ratingScore = Math.min(Math.max(Number(place.rating) || 0, 0), 5) / 5;
-        const reviewConfidence = Math.min(Math.log10((Number(place.userRatingCount) || 0) + 1) / 4, 1);
+        const address = [
+          place.address?.road,
+          place.address?.neighbourhood || place.address?.quarter || place.address?.suburb,
+          place.address?.city || place.address?.town || place.address?.province,
+        ].filter(Boolean).join(', ');
         return {
-          id: place.id, name: place.displayName.text, address: place.formattedAddress || '', rating: place.rating || null,
-          reviewCount: place.userRatingCount || 0, priceLevel: priceLabel(place.priceLevel), primaryType: place.primaryType || 'restaurant',
-          googleMapsUrl: place.googleMapsUri || '', source: 'Google Maps',
-          distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, place.location).toFixed(1)) : null,
+          id: `osm-${place.osm_type}-${place.osm_id}`, name: place.name, address: address || place.display_name || '', rating: null,
+          reviewCount: null, priceLevel: '', primaryType: place.type,
+          mapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
+          googleMapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
+          source: 'OpenStreetMap',
+          attribution: '© OpenStreetMap contributors',
+          distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
           maxGroupDistanceKm: Number(maxGroupDistanceKm.toFixed(1)),
-          recommendationScore: Number((distanceScore * 0.5 + ratingScore * 0.4 + reviewConfidence * 0.1).toFixed(4)),
+          recommendationScore: Number(distanceScore.toFixed(4)),
         };
       })
       .sort((a, b) => b.recommendationScore - a.recommendationScore)
