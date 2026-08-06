@@ -76,6 +76,12 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
     };
   }, [hasSharedLocation, loadRecommendations, roomId]);
 
+  useEffect(() => {
+    if (!hasSharedLocation || status !== 'waiting') return undefined;
+    const timer = window.setInterval(() => loadRecommendations(), 2500);
+    return () => window.clearInterval(timer);
+  }, [hasSharedLocation, loadRecommendations, status]);
+
   const shareLocation = async () => {
     setStatus('locating');
     try {

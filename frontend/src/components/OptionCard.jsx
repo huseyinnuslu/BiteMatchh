@@ -188,7 +188,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
             )}
 
             {/* Bilgi satırı: süre / konum / bütçe */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               {option.duration && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <Clock size={16} /> {option.duration}
@@ -197,6 +197,11 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
               {option.location && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <MapPin size={16} /> {option.location}
+                </div>
+              )}
+              {isRestaurant && option.distanceFromYouKm !== null && option.distanceFromYouKm !== undefined && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#86efac', fontWeight: 700 }}>
+                  <MapPin size={16} /> Sana {option.distanceFromYouKm} km
                 </div>
               )}
               {option.budget && (

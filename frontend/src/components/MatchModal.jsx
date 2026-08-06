@@ -84,7 +84,16 @@ const ActionBtn = ({ href, onClick, icon, label, color, bg }) => {
 };
 
 // ── Ana Modal ─────────────────────────────────────────────────────────────────
-const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat, onExitRoom }) => {
+const MatchModal = ({
+  isOpen,
+  matchResult,
+  onClose,
+  onOpenChat,
+  onExitRoom,
+  title = 'EŞLEŞME SAĞLANDI!',
+  subtitle = 'Grubunuz ortak karara vardı 🎉',
+  closeLabel = 'Oylamayı Bitir & Kapat',
+}) => {
   const name     = matchResult?.name     || '';
   const location = matchResult?.location || '';
   const isPlace  = !!(matchResult?.location || matchResult?.budget || matchResult?.rating);
@@ -139,10 +148,10 @@ const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat, onExitRoom }) =>
                 textShadow: '0 4px 10px rgba(0,0,0,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
               }}>
-                <Flame color="var(--primary)" /> EŞLEŞME SAĞLANDI! <Flame color="var(--primary)" />
+                <Flame color="var(--primary)" /> {title} <Flame color="var(--primary)" />
               </h1>
               <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                Grubunuz ortak karara vardı🎉
+                {subtitle}
               </p>
 
               {/* Eşleşme kartı */}
@@ -240,7 +249,7 @@ const MatchModal = ({ isOpen, matchResult, onClose, onOpenChat, onExitRoom }) =>
                 className="btn btn-primary pulse-primary"
                 style={{ width: '100%', padding: '1rem', fontSize: '1rem' }}
               >
-                Oylamayı Bitir & Kapat
+                {closeLabel}
               </button>
               {onExitRoom && (
                 <button

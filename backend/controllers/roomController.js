@@ -5,6 +5,17 @@ import { finishRoomCalculation } from '../utils/roomHelper.js';
 import { sendPushToUser } from '../utils/webPush.js';
 import Notification from '../models/Notification.js';
 import { getIo } from '../server.js';
+import LocationShare from '../models/LocationShare.js';
+
+const EARTH_RADIUS_KM = 6371;
+
+const haversineKm = (from, to) => {
+  const radians = (degrees) => (degrees * Math.PI) / 180;
+  const dLat = radians(to.latitude - from.latitude);
+  const dLng = radians(to.longitude - from.longitude);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(dLng / 2) ** 2;
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 // Oda oluşturulduktan sonra kartlar oda belgesine kopyalanır. Görsel havuzu
 // düzeltildiğinde eski/açık odaların da yeni doğru görseli alabilmesi için,
@@ -25,6 +36,26 @@ const hydrateRoomCardImages = (room) => ({
   matchResult: room.matchResult ? hydrateCurrentCardImage(room.matchResult) : room.matchResult,
   topOptions: (room.topOptions || []).map(hydrateCurrentCardImage),
 });
+
+const personalizeRestaurantDistances = async (room, userId) => {
+  if (room.category !== 'restaurant' || !room.parentRoom) return room;
+  const location = await LocationShare.findOne({
+    room: room.parentRoom,
+    user: userId,
+    expiresAt: { $gt: new Date() },
+  }).lean();
+  if (!location) return room;
+
+  return {
+    ...room,
+    options: (room.options || []).map((option) => ({
+      ...option,
+      distanceFromYouKm: Number.isFinite(option.latitude) && Number.isFinite(option.longitude)
+        ? Number(haversineKm(location, option).toFixed(1))
+        : null,
+    })),
+  };
+};
 
 // @desc    Oda oluştur
 // @route   POST /api/rooms
@@ -145,8 +176,9 @@ export const getRoomById = async (req, res, next) => {
           status: 'finished',
         }));
 
+        const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(updatedRoom), req.user._id);
         return res.json({
-          ...hydrateRoomCardImages(updatedRoom),
+          ...personalizedRoom,
           userSwipes: userSwipes.map(s => s.optionId.toString()),
           participantStatuses,
         });
@@ -174,8 +206,9 @@ export const getRoomById = async (req, res, next) => {
           : 'voting',
     }));
 
+    const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(room.toObject()), req.user._id);
     res.json({
-      ...hydrateRoomCardImages(room.toObject()),
+      ...personalizedRoom,
       userSwipes: userSwipes.map(s => s.optionId.toString()),
       participantStatuses,
     });

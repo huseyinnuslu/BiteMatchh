@@ -28,6 +28,8 @@ const roomSchema = mongoose.Schema(
       duration: String,
       location: String,
       mapsQuery: String,
+      latitude: Number,
+      longitude: Number,
     }],
     category: {
       type: String,

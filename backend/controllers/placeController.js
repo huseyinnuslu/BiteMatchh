@@ -77,7 +77,7 @@ const searchNominatimPlaces = async ({ query, center, radiusMeters }) => {
   return places;
 };
 
-const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFallbackCandidates = false }) => {
+const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFallbackCandidates = false, strictCuisine = false }) => {
   const center = groupCenter(locations);
   const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
   const radiusMeters = Math.min(50000, Math.max(5000, Math.ceil((farthestMemberKm + 8) * 1000)));
@@ -90,7 +90,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFall
       place.name && place.category === 'amenity' && allowedTypes.includes(place.type);
   const matchingPlaces = (await searchNominatimPlaces({ query: `${room.matchResult.name} restaurant`, center, radiusMeters }))
     .filter(isUsableVenue);
-  const genericPlaces = matchingPlaces.length >= limit && !includeFallbackCandidates
+  const genericPlaces = strictCuisine || (matchingPlaces.length >= limit && !includeFallbackCandidates)
     ? []
     : await searchNominatimPlaces({ query: 'restaurant', center, radiusMeters });
   const allCandidates = [...matchingPlaces, ...genericPlaces]
@@ -99,9 +99,11 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFall
       list.findIndex((item) => item.osm_type === place.osm_type && item.osm_id === place.osm_id) === index
     );
   const matchingIds = new Set(matchingPlaces.map((place) => `${place.osm_type}-${place.osm_id}`));
-  const candidatePool = includeFallbackCandidates || matchingPlaces.length < limit
-    ? allCandidates
-    : allCandidates.filter((place) => matchingIds.has(`${place.osm_type}-${place.osm_id}`));
+  const candidatePool = strictCuisine
+    ? matchingPlaces
+    : (includeFallbackCandidates || matchingPlaces.length < limit
+      ? allCandidates
+      : allCandidates.filter((place) => matchingIds.has(`${place.osm_type}-${place.osm_id}`)));
 
   return candidatePool
     .map((place) => {
@@ -126,6 +128,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFall
         googleMapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
         source: 'OpenStreetMap',
         attribution: '© OpenStreetMap contributors',
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
         distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
         maxGroupDistanceKm: Number(maxGroupDistanceKm.toFixed(1)),
         recommendationScore: Number(distanceScore.toFixed(4)),
@@ -234,6 +238,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       userId: req.user._id,
       limit: 10,
       includeFallbackCandidates: true,
+      strictCuisine: true,
     });
     if (venues.length < 2) {
       return res.status(404).json({
@@ -256,6 +261,8 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         description: `Grubun en uzaktaki üyesine ${venue.maxGroupDistanceKm} km uzaklıkta.`,
         location: venue.address,
         mapsQuery: `${venue.name} ${venue.address}`,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
       })),
     });
 

@@ -265,6 +265,7 @@ const Room = () => {
   // earlier room while navigation or a socket update is in progress.
   const activeMatch = isFinished ? currentRoom.matchResult : socketMatch;
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
+  const isRestaurantRound = currentRoom.category === 'restaurant';
   const closeMatchModal = () => {
     if (isFoodMatch) {
       setMatchModalDismissed(true);
@@ -483,6 +484,9 @@ const Room = () => {
         matchResult={activeMatch}
         onClose={closeMatchModal}
         onExitRoom={() => navigate('/dashboard')}
+        title={isRestaurantRound ? 'RESTORAN BELİRLENDİ!' : undefined}
+        subtitle={isRestaurantRound ? 'Grubunuz nerede yiyeceğine karar verdi.' : undefined}
+        closeLabel={isRestaurantRound ? 'Kararı Tamamla & Keşfete Dön' : undefined}
       />
       <ChatDrawer
         isOpen={chatOpen}
