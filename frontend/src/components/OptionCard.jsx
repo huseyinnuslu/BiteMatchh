@@ -116,6 +116,33 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                 <Tv size={14} /> {option.platform}
               </div>
             )}
+
+            {isRestaurant && (
+              option.imageSourceUrl ? (
+                <a
+                  href={option.imageSourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    position: 'absolute', left: '10px', bottom: '10px',
+                    background: 'rgba(2,6,23,.78)', color: 'white',
+                    padding: '.28rem .55rem', borderRadius: '7px',
+                    fontSize: '.68rem', fontWeight: 700, textDecoration: 'none',
+                  }}
+                >
+                  {option.imageAttribution || 'Görsel kaynağı'}
+                </a>
+              ) : (
+                <div style={{
+                  position: 'absolute', left: '10px', bottom: '10px',
+                  background: 'rgba(2,6,23,.78)', color: '#e2e8f0',
+                  padding: '.28rem .55rem', borderRadius: '7px',
+                  fontSize: '.68rem', fontWeight: 700,
+                }}>
+                  Temsili görsel
+                </div>
+              )
+            )}
           </div>
         ) : (
           <div style={{

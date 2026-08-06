@@ -178,6 +178,16 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.7rem' }}>
             {recommendations.map((place, index) => (
               <article key={place.id} style={{ padding: '.9rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {place.imageUrl && (
+                  <div style={{ height: 135, margin: '-.25rem -.25rem .75rem', borderRadius: 11, overflow: 'hidden', position: 'relative' }}>
+                    <img src={place.imageUrl} alt={place.imageIsRepresentative ? `${cuisine} temsili görseli` : place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {place.imageSourceUrl ? (
+                      <a href={place.imageSourceUrl} target="_blank" rel="noreferrer" style={{ position: 'absolute', left: 8, bottom: 8, padding: '.22rem .45rem', borderRadius: 6, background: 'rgba(2,6,23,.78)', color: 'white', fontSize: '.65rem', textDecoration: 'none', fontWeight: 700 }}>{place.imageAttribution || 'Görsel kaynağı'}</a>
+                    ) : (
+                      <span style={{ position: 'absolute', left: 8, bottom: 8, padding: '.22rem .45rem', borderRadius: 6, background: 'rgba(2,6,23,.78)', color: '#e2e8f0', fontSize: '.65rem', fontWeight: 700 }}>Temsili görsel</span>
+                    )}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '.65rem', justifyContent: 'space-between' }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ color: '#a5b4fc', fontSize: '.72rem', fontWeight: 800 }}>ÖNERİ {index + 1}</div>

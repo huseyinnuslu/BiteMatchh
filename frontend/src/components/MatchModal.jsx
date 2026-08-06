@@ -162,8 +162,14 @@ const MatchModal = ({
                   boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                 }}>
                   {matchResult.imageUrl && (
-                    <div style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', marginBottom: '1rem' }}>
+                    <div style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', marginBottom: '1rem', position: 'relative' }}>
                       <img src={matchResult.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {matchResult.imageIsRepresentative && (
+                        <span style={{ position: 'absolute', left: 8, bottom: 8, padding: '.25rem .5rem', borderRadius: 7, background: 'rgba(2,6,23,.8)', color: '#e2e8f0', fontSize: '.68rem', fontWeight: 700 }}>Temsili görsel</span>
+                      )}
+                      {!matchResult.imageIsRepresentative && matchResult.imageSourceUrl && (
+                        <a href={matchResult.imageSourceUrl} target="_blank" rel="noreferrer" style={{ position: 'absolute', left: 8, bottom: 8, padding: '.25rem .5rem', borderRadius: 7, background: 'rgba(2,6,23,.8)', color: 'white', fontSize: '.68rem', fontWeight: 700, textDecoration: 'none' }}>{matchResult.imageAttribution || 'Görsel kaynağı'}</a>
+                      )}
                     </div>
                   )}
 

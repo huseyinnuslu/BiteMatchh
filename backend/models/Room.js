@@ -30,6 +30,9 @@ const roomSchema = mongoose.Schema(
       mapsQuery: String,
       latitude: Number,
       longitude: Number,
+      imageIsRepresentative: Boolean,
+      imageAttribution: String,
+      imageSourceUrl: String,
     }],
     category: {
       type: String,
@@ -57,6 +60,9 @@ const roomSchema = mongoose.Schema(
       description: String,
       location: String,
       mapsQuery: String,
+      imageIsRepresentative: Boolean,
+      imageAttribution: String,
+      imageSourceUrl: String,
     },
     compatibilityPercentage: {
       type: Number,
@@ -70,6 +76,9 @@ const roomSchema = mongoose.Schema(
       description: String,
       location: String,
       mapsQuery: String,
+      imageIsRepresentative: Boolean,
+      imageAttribution: String,
+      imageSourceUrl: String,
       likeCount: Number
     }],
     timeLimit: {

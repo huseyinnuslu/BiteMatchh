@@ -29,6 +29,29 @@ const groupCenter = (locations) => ({
 const osmMapsUrl = (latitude, longitude) =>
   `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`;
 
+const getVenueImage = (place, fallbackImageUrl) => {
+  const commonsTag = String(place.extratags?.wikimedia_commons || '').trim();
+  if (commonsTag.toLowerCase().startsWith('file:')) {
+    const fileName = commonsTag.slice(5).trim();
+    if (fileName) {
+      const encodedFileName = encodeURIComponent(fileName);
+      return {
+        imageUrl: `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFileName}?width=1000`,
+        imageIsRepresentative: false,
+        imageAttribution: 'Wikimedia Commons',
+        imageSourceUrl: `https://commons.wikimedia.org/wiki/File:${encodedFileName}`,
+      };
+    }
+  }
+
+  return {
+    imageUrl: fallbackImageUrl || '',
+    imageIsRepresentative: true,
+    imageAttribution: fallbackImageUrl ? 'Temsili kategori görseli' : '',
+    imageSourceUrl: '',
+  };
+};
+
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_CACHE_TTL_MS = 5 * 60 * 1000;
 const nominatimCache = new Map();
@@ -161,6 +184,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         place.address?.neighbourhood || place.address?.quarter || place.address?.suburb,
         place.address?.city || place.address?.town || place.address?.province,
       ].filter(Boolean).join(', ');
+      const venueImage = getVenueImage(place, room.matchResult.imageUrl);
       return {
         id: `osm-${place.osm_type}-${place.osm_id}`,
         name: place.name,
@@ -173,6 +197,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         googleMapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
         source: 'OpenStreetMap',
         attribution: '© OpenStreetMap contributors',
+        ...venueImage,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
         distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
@@ -275,7 +300,19 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       restaurantSort: sortBy,
       status: { $in: ['waiting', 'voting'] },
     });
-    if (existingRoom) return res.json({ room: existingRoom, reused: true });
+    if (existingRoom) {
+      let imageAdded = false;
+      existingRoom.options.forEach((option) => {
+        if (!option.imageUrl && room.matchResult.imageUrl) {
+          option.imageUrl = room.matchResult.imageUrl;
+          option.imageIsRepresentative = true;
+          option.imageAttribution = 'Temsili kategori görseli';
+          imageAdded = true;
+        }
+      });
+      if (imageAdded) await existingRoom.save();
+      return res.json({ room: existingRoom, reused: true });
+    }
 
     const venues = await getLiveVenueOptions({
       room,
@@ -301,6 +338,10 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       votingStartedAt: new Date(),
       options: venues.map((venue) => ({
         name: venue.name,
+        imageUrl: venue.imageUrl,
+        imageIsRepresentative: venue.imageIsRepresentative,
+        imageAttribution: venue.imageAttribution,
+        imageSourceUrl: venue.imageSourceUrl,
         description: `Grubun en uzaktaki üyesine ${venue.maxGroupDistanceKm} km uzaklıkta.`,
         location: venue.address,
         mapsQuery: `${venue.name} ${venue.address}`,
