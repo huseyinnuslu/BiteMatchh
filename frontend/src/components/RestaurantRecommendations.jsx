@@ -30,7 +30,6 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
   const [hasSharedLocation, setHasSharedLocation] = useState(false);
   const [status, setStatus] = useState('intro');
   const [recommendations, setRecommendations] = useState([]);
-  const [showRestaurantMatch, setShowRestaurantMatch] = useState(false);
   const [restaurantRoomId, setRestaurantRoomId] = useState(null);
   const loadingRecommendationsRef = useRef(false);
 
@@ -65,7 +64,6 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
     const onRestaurantRoundReady = (payload) => {
       if (String(payload.parentRoomId) !== String(roomId)) return;
       setRestaurantRoomId(payload.roomId);
-      setShowRestaurantMatch(true);
       toast.info('Arkadaşın restoran oylamasını hazırladı. Katılabilirsin.');
     };
     socket?.on('recommendation_location_updated', onLocationUpdated);
@@ -175,7 +173,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
         </button>
       )}
 
-      {status === 'ready' && (
+      {(status === 'ready' || status === 'creating-round') && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.7rem' }}>
             {recommendations.map((place, index) => (
@@ -196,21 +194,11 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
             ))}
           </div>
           <p style={{ margin: '.85rem 0 0', color: 'var(--text-muted)', fontSize: '.72rem', textAlign: 'center' }}>Gerçek mekan verisi: OpenStreetMap katkıcıları</p>
-          <button onClick={() => setShowRestaurantMatch((value) => !value)} className="btn" style={{ width: '100%', marginTop: '1rem', border: '1px solid rgba(167,139,250,.55)', color: '#ddd6fe', background: 'rgba(99,102,241,.12)' }}>
-            Beğenmedik, Restoranları Birlikte Seçelim
+          <button disabled={isBusy} onClick={startRestaurantRound} className="btn" style={{ width: '100%', minHeight: 44, marginTop: '1rem', border: '1px solid rgba(167,139,250,.55)', color: '#ddd6fe', background: 'rgba(99,102,241,.12)', opacity: isBusy ? .7 : 1 }}>
+            {status === 'creating-round' ? 'Restoran kartları hazırlanıyor…' : restaurantRoomId ? 'Restoran Oylamasına Katıl' : 'Beğenmedik, Restoran Kartlarını Getir'}
           </button>
+          <div style={{ color: 'var(--text-muted)', fontSize: '.73rem', marginTop: '.65rem', textAlign: 'center' }}>Gerçek restoran kartları yemek kartları gibi açılacak; ikiniz de kaydırarak nerede yiyeceğinize karar vereceksiniz.</div>
         </>
-      )}
-
-      {showRestaurantMatch && (
-        <div style={{ marginTop: '.85rem', padding: '.9rem', borderRadius: 14, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(2,6,23,.35)' }}>
-          <div style={{ color: 'white', fontWeight: 800, marginBottom: '.35rem' }}>Restoran oylaması</div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '.83rem', lineHeight: 1.45, margin: '0 0 .8rem' }}>Gerçek mekan kartlarını tekrar kaydırarak ortak restoranı seçin.</p>
-          <button disabled={isBusy} onClick={startRestaurantRound} className="btn btn-primary" style={{ width: '100%', minHeight: 44, opacity: isBusy ? .7 : 1 }}>
-            {status === 'creating-round' ? 'Oylama hazırlanıyor…' : restaurantRoomId ? 'Restoran Oylamasına Katıl' : 'Gruba En Yakın Restoranlarla Başla'}
-          </button>
-          <div style={{ color: 'var(--text-muted)', fontSize: '.73rem', marginTop: '.65rem', textAlign: 'center' }}>Yüksek puan filtresi, ücretsiz veri kaynağında doğrulanmış puan bulunmadığı için beta aşamasında kapalıdır.</div>
-        </div>
       )}
 
       <button onClick={onExit} className="btn" style={{ width: '100%', marginTop: '1rem', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,.12)', background: 'transparent' }}>
