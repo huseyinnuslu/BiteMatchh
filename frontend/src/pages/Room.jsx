@@ -179,7 +179,14 @@ const Room = () => {
 
     // Hafif polling: status=finished kontrolü için (3sn → 5sn, socket varken yük azalt)
     pollingRef.current = setInterval(() => {
-      if (!matchResult && !socketMatch) fetchRoomStatus(id);
+      const latestRoom = roomRef.current;
+      if (
+        !latestRoom ||
+        String(latestRoom._id) !== String(id) ||
+        latestRoom.status !== 'finished'
+      ) {
+        fetchRoomStatus(id);
+      }
     }, 5000);
 
     return () => {
@@ -271,9 +278,14 @@ const Room = () => {
   const socketMatchBelongsToCurrentRoom = !!socketMatch && (currentRoom.options || []).some(
     (option) => String(option._id) === String(socketMatch._id)
   );
+  const contextMatchBelongsToCurrentRoom = !!matchResult && (currentRoom.options || []).some(
+    (option) => String(option._id) === String(matchResult._id)
+  );
   const activeMatch = isFinished
     ? currentRoom.matchResult
-    : socketMatchBelongsToCurrentRoom ? socketMatch : null;
+    : socketMatchBelongsToCurrentRoom
+      ? socketMatch
+      : contextMatchBelongsToCurrentRoom ? matchResult : null;
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
   const closeMatchModal = () => {

@@ -210,7 +210,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
 };
 
 const getEligibleRoom = async (roomId, userId) => {
-  const room = await Room.findById(roomId).select('host participants status category matchResult');
+  const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom');
   if (!room) { const error = new Error('Oda bulunamadı'); error.statusCode = 404; throw error; }
   if (!isRoomParticipant(room, userId)) { const error = new Error('Bu oda için mekan önerisi alma yetkiniz yok'); error.statusCode = 403; throw error; }
   if (room.status !== 'finished' || !room.matchResult?.name) { const error = new Error('Mekan önerileri için önce yemek eşleşmesi tamamlanmalıdır'); error.statusCode = 400; throw error; }
@@ -295,6 +295,20 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       });
     }
 
+    // Ana oda tek bir restoran oylama odasına bağlanır. İki kullanıcı aynı
+    // anda butona bassa bile aşağıdaki atomik sahiplenme ikisini aynı odaya
+    // yönlendirir.
+    if (room.restaurantRoom) {
+      const linkedRoom = await Room.findOne({
+        _id: room.restaurantRoom,
+        parentRoom: room._id,
+        status: { $in: ['waiting', 'voting', 'finished'] },
+      });
+      if (linkedRoom) return res.json({ room: linkedRoom, reused: true });
+      await Room.updateOne({ _id: room._id, restaurantRoom: room.restaurantRoom }, { $set: { restaurantRoom: null } });
+      room.restaurantRoom = null;
+    }
+
     const existingRoom = await Room.findOne({
       parentRoom: room._id,
       restaurantSort: sortBy,
@@ -311,6 +325,10 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         }
       });
       if (imageAdded) await existingRoom.save();
+      await Room.updateOne(
+        { _id: room._id, restaurantRoom: null },
+        { $set: { restaurantRoom: existingRoom._id } }
+      );
       return res.json({ room: existingRoom, reused: true });
     }
 
@@ -327,7 +345,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       });
     }
 
-    const restaurantRoom = await Room.create({
+    const candidateRoom = await Room.create({
       name: `${room.name} • Nerede Yiyelim?`,
       host: room.host,
       participants: room.participants,
@@ -350,11 +368,35 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       })),
     });
 
+    const claimedParent = await Room.findOneAndUpdate(
+      { _id: room._id, restaurantRoom: null },
+      { $set: { restaurantRoom: candidateRoom._id } },
+      { new: true }
+    ).select('restaurantRoom');
+
+    let restaurantRoom = candidateRoom;
+    let reused = false;
+    if (!claimedParent || String(claimedParent.restaurantRoom) !== String(candidateRoom._id)) {
+      const latestParent = claimedParent || await Room.findById(room._id).select('restaurantRoom');
+      const winningRoom = latestParent?.restaurantRoom
+        ? await Room.findById(latestParent.restaurantRoom)
+        : null;
+
+      if (winningRoom) {
+        await Room.deleteOne({ _id: candidateRoom._id, status: 'voting' });
+        restaurantRoom = winningRoom;
+        reused = true;
+      } else {
+        // Çok istisnai bir silinme yarışında oluşturduğumuz odayı yeniden bağla.
+        await Room.updateOne({ _id: room._id }, { $set: { restaurantRoom: candidateRoom._id } });
+      }
+    }
+
     getIo()?.to(room._id.toString()).emit('restaurant_round_ready', {
       parentRoomId: room._id.toString(),
       roomId: restaurantRoom._id.toString(),
     });
-    res.status(201).json({ room: restaurantRoom, reused: false });
+    res.status(reused ? 200 : 201).json({ room: restaurantRoom, reused });
   } catch (error) {
     if (error.statusCode) res.status(error.statusCode);
     next(error);

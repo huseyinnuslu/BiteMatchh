@@ -93,6 +93,11 @@ const roomSchema = mongoose.Schema(
       ref: 'Room',
       default: null,
     },
+    restaurantRoom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room',
+      default: null,
+    },
     restaurantSort: {
       type: String,
       default: null,
