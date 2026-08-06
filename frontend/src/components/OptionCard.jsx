@@ -30,6 +30,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
   const isCustom    = category === 'custom';
   const isFilm      = category === 'film' || category === 'movie';
   const isMekan     = category === 'mekan' || category === 'food';
+  const isRestaurant = category === 'restaurant';
   const isAktivite  = category === 'aktivite' || category === 'activity';
   const isLive      = option.isLiveEvent === true;
 
@@ -124,7 +125,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
               : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ fontSize: '4rem' }}>{isLive ? '🎫' : '❓'}</span>
+            {isRestaurant ? <MapPin size={52} color="var(--primary)" /> : <span style={{ fontSize: '4rem' }}>{isLive ? '🎫' : '❓'}</span>}
           </div>
         )
       )}

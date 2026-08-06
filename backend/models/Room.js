@@ -26,7 +26,8 @@ const roomSchema = mongoose.Schema(
       imdbScore: Number,
       platform: String,
       duration: String,
-      location: String
+      location: String,
+      mapsQuery: String,
     }],
     category: {
       type: String,
@@ -51,7 +52,9 @@ const roomSchema = mongoose.Schema(
       imageUrl: String,
       rating: Number,
       budget: String,
-      description: String
+      description: String,
+      location: String,
+      mapsQuery: String,
     },
     compatibilityPercentage: {
       type: Number,
@@ -63,6 +66,8 @@ const roomSchema = mongoose.Schema(
       rating: Number,
       budget: String,
       description: String,
+      location: String,
+      mapsQuery: String,
       likeCount: Number
     }],
     timeLimit: {
@@ -71,6 +76,15 @@ const roomSchema = mongoose.Schema(
     },
     votingStartedAt: {
       type: Date
+    },
+    parentRoom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room',
+      default: null,
+    },
+    restaurantSort: {
+      type: String,
+      default: null,
     }
   },
   {
@@ -87,6 +101,9 @@ roomSchema.index({ status: 1 });
 
 // participants dizisinde belirli bir user'ı ara (joinRoom kontrolü)
 roomSchema.index({ participants: 1 });
+
+// Aynı yemek eşleşmesi için ikinci restoran oylamasını tekrar kullanabilmek için.
+roomSchema.index({ parentRoom: 1, restaurantSort: 1, status: 1 });
 
 // Zombi Oda Temizliği: 30 dakika (1800 saniye) boyunca işlem görmeyen (updatedAt) waiting veya voting statüsündeki odaları otomatik sil
 roomSchema.index(

@@ -41,6 +41,8 @@ export const finishRoomCalculation = async (roomId) => {
         rating: opt.rating,
         budget: opt.budget,
         description: opt.description,
+        location: opt.location,
+        mapsQuery: opt.mapsQuery,
         likeCount: ts.count
       };
     }

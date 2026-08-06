@@ -9,6 +9,7 @@ import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
 import ChatDrawer from '../components/ChatDrawer';
 import Avatar from '../components/Avatar';
+import RestaurantRecommendations from '../components/RestaurantRecommendations';
 import { connectSocket, disconnectSocket, getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
 
@@ -31,6 +32,8 @@ const Room = () => {
   const [socketMatch, setSocketMatch] = useState(null); // Socket'tan gelen anlık eşleşme
   const [chatOpen, setChatOpen]         = useState(false);
   const [chatMatchItem, setChatMatchItem] = useState(null);
+  const [matchModalDismissed, setMatchModalDismissed] = useState(false);
+  const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
   const pollingRef = useRef(null);
   const autoOpenedChatForMatchRef = useRef(null);
 
@@ -56,6 +59,12 @@ const Room = () => {
     }
   }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name, id]);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
+
+  useEffect(() => {
+    // Yeni bir oda/sonuç geldiğinde modal ve devam akışını sıfırdan başlat.
+    setMatchModalDismissed(false);
+    setShowRestaurantFlow(false);
+  }, [id, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name]);
 
   // ── Geri sayım ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -255,6 +264,16 @@ const Room = () => {
   // Do not use the context-wide/socket value here: either may belong to an
   // earlier room while navigation or a socket update is in progress.
   const activeMatch = isFinished ? currentRoom.matchResult : socketMatch;
+  const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
+  const closeMatchModal = () => {
+    if (isFoodMatch) {
+      setMatchModalDismissed(true);
+      setShowRestaurantFlow(true);
+      setChatOpen(false);
+      return;
+    }
+    navigate('/dashboard');
+  };
 
   return (
     <div
@@ -312,6 +331,8 @@ const Room = () => {
         </div>
       )}
 
+      {!showRestaurantFlow && (
+        <>
       {/* Swipe Area */}
       <div style={{ height: '480px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <AnimatePresence mode="wait">
@@ -443,11 +464,24 @@ const Room = () => {
         </div>
       )}
 
+        </>
+      )}
+
+      {showRestaurantFlow && isFoodMatch && (
+        <RestaurantRecommendations
+          roomId={id}
+          cuisine={activeMatch?.name}
+          participantCount={currentRoom.participants.length}
+          onStartRestaurantRound={(restaurantRoomId) => navigate(`/room/${restaurantRoomId}`)}
+          onExit={() => navigate('/dashboard')}
+        />
+      )}
+
       {/* Match Modal – REST veya Socket'tan gelen eşleşme */}
       <MatchModal
-        isOpen={!!activeMatch}
+        isOpen={!!activeMatch && !matchModalDismissed}
         matchResult={activeMatch}
-        onClose={() => navigate('/dashboard')}
+        onClose={closeMatchModal}
         onExitRoom={() => navigate('/dashboard')}
       />
       <ChatDrawer
