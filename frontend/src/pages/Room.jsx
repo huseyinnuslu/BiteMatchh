@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, Loader, LogOut } from 'lucide-react';
+import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, LogOut } from 'lucide-react';
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
 import ChatDrawer from '../components/ChatDrawer';
 import Avatar from '../components/Avatar';
 import RestaurantRecommendations from '../components/RestaurantRecommendations';
-import { connectSocket, disconnectSocket, getSocket } from '../socket/socketClient';
+import { connectSocket, getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
 
 const Room = () => {
@@ -130,7 +130,7 @@ const Room = () => {
       socket.on('connect', handleConnect);
 
       // user_swiped: diğer katılımcı kaydırdı → UI güncelle (opsiyonel bilgi)
-      socket.on('user_swiped', ({ userId, username, itemId, direction: dir }) => {
+      socket.on('user_swiped', ({ userId, username, direction: dir }) => {
         if (userId === user._id) return; // kendi aksiyonumuzu yoksay
         console.log(`👆 ${username} → ${dir === 'right' ? '💚' : '❌'}`);
       });
@@ -207,6 +207,11 @@ const Room = () => {
       resetRoom();
     };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openRestaurantMatchChat = useCallback((restaurant) => {
+    setChatMatchItem(restaurant);
+    window.setTimeout(() => setChatOpen(true), 1200);
+  }, []);
 
   if (!currentRoom) {
     return <div className="flex-center" style={{ height: '70vh' }}>Oda Yükleniyor...</div>;
@@ -297,7 +302,6 @@ const Room = () => {
     }
     navigate('/dashboard');
   };
-
   return (
     <div
       style={{
@@ -496,6 +500,7 @@ const Room = () => {
           cuisine={activeMatch?.name}
           participantCount={currentRoom.participants.length}
           onStartRestaurantRound={(restaurantRoomId) => navigate(`/room/${restaurantRoomId}`)}
+          onRestaurantMatched={openRestaurantMatchChat}
           onExit={() => navigate('/dashboard')}
         />
       )}

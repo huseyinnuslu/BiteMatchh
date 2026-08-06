@@ -27,7 +27,7 @@ const panelStyle = {
   boxShadow: '0 16px 42px rgba(0,0,0,0.28)',
 };
 
-const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartRestaurantRound, onExit }) => {
+const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartRestaurantRound, onRestaurantMatched, onExit }) => {
   const [sharedCount, setSharedCount] = useState(0);
   const [hasSharedLocation, setHasSharedLocation] = useState(false);
   const [status, setStatus] = useState('intro');
@@ -41,6 +41,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
   const loadingRecommendationsRef = useRef(false);
   const automaticRoundStartedRef = useRef(false);
   const hasQuickVotedRef = useRef(false);
+  const matchChatOpenedRef = useRef(false);
 
   const applyDecisionState = useCallback((data) => {
     const nextDecisionStatus = data.decisionStatus || 'pending';
@@ -135,6 +136,12 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
     automaticRoundStartedRef.current = true;
     startRestaurantRound();
   }, [decisionStatus, startRestaurantRound]);
+
+  useEffect(() => {
+    if (status !== 'matched' || !decisionResult || matchChatOpenedRef.current) return;
+    matchChatOpenedRef.current = true;
+    onRestaurantMatched?.(decisionResult);
+  }, [decisionResult, onRestaurantMatched, status]);
 
   const shareLocation = async () => {
     setStatus('locating');

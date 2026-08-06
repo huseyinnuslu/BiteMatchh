@@ -65,6 +65,8 @@ const roomSchema = mongoose.Schema(
       imageIsRepresentative: Boolean,
       imageAttribution: String,
       imageSourceUrl: String,
+      latitude: Number,
+      longitude: Number,
     },
     compatibilityPercentage: {
       type: Number,

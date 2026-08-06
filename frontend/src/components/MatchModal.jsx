@@ -6,18 +6,30 @@ import RestaurantImage from './RestaurantImage';
 
 // ── Yardımcı: URL oluşturucular ──────────────────────────────────────────────
 
+const hasExactCoordinates = (result) =>
+  result?.latitude !== null && result?.latitude !== undefined &&
+  result?.longitude !== null && result?.longitude !== undefined &&
+  Number.isFinite(Number(result.latitude)) && Number.isFinite(Number(result.longitude));
+
 // mapsQuery: backend'den gelen hazır arama terimi (varsa)
-// Yoksa: "Mekan Adı İstanbul" ile gerçek sonuç gelir
 const getMapsQuery = (result) =>
   result?.mapsQuery ||
-  (result?.location ? `${result.name} ${result.location} İstanbul` : `${result.name} İstanbul`);
+  (result?.location ? `${result.name} ${result.location}` : result?.name || '');
 
 const googleMapsUrl = (result) => {
+  if (hasExactCoordinates(result)) {
+    const coordinates = `${Number(result.latitude)},${Number(result.longitude)}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`;
+  }
   const q = encodeURIComponent(getMapsQuery(result));
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 };
 
 const yandexMapsUrl = (result) => {
+  if (hasExactCoordinates(result)) {
+    const point = `${Number(result.longitude)},${Number(result.latitude)}`;
+    return `https://yandex.com.tr/maps/?ll=${encodeURIComponent(point)}&z=17&pt=${encodeURIComponent(`${point},pm2rdm`)}`;
+  }
   const q = encodeURIComponent(getMapsQuery(result));
   return `https://yandex.com.tr/maps/?text=${q}`;
 };
@@ -97,6 +109,7 @@ const MatchModal = ({
   const name     = matchResult?.name     || '';
   const location = matchResult?.location || '';
   const isPlace  = !!(matchResult?.location || matchResult?.budget || matchResult?.rating);
+  const isRestaurantResult = hasExactCoordinates(matchResult) && !!matchResult?.location;
 
   return (
     <AnimatePresence>
@@ -165,6 +178,7 @@ const MatchModal = ({
                     <RestaurantImage key={matchResult._id || matchResult.venueId || matchResult.imageUrl} item={matchResult} alt={name} containerStyle={{ width: '100%', height: 180, borderRadius: 12, marginBottom: '1rem' }} />
                   )}
 
+                  {isRestaurantResult && <div style={{ color: '#c4b5fd', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: '.35rem' }}>Seçilen restoran</div>}
                   <h2 style={{ fontSize: '1.7rem', color: 'white', margin: '0 0 0.5rem 0' }}>{name}</h2>
 
                   {/* Lokasyon varsa göster */}
@@ -173,7 +187,7 @@ const MatchModal = ({
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
                       color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 0.75rem 0',
                     }}>
-                      <MapPin size={14} /> {location}
+                      <MapPin size={14} /> {isRestaurantResult ? `Şube ve açık adres: ${location}` : location}
                     </p>
                   )}
 
