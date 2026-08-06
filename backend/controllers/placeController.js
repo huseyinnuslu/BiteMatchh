@@ -4,7 +4,9 @@ import { getIo } from '../server.js';
 
 const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
-const RESTAURANT_RECOMMENDATION_VERSION = 2;
+// Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
+// güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
+const RESTAURANT_RECOMMENDATION_VERSION = 3;
 
 const isRoomParticipant = (room, userId) =>
   room.participants.some((participant) => participant.toString() === userId.toString());
@@ -151,9 +153,9 @@ const venueSearchText = (place) => normalizeFoodName([
 ].filter(Boolean).join(' '));
 
 const venueMatchesFoodProfile = (place, profile) => {
-  const specializedTypes = new Set(['shop:confectionery', 'shop:bakery', 'shop:coffee', 'amenity:ice_cream']);
-  if (specializedTypes.has(`${place.category}:${place.type}`)) return true;
-
+  // Nominatim'de "cafe" veya "confectionery" olması tek başına seçilen
+  // yemeği sattığını kanıtlamaz. Tostta tost, pizzada pizza gibi bir iz,
+  // işletme adında, markasında veya OSM mutfak etiketinde bulunmalıdır.
   const keywords = (profile.keywords || [...(profile.names || []), ...(profile.queries || [])])
     .flatMap((value) => normalizeFoodName(value).split(/[^a-z0-9]+/))
     .filter((word) => word.length >= 4 && !GENERIC_VENUE_WORDS.has(word));
@@ -226,16 +228,24 @@ const getFoodVenueProfile = (foodName) => {
 const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const center = groupCenter(locations);
   const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
-  const radiusMeters = Math.min(50000, Math.max(5000, Math.ceil((farthestMemberKm + 8) * 1000)));
+  // Katılımcılar aynı yerdeyse 3 km, birbirinden uzaktalarsa ortak merkeze
+  // göre ölçülü biçimde genişleyen bir alan kullanırız. "Yakın" öneri,
+  // şehrin rastgele başka bir ucundan gelemez.
+  const maxGroupDistanceKm = Math.min(20, Math.max(3, Number((farthestMemberKm + 4).toFixed(1))));
+  const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
   const profile = getFoodVenueProfile(room.matchResult.name);
   const allowedTypes = new Set(profile.types || DEFAULT_FOOD_VENUE_TYPES);
-  const isUsableVenue = (place) =>
-      Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lon)) &&
-      place.name && allowedTypes.has(`${place.category}:${place.type}`) &&
-      venueMatchesFoodProfile(place, profile) &&
-      hasNavigableVenueAddress(place) &&
-      venueVerificationScore(place) >= 4;
+  const isUsableVenue = (place) => {
+    if (!Number.isFinite(Number(place.lat)) || !Number.isFinite(Number(place.lon))) return false;
+    if (!place.name || !allowedTypes.has(`${place.category}:${place.type}`)) return false;
+    if (!venueMatchesFoodProfile(place, profile) || !hasNavigableVenueAddress(place)) return false;
+    if (venueVerificationScore(place) < 4) return false;
+
+    const coordinates = { latitude: Number(place.lat), longitude: Number(place.lon) };
+    const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
+    return venueMaxGroupDistanceKm <= maxGroupDistanceKm;
+  };
   const candidatePool = [];
   const seenVenueIds = new Set();
 
@@ -248,15 +258,17 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         candidatePool.push(place);
       }
     });
-    if (candidatePool.length >= limit) break;
+    // İlk üç sonucu hemen seçmeyiz; farklı arama terimlerinden gelen adayları
+    // birlikte değerlendirip gerçekten en yakın ve en doğrulanmış olanları sıralarız.
+    if (candidatePool.length >= limit * 4) break;
   }
 
   return candidatePool
     .map((place) => {
       const coordinates = { latitude: Number(place.lat), longitude: Number(place.lon) };
       const distances = locations.map((location) => haversineKm(location, coordinates));
-      const maxGroupDistanceKm = Math.max(...distances);
-      const distanceScore = Math.max(0, 1 - maxGroupDistanceKm / (radiusMeters / 1000));
+      const venueMaxGroupDistanceKm = Math.max(...distances);
+      const distanceScore = Math.max(0, 1 - venueMaxGroupDistanceKm / maxGroupDistanceKm);
       const address = formatVenueAddress(place);
       const verificationScore = venueVerificationScore(place);
       const venueImage = getVenueImage(place, room.matchResult.imageUrl);
@@ -276,7 +288,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
         distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
-        maxGroupDistanceKm: Number(maxGroupDistanceKm.toFixed(1)),
+        maxGroupDistanceKm: Number(venueMaxGroupDistanceKm.toFixed(1)),
         verificationScore,
         recommendationScore: Number((distanceScore * 0.7 + Math.min(1, verificationScore / 10) * 0.3).toFixed(4)),
       };
