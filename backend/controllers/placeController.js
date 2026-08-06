@@ -63,7 +63,7 @@ const searchNominatimPlaces = async ({ query, center, radiusMeters }) => {
   const latitudeDelta = radiusMeters / 111320;
   const longitudeDelta = radiusMeters / (111320 * Math.max(Math.cos((center.latitude * Math.PI) / 180), 0.1));
   const params = new URLSearchParams({
-    format: 'jsonv2', q: query, bounded: '1', limit: '30', addressdetails: '1',
+    format: 'jsonv2', q: query, bounded: '1', limit: '30', addressdetails: '1', extratags: '1',
     viewbox: `${center.longitude - longitudeDelta},${center.latitude + latitudeDelta},${center.longitude + longitudeDelta},${center.latitude - latitudeDelta}`,
   });
   const response = await fetchNominatim(`${NOMINATIM_URL}?${params}`);
@@ -77,33 +77,78 @@ const searchNominatimPlaces = async ({ query, center, radiusMeters }) => {
   return places;
 };
 
-const getLiveVenueOptions = async ({ room, locations, userId, limit, includeFallbackCandidates = false, strictCuisine = false }) => {
+const DEFAULT_FOOD_VENUE_TYPES = ['amenity:restaurant', 'amenity:fast_food', 'amenity:cafe'];
+
+const FOOD_VENUE_PROFILES = [
+  { names: ['hamburger'], queries: ['burger', 'hamburger'] },
+  { names: ['pizza'], queries: ['pizzeria', 'Little Caesars', 'pizza'] },
+  { names: ['sushi', 'japon'], queries: ['sushi', 'japon restoranı'] },
+  { names: ['adana kebap'], queries: ['adana kebap', 'kebap'] },
+  { names: ['tantuni'], queries: ['tantuni'] },
+  { names: ['doner'], queries: ['döner'] },
+  { names: ['lahmacun'], queries: ['lahmacun', 'pide'] },
+  { names: ['deniz urunleri'], queries: ['balık restoranı', 'seafood'] },
+  { names: ['steakhouse'], queries: ['steakhouse', 'et restoranı'] },
+  { names: ['fine dining'], queries: ['fine dining', 'şef restoranı'] },
+  { names: ['ramen'], queries: ['ramen', 'asya restoranı'] },
+  { names: ['serpme kahvalti'], queries: ['kahvaltı', 'breakfast'], types: ['amenity:restaurant', 'amenity:cafe'] },
+  { names: ['pasta & tatli'], queries: ['pastane', 'pasta'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe', 'amenity:ice_cream'] },
+  { names: ['tost'], queries: ['tost', 'sandviç'] },
+  { names: ['meksika'], queries: ['taco', 'meksika restoranı'] },
+  { names: ['makarna'], queries: ['italyan restoranı', 'makarna'] },
+  { names: ['kofte'], queries: ['köfte'] },
+  { names: ['kiymali pide'], queries: ['pide', 'kıymalı pide'] },
+  { names: ['tavuk kanat'], queries: ['tavuk', 'chicken'] },
+  { names: ['vegan'], queries: ['vegan', 'healthy bowl'], types: ['amenity:restaurant', 'amenity:cafe', 'amenity:fast_food'] },
+  { names: ['hint mutfagi'], queries: ['hint restoranı', 'indian restaurant'] },
+  { names: ['wok'], queries: ['noodle', 'wok'] },
+  { names: ['salata'], queries: ['salata', 'vegan', 'akdeniz restoranı'] },
+  { names: ['brunch'], queries: ['brunch', 'kahvaltı'], types: ['amenity:cafe', 'amenity:restaurant'] },
+  { names: ['kahve'], queries: ['kahve', 'pastane'], types: ['amenity:cafe', 'shop:coffee', 'shop:confectionery', 'shop:bakery'] },
+  { names: ['falafel'], queries: ['falafel', 'levanten restoranı'] },
+  { names: ['tatli & waffle'], queries: ['waffle', 'pastane', 'tatlıcı'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe', 'amenity:ice_cream', 'amenity:restaurant'] },
+];
+
+const normalizeFoodName = (value = '') => value
+  .toLocaleLowerCase('tr-TR')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/ı/g, 'i');
+
+const getFoodVenueProfile = (foodName) => {
+  const normalizedName = normalizeFoodName(foodName);
+  return FOOD_VENUE_PROFILES.find((profile) =>
+    profile.names.some((name) => normalizedName.includes(name))
+  ) || {
+    queries: [foodName],
+    types: DEFAULT_FOOD_VENUE_TYPES,
+  };
+};
+
+const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const center = groupCenter(locations);
   const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
   const radiusMeters = Math.min(50000, Math.max(5000, Math.ceil((farthestMemberKm + 8) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
-  const allowedTypes = room.matchResult.name.toLocaleLowerCase('tr-TR').includes('kahve')
-    ? ['restaurant', 'fast_food', 'cafe']
-    : ['restaurant', 'fast_food'];
+  const profile = getFoodVenueProfile(room.matchResult.name);
+  const allowedTypes = new Set(profile.types || DEFAULT_FOOD_VENUE_TYPES);
   const isUsableVenue = (place) =>
       Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lon)) &&
-      place.name && place.category === 'amenity' && allowedTypes.includes(place.type);
-  const matchingPlaces = (await searchNominatimPlaces({ query: `${room.matchResult.name} restaurant`, center, radiusMeters }))
-    .filter(isUsableVenue);
-  const genericPlaces = strictCuisine || (matchingPlaces.length >= limit && !includeFallbackCandidates)
-    ? []
-    : await searchNominatimPlaces({ query: 'restaurant', center, radiusMeters });
-  const allCandidates = [...matchingPlaces, ...genericPlaces]
-    .filter(isUsableVenue)
-    .filter((place, index, list) =>
-      list.findIndex((item) => item.osm_type === place.osm_type && item.osm_id === place.osm_id) === index
-    );
-  const matchingIds = new Set(matchingPlaces.map((place) => `${place.osm_type}-${place.osm_id}`));
-  const candidatePool = strictCuisine
-    ? matchingPlaces
-    : (includeFallbackCandidates || matchingPlaces.length < limit
-      ? allCandidates
-      : allCandidates.filter((place) => matchingIds.has(`${place.osm_type}-${place.osm_id}`)));
+      place.name && allowedTypes.has(`${place.category}:${place.type}`);
+  const candidatePool = [];
+  const seenVenueIds = new Set();
+
+  for (const query of profile.queries) {
+    const places = await searchNominatimPlaces({ query, center, radiusMeters });
+    places.filter(isUsableVenue).forEach((place) => {
+      const venueId = `${place.osm_type}-${place.osm_id}`;
+      if (!seenVenueIds.has(venueId)) {
+        seenVenueIds.add(venueId);
+        candidatePool.push(place);
+      }
+    });
+    if (candidatePool.length >= limit) break;
+  }
 
   return candidatePool
     .map((place) => {
@@ -237,13 +282,11 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       locations,
       userId: req.user._id,
       limit: 10,
-      includeFallbackCandidates: true,
-      strictCuisine: true,
     });
     if (venues.length < 2) {
       return res.status(404).json({
         code: 'VENUES_NOT_FOUND',
-        message: 'Bu konumda restoran seçimi için yeterli gerçek mekan bulunamadı.',
+        message: `${room.matchResult.name} için bu bölgede en az iki doğrulanmış gerçek mekan bulunamadı.`,
       });
     }
 
