@@ -32,6 +32,7 @@ const Room = () => {
   const [chatOpen, setChatOpen]         = useState(false);
   const [chatMatchItem, setChatMatchItem] = useState(null);
   const pollingRef = useRef(null);
+  const autoOpenedChatForMatchRef = useRef(null);
 
   useEffect(() => {
     const isThisRoomFinished =
@@ -39,11 +40,21 @@ const Room = () => {
       currentRoom?.status === 'finished' &&
       currentRoom?.matchResult;
 
-    if (isThisRoomFinished) {
-      setChatMatchItem(currentRoom.matchResult);
+    if (!isThisRoomFinished) {
+      autoOpenedChatForMatchRef.current = null;
+      return;
+    }
+
+    setChatMatchItem(currentRoom.matchResult);
+
+    // Room status polling returns a fresh matchResult object every few seconds.
+    // Auto-opening on that object would reopen a chat the user already closed.
+    const matchKey = `${id}:${currentRoom.matchResult?._id || currentRoom.matchResult?.name || 'result'}`;
+    if (autoOpenedChatForMatchRef.current !== matchKey) {
+      autoOpenedChatForMatchRef.current = matchKey;
       setChatOpen(true);
     }
-  }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult, id]);
+  }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name, id]);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
 
   // ── Geri sayım ─────────────────────────────────────────────────────────────
