@@ -4,6 +4,7 @@ import { getIo } from '../server.js';
 
 const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
+const RESTAURANT_RECOMMENDATION_VERSION = 2;
 
 const isRoomParticipant = (room, userId) =>
   room.participants.some((participant) => participant.toString() === userId.toString());
@@ -140,6 +141,78 @@ const normalizeFoodName = (value = '') => value
   .replace(/[\u0300-\u036f]/g, '')
   .replace(/ı/g, 'i');
 
+const GENERIC_VENUE_WORDS = new Set(['restaurant', 'restoran', 'restorani', 'mutfagi', 'sef', 'chef', 'food']);
+
+const venueSearchText = (place) => normalizeFoodName([
+  place.name,
+  place.extratags?.brand,
+  place.extratags?.cuisine,
+  place.extratags?.description,
+].filter(Boolean).join(' '));
+
+const venueMatchesFoodProfile = (place, profile) => {
+  const specializedTypes = new Set(['shop:confectionery', 'shop:bakery', 'shop:coffee', 'amenity:ice_cream']);
+  if (specializedTypes.has(`${place.category}:${place.type}`)) return true;
+
+  const keywords = (profile.keywords || [...(profile.names || []), ...(profile.queries || [])])
+    .flatMap((value) => normalizeFoodName(value).split(/[^a-z0-9]+/))
+    .filter((word) => word.length >= 4 && !GENERIC_VENUE_WORDS.has(word));
+  const searchableText = venueSearchText(place);
+  return keywords.some((keyword) => searchableText.includes(keyword));
+};
+
+const venueVerificationScore = (place) => {
+  const address = place.address || {};
+  const tags = place.extratags || {};
+  let score = 0;
+  if (address.house_number) score += 3;
+  if (address.road || address.pedestrian) score += 2;
+  if (address.postcode) score += 1;
+  if (tags.website || tags['contact:website']) score += 3;
+  if (tags.phone || tags['contact:phone']) score += 2;
+  if (tags.brand || tags['brand:wikidata'] || tags.wikidata || tags.wikipedia) score += 3;
+  if (tags.opening_hours) score += 1;
+  if (tags.wikimedia_commons || tags.image) score += 1;
+  return score;
+};
+
+const hasNavigableVenueAddress = (place) => {
+  const address = place.address || {};
+  const tags = place.extratags || {};
+  const hasStreetOrVenue = !!(address.road || address.pedestrian || address.mall || address.retail || address.building);
+  // Bir sokak adı veya bina numarası tek başına buranın güncel bir işletme
+  // olduğunu kanıtlamaz. Kullanıcıya yalnızca dışarıdan doğrulanabilir bir
+  // işletme izi olan ve navigasyona uygun adres taşıyan mekanları gösteririz.
+  const hasBusinessIdentity = !!(
+    tags.website || tags['contact:website'] ||
+    tags.phone || tags['contact:phone'] ||
+    tags.brand || tags['brand:wikidata'] ||
+    tags.wikidata || tags.wikipedia
+  );
+  return hasStreetOrVenue && hasBusinessIdentity;
+};
+
+const formatVenueAddress = (place) => {
+  const address = place.address || {};
+  const street = [address.road || address.pedestrian, address.house_number ? `No:${address.house_number}` : '']
+    .filter(Boolean).join(' ');
+  const rawParts = [
+    address.mall || address.retail || address.building,
+    street,
+    address.neighbourhood || address.quarter || address.suburb,
+    address.town || address.municipality || address.district || address.county,
+    address.city || address.province || address.state,
+    address.postcode,
+  ].filter(Boolean);
+  const seen = new Set();
+  return rawParts.filter((part) => {
+    const normalized = normalizeFoodName(String(part)).replace(/[^a-z0-9]/g, '');
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  }).join(', ');
+};
+
 const getFoodVenueProfile = (foodName) => {
   const normalizedName = normalizeFoodName(foodName);
   return FOOD_VENUE_PROFILES.find((profile) =>
@@ -159,7 +232,10 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const allowedTypes = new Set(profile.types || DEFAULT_FOOD_VENUE_TYPES);
   const isUsableVenue = (place) =>
       Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lon)) &&
-      place.name && allowedTypes.has(`${place.category}:${place.type}`);
+      place.name && allowedTypes.has(`${place.category}:${place.type}`) &&
+      venueMatchesFoodProfile(place, profile) &&
+      hasNavigableVenueAddress(place) &&
+      venueVerificationScore(place) >= 4;
   const candidatePool = [];
   const seenVenueIds = new Set();
 
@@ -181,11 +257,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
       const distances = locations.map((location) => haversineKm(location, coordinates));
       const maxGroupDistanceKm = Math.max(...distances);
       const distanceScore = Math.max(0, 1 - maxGroupDistanceKm / (radiusMeters / 1000));
-      const address = [
-        place.address?.road,
-        place.address?.neighbourhood || place.address?.quarter || place.address?.suburb,
-        place.address?.city || place.address?.town || place.address?.province,
-      ].filter(Boolean).join(', ');
+      const address = formatVenueAddress(place);
+      const verificationScore = venueVerificationScore(place);
       const venueImage = getVenueImage(place, room.matchResult.imageUrl);
       return {
         id: `osm-${place.osm_type}-${place.osm_id}`,
@@ -204,7 +277,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         longitude: coordinates.longitude,
         distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
         maxGroupDistanceKm: Number(maxGroupDistanceKm.toFixed(1)),
-        recommendationScore: Number(distanceScore.toFixed(4)),
+        verificationScore,
+        recommendationScore: Number((distanceScore * 0.7 + Math.min(1, verificationScore / 10) * 0.3).toFixed(4)),
       };
     })
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
@@ -224,6 +298,7 @@ const recommendationForStorage = (venue) => ({
   latitude: venue.latitude,
   longitude: venue.longitude,
   maxGroupDistanceKm: venue.maxGroupDistanceKm,
+  verificationScore: venue.verificationScore,
 });
 
 const personalizeStoredRecommendations = (recommendations, requesterLocation) =>
@@ -239,7 +314,14 @@ const personalizeStoredRecommendations = (recommendations, requesterLocation) =>
   });
 
 const ensureStoredRecommendations = async ({ room, locations, userId }) => {
-  if (room.restaurantRecommendations?.length) {
+  const hasStoredRecommendations = room.restaurantRecommendations?.length > 0;
+  const hasCurrentRecommendationVersion =
+    room.restaurantRecommendationVersion === RESTAURANT_RECOMMENDATION_VERSION;
+  const hasFinalDecision = ['matched', 'no_match'].includes(room.restaurantDecisionStatus);
+
+  // Tamamlanmış bir kararı geçmişten silmeyiz. Devam eden odalarda ise eski
+  // kalite kurallarıyla üretilmiş önerileri yeni sürümle yeniden hesaplarız.
+  if (hasStoredRecommendations && (hasCurrentRecommendationVersion || hasFinalDecision)) {
     const needsFallback = room.restaurantRecommendations.some((venue) => !venue.fallbackImageUrl);
     if (!needsFallback || !room.matchResult.imageUrl) return room.restaurantRecommendations;
 
@@ -256,16 +338,32 @@ const ensureStoredRecommendations = async ({ room, locations, userId }) => {
 
   const venues = await getLiveVenueOptions({ room, locations, userId, limit: 3 });
   const storedVenues = venues.map(recommendationForStorage);
-  if (!storedVenues.length) return [];
+  if (storedVenues.length < 2) return [];
 
   const updatedRoom = await Room.findOneAndUpdate(
-    { _id: room._id, 'restaurantRecommendations.0': { $exists: false } },
-    { $set: { restaurantRecommendations: storedVenues, restaurantDecisionStatus: 'pending' } },
+    {
+      _id: room._id,
+      restaurantDecisionStatus: 'pending',
+      $or: [
+        { 'restaurantRecommendations.0': { $exists: false } },
+        { restaurantRecommendationVersion: { $ne: RESTAURANT_RECOMMENDATION_VERSION } },
+      ],
+    },
+    {
+      $set: {
+        restaurantRecommendations: storedVenues,
+        restaurantRecommendationVersion: RESTAURANT_RECOMMENDATION_VERSION,
+        restaurantQuickVotes: [],
+        restaurantDecisionResult: null,
+        restaurantDecisionStatus: 'pending',
+      },
+    },
     { new: true }
-  ).select('restaurantRecommendations');
+  ).select('restaurantRecommendations restaurantRecommendationVersion');
 
   if (updatedRoom) return updatedRoom.restaurantRecommendations;
-  const currentRoom = await Room.findById(room._id).select('restaurantRecommendations');
+  const currentRoom = await Room.findById(room._id).select('restaurantRecommendations restaurantRecommendationVersion');
+  if (currentRoom?.restaurantRecommendationVersion !== RESTAURANT_RECOMMENDATION_VERSION) return [];
   return currentRoom?.restaurantRecommendations || [];
 };
 
@@ -278,7 +376,7 @@ const restaurantDecisionPayload = (room, userId) => ({
 });
 
 const getEligibleRoom = async (roomId, userId) => {
-  const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom restaurantRecommendations restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
+  const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom restaurantRecommendations restaurantRecommendationVersion restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
   if (!room) { const error = new Error('Oda bulunamadı'); error.statusCode = 404; throw error; }
   if (!isRoomParticipant(room, userId)) { const error = new Error('Bu oda için mekan önerisi alma yetkiniz yok'); error.statusCode = 403; throw error; }
   if (room.status !== 'finished' || !room.matchResult?.name) { const error = new Error('Mekan önerileri için önce yemek eşleşmesi tamamlanmalıdır'); error.statusCode = 400; throw error; }
@@ -327,6 +425,12 @@ export const getRestaurantRecommendations = async (req, res, next) => {
       locations,
       userId: req.user._id,
     });
+    if (storedRecommendations.length < 2) {
+      return res.status(404).json({
+        code: 'VERIFIED_VENUES_NOT_FOUND',
+        message: `${room.matchResult.name} için yakın çevrede doğrulanabilir işletme bilgisine sahip yeterli mekan bulunamadı. Rastgele bir konum önermedik.`,
+      });
+    }
     const latestRoom = await Room.findById(room._id).select('participants restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
     const requesterLocation = locations.find((item) => item.user.toString() === req.user._id.toString());
     const recommendations = personalizeStoredRecommendations(storedRecommendations, requesterLocation);

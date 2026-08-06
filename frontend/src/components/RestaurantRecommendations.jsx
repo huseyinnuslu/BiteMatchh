@@ -38,6 +38,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
   const [decisionStatus, setDecisionStatus] = useState('pending');
   const [decisionResult, setDecisionResult] = useState(null);
   const [restaurantRoomId, setRestaurantRoomId] = useState(null);
+  const [emptyMessage, setEmptyMessage] = useState('Yakın çevrede yeterli doğrulanmış restoran bulunamadı.');
   const loadingRecommendationsRef = useRef(false);
   const automaticRoundStartedRef = useRef(false);
   const hasQuickVotedRef = useRef(false);
@@ -90,6 +91,9 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
       if (error.response?.status === 409) {
         setSharedCount(error.response.data.sharedCount || 0);
         setStatus('waiting');
+      } else if (error.response?.status === 404) {
+        setEmptyMessage(error.response?.data?.message || 'Yakın çevrede yeterli doğrulanmış restoran bulunamadı.');
+        setStatus('empty');
       } else if (!silent) {
         setStatus('error');
         toast.error(error.response?.data?.message || 'Restoran önerileri alınamadı.');
@@ -286,7 +290,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
           <button disabled={isBusy} onClick={startRestaurantRound} className="btn btn-primary" style={{ width: '100%', minHeight: 46 }}>Restoran Kartlarını Tekrar Hazırla</button>
         )}
 
-        {status === 'empty' && <div style={{ padding: '1rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '.9rem' }}>Yakın çevrede yeterli gerçek restoran bulunamadı.</div>}
+        {status === 'empty' && <div style={{ padding: '1rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '.9rem', lineHeight: 1.5 }}>{emptyMessage}</div>}
         {status === 'error' && <button onClick={() => loadRecommendations()} className="btn" style={{ width: '100%', border: '1px solid rgba(255,255,255,.2)', color: 'white' }}>Tekrar Dene</button>}
 
         <button onClick={onExit} className="btn" style={{ width: '100%', marginTop: '1rem', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,.12)', background: 'transparent' }}>

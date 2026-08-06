@@ -116,7 +116,12 @@ const roomSchema = mongoose.Schema(
       latitude: Number,
       longitude: Number,
       maxGroupDistanceKm: Number,
+      verificationScore: Number,
     }],
+    restaurantRecommendationVersion: {
+      type: Number,
+      default: 0,
+    },
     restaurantQuickVotes: [{
       user: {
         type: mongoose.Schema.Types.ObjectId,
