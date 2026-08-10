@@ -302,9 +302,12 @@ const Room = () => {
       ? socketMatch
       : contextMatchBelongsToCurrentRoom ? matchResult : null;
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
+  const isFilmMatch = ['film', 'movie'].includes(currentRoom.category) && !!activeMatch;
+  const isVenueMatch = isFoodMatch || isFilmMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
+  const isCinemaRound = currentRoom.category === 'cinema';
   const closeMatchModal = () => {
-    if (isFoodMatch && restaurantRecommendationsEnabled) {
+    if (isVenueMatch && restaurantRecommendationsEnabled) {
       setMatchModalDismissed(true);
       setShowRestaurantFlow(true);
       setChatOpen(false);
@@ -504,10 +507,11 @@ const Room = () => {
         </>
       )}
 
-      {restaurantRecommendationsEnabled && showRestaurantFlow && isFoodMatch && (
+      {restaurantRecommendationsEnabled && showRestaurantFlow && isVenueMatch && (
         <RestaurantRecommendations
           roomId={id}
           cuisine={activeMatch?.name}
+          venueKind={isFilmMatch ? 'cinema' : 'restaurant'}
           participantCount={currentRoom.participants.length}
           onStartRestaurantRound={(restaurantRoomId) => navigate(`/room/${restaurantRoomId}`)}
           onRestaurantMatched={openRestaurantMatchChat}
@@ -521,9 +525,9 @@ const Room = () => {
         matchResult={activeMatch}
         onClose={closeMatchModal}
         onExitRoom={() => navigate('/dashboard')}
-        title={isRestaurantRound ? 'RESTORAN BELİRLENDİ!' : undefined}
-        subtitle={isRestaurantRound ? 'Grubunuz nerede yiyeceğine karar verdi.' : undefined}
-        closeLabel={isRestaurantRound ? 'Kararı Tamamla & Keşfete Dön' : undefined}
+        title={isRestaurantRound ? 'RESTORAN BELİRLENDİ!' : isCinemaRound ? 'SİNEMA SALONU BELİRLENDİ!' : undefined}
+        subtitle={isRestaurantRound ? 'Grubunuz nerede yiyeceğine karar verdi.' : isCinemaRound ? 'Grubunuz filmi nerede izleyeceğine karar verdi.' : undefined}
+        closeLabel={isRestaurantRound || isCinemaRound ? 'Kararı Tamamla & Keşfete Dön' : undefined}
       />
       <ChatDrawer
         isOpen={chatOpen}

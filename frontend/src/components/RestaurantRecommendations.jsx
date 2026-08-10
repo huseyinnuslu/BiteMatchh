@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Heart, LocateFixed, MapPin, Navigation, Route, ShieldCheck, Sparkles, Users, UtensilsCrossed, X } from 'lucide-react';
+import { CheckCircle2, Clapperboard, Heart, LocateFixed, MapPin, Navigation, Route, ShieldCheck, Sparkles, Users, UtensilsCrossed, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../api';
 import { getSocket } from '../socket/socketClient';
@@ -27,7 +27,11 @@ const panelStyle = {
   boxShadow: '0 16px 42px rgba(0,0,0,0.28)',
 };
 
-const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartRestaurantRound, onRestaurantMatched, onExit }) => {
+const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKind = 'restaurant', onStartRestaurantRound, onRestaurantMatched, onExit }) => {
+  const isCinema = venueKind === 'cinema';
+  const venueLabel = isCinema ? 'sinema salonu' : 'restoran';
+  const venueLabelPlural = isCinema ? 'sinema salonları' : 'restoranlar';
+  const flowHeading = isCinema ? 'Şimdi nerede izleyelim?' : 'Şimdi nerede yiyelim?';
   const [sharedCount, setSharedCount] = useState(0);
   const [hasSharedLocation, setHasSharedLocation] = useState(false);
   const [status, setStatus] = useState('intro');
@@ -202,10 +206,10 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
       <section style={{ ...panelStyle, marginTop: '1.25rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(99,102,241,0.2)', color: '#c4b5fd' }}>
-            <UtensilsCrossed size={21} />
+            {isCinema ? <Clapperboard size={21} /> : <UtensilsCrossed size={21} />}
           </div>
           <div>
-            <div style={{ color: '#c4b5fd', fontSize: '.78rem', fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>Şimdi nerede yiyelim?</div>
+            <div style={{ color: '#c4b5fd', fontSize: '.78rem', fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>{flowHeading}</div>
             <h2 style={{ margin: '.2rem 0 0', color: 'white', fontSize: '1.35rem' }}>{cuisine} için ortak noktayı bulalım</h2>
           </div>
         </div>
@@ -213,7 +217,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
         {status === 'intro' && (
           <>
             <p style={{ color: 'var(--text-muted)', lineHeight: 1.55, fontSize: '.92rem', margin: '0 0 1rem' }}>
-              Herkes konumunu paylaşınca gruba adil uzaklıktaki üç gerçek restoranı gizlice değerlendirecek.
+              Herkes konumunu paylaşınca gruba adil uzaklıktaki üç gerçek {venueLabel} gizlice değerlendirecek.
             </p>
             <button onClick={shareLocation} className="btn btn-primary" style={{ width: '100%', minHeight: 48, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '.55rem' }}>
               <LocateFixed size={18} /> Konumumu Paylaş ve Başla
@@ -224,7 +228,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
         {(['locating', 'loading', 'submitting-vote'].includes(status)) && (
           <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-muted)' }}>
             <Sparkles size={24} color="var(--primary)" style={{ marginBottom: '.5rem' }} />
-            <div>{status === 'locating' ? 'Konumun alınıyor…' : status === 'submitting-vote' ? 'Gizli tercihlerin kaydediliyor…' : 'Gerçek restoranlar hazırlanıyor…'}</div>
+            <div>{status === 'locating' ? 'Konumun alınıyor…' : status === 'submitting-vote' ? 'Gizli tercihlerin kaydediliyor…' : `Gerçek ${venueLabelPlural} hazırlanıyor…`}</div>
           </div>
         )}
 
@@ -264,6 +268,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
               <div style={{ display: 'flex', gap: '.45rem', flexWrap: 'wrap', marginTop: '.75rem' }}>
                 {currentPlace.distanceFromYouKm !== null && <span style={{ fontSize: '.75rem', color: '#bbf7d0', background: 'rgba(34,197,94,.12)', padding: '.25rem .5rem', borderRadius: 99 }}><Route size={12} style={{ verticalAlign: 'middle' }} /> Sana {currentPlace.distanceFromYouKm} km</span>}
                 <span style={{ fontSize: '.75rem', color: '#c4b5fd', background: 'rgba(99,102,241,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>Grubun en uzağı {currentPlace.maxGroupDistanceKm} km</span>
+                {isCinema && currentPlace.screenFormat && <span style={{ fontSize: '.75rem', color: '#fef3c7', background: 'rgba(245,158,11,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>{currentPlace.screenFormat}</span>}
               </div>
             </article>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.7rem', marginTop: '.85rem' }}>
@@ -283,11 +288,11 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
         )}
 
         {(['starting-round', 'creating-round'].includes(status)) && (
-          <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}><Sparkles size={24} color="var(--primary)" style={{ marginBottom: '.5rem' }} /><div>Hızlı önerilerde ortak seçim çıkmadı. Restoran kartları hazırlanıyor…</div></div>
+          <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}><Sparkles size={24} color="var(--primary)" style={{ marginBottom: '.5rem' }} /><div>Hızlı önerilerde ortak seçim çıkmadı. {isCinema ? 'Sinema salonu' : 'Restoran'} kartları hazırlanıyor…</div></div>
         )}
 
         {status === 'round-error' && (
-          <button disabled={isBusy} onClick={startRestaurantRound} className="btn btn-primary" style={{ width: '100%', minHeight: 46 }}>Restoran Kartlarını Tekrar Hazırla</button>
+          <button disabled={isBusy} onClick={startRestaurantRound} className="btn btn-primary" style={{ width: '100%', minHeight: 46 }}>{isCinema ? 'Salon Kartlarını' : 'Restoran Kartlarını'} Tekrar Hazırla</button>
         )}
 
         {status === 'empty' && <div style={{ padding: '1rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '.9rem', lineHeight: 1.5 }}>{emptyMessage}</div>}
@@ -301,7 +306,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, onStartR
       <MatchModal
         isOpen={status === 'matched' && !!decisionResult}
         matchResult={decisionResult}
-        title="RESTORAN BELİRLENDİ!"
+        title={isCinema ? 'SİNEMA SALONU BELİRLENDİ!' : 'RESTORAN BELİRLENDİ!'}
         subtitle="Gizli tercihleriniz ortak bir kararda buluştu."
         closeLabel="Kararı Tamamla & Keşfete Dön"
         onClose={onExit}

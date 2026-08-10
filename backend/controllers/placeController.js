@@ -268,6 +268,25 @@ const getFoursquareCategoryNames = (place) => {
     .filter(Boolean)
 };
 
+const isCinemaRoom = (room) => ['film', 'movie'].includes(room.category);
+
+const getVenueSearch = (room) => {
+  if (isCinemaRoom(room)) {
+    return { query: 'cinema', venueType: 'cinema', screenFormat: null };
+  }
+  const profile = getFoodVenueProfile(room.matchResult.name);
+  return {
+    query: profile.queries?.[0] || room.matchResult.name,
+    venueType: 'restaurant',
+    screenFormat: null,
+  };
+};
+
+const getCinemaScreenFormat = (place) => {
+  const text = normalizeFoodName([place.name, ...getFoursquareCategoryNames(place)].filter(Boolean).join(' '));
+  return text.includes('imax') ? 'IMAX' : '';
+};
+
 const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
   if (!isFoursquareConfigured()) {
     const error = new Error('Restoran önerileri için Foursquare Places bağlantısı henüz yapılandırılmadı.');
@@ -323,8 +342,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const maxGroupDistanceKm = Math.min(20, Math.max(5, Number((farthestMemberKm + 4).toFixed(1))));
   const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
-  const profile = getFoodVenueProfile(room.matchResult.name);
-  const query = profile.queries?.[0] || room.matchResult.name;
+  const venueSearch = getVenueSearch(room);
+  const { query, venueType } = venueSearch;
   const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
   const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, outsideGroupArea: 0 };
@@ -367,6 +386,14 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         reviewCount: null,
         priceLevel: '',
         primaryType: getFoursquareCategoryNames(place).join(', '),
+        venueType,
+        screenFormat: venueType === 'cinema' ? getCinemaScreenFormat(place) : '',
+        website: typeof place.website === 'string' ? place.website : '',
+        // Resmi salon sitesi varsa onu kullanırız; yoksa kullanıcıyı güncel
+        // film + salon seans aramasına göndeririz. Saat uydurmayız.
+        showtimesUrl: typeof place.website === 'string' && place.website
+          ? place.website
+          : `https://www.google.com/search?q=${encodeURIComponent(`${room.matchResult.name} ${place.name} seans`)}`,
         mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
         googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
         source: 'Foursquare Places',
@@ -407,6 +434,10 @@ const recommendationForStorage = (venue) => ({
   imageAttribution: venue.imageAttribution,
   imageSourceUrl: venue.imageSourceUrl,
   mapsUrl: venue.mapsUrl,
+  venueType: venue.venueType,
+  screenFormat: venue.screenFormat,
+  website: venue.website,
+  showtimesUrl: venue.showtimesUrl,
   latitude: venue.latitude,
   longitude: venue.longitude,
   maxGroupDistanceKm: venue.maxGroupDistanceKm,
@@ -491,9 +522,9 @@ const getEligibleRoom = async (roomId, userId) => {
   const room = await Room.findById(roomId).select('host participants status category matchResult restaurantRoom restaurantRecommendations restaurantRecommendationVersion restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
   if (!room) { const error = new Error('Oda bulunamadı'); error.statusCode = 404; throw error; }
   if (!isRoomParticipant(room, userId)) { const error = new Error('Bu oda için mekan önerisi alma yetkiniz yok'); error.statusCode = 403; throw error; }
-  if (room.status !== 'finished' || !room.matchResult?.name) { const error = new Error('Mekan önerileri için önce yemek eşleşmesi tamamlanmalıdır'); error.statusCode = 400; throw error; }
-  if (!['mekan', 'food'].includes(room.category)) {
-    const error = new Error('Restoran onerileri yalnizca yemek odalarinda kullanilabilir');
+  if (room.status !== 'finished' || !room.matchResult?.name) { const error = new Error('Mekan önerileri için önce yemek veya film eşleşmesi tamamlanmalıdır'); error.statusCode = 400; throw error; }
+  if (!['mekan', 'food', 'film', 'movie'].includes(room.category)) {
+    const error = new Error('Mekan onerileri yalnizca yemek ve film odalarinda kullanilabilir');
     error.statusCode = 400;
     throw error;
   }
@@ -628,6 +659,10 @@ export const submitRestaurantQuickVote = async (req, res, next) => {
         imageIsRepresentative: commonVenue.imageIsRepresentative,
         imageAttribution: commonVenue.imageAttribution,
         imageSourceUrl: commonVenue.imageSourceUrl,
+        venueType: commonVenue.venueType,
+        screenFormat: commonVenue.screenFormat,
+        website: commonVenue.website,
+        showtimesUrl: commonVenue.showtimesUrl,
         location: commonVenue.address,
         mapsQuery: `${commonVenue.name} ${commonVenue.address}`,
         latitude: commonVenue.latitude,
@@ -745,10 +780,10 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
     }
 
     const candidateRoom = await Room.create({
-      name: `${room.name} • Nerede Yiyelim?`,
+      name: `${room.name} • ${isCinemaRoom(room) ? 'Nerede İzleyelim?' : 'Nerede Yiyelim?'}`,
       host: room.host,
       participants: room.participants,
-      category: 'restaurant',
+      category: isCinemaRoom(room) ? 'cinema' : 'restaurant',
       parentRoom: room._id,
       restaurantSort: sortBy,
       status: 'voting',
@@ -760,6 +795,10 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         imageIsRepresentative: venue.imageIsRepresentative,
         imageAttribution: venue.imageAttribution,
         imageSourceUrl: venue.imageSourceUrl,
+        venueType: venue.venueType,
+        screenFormat: venue.screenFormat,
+        website: venue.website,
+        showtimesUrl: venue.showtimesUrl,
         description: `Grubun en uzaktaki üyesine ${venue.maxGroupDistanceKm} km uzaklıkta.`,
         location: venue.address,
         mapsQuery: `${venue.name} ${venue.address}`,

@@ -38,7 +38,7 @@ const hydrateRoomCardImages = (room) => ({
 });
 
 const personalizeRestaurantDistances = async (room, userId) => {
-  if (room.category !== 'restaurant' || !room.parentRoom) return room;
+  if (!['restaurant', 'cinema'].includes(room.category) || !room.parentRoom) return room;
   const location = await LocationShare.findOne({
     room: room.parentRoom,
     user: userId,

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, MapPin, Share2, Navigation, LogOut } from 'lucide-react';
+import { CalendarDays, Flame, MapPin, Share2, Navigation, LogOut } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
 import RestaurantImage from './RestaurantImage';
@@ -110,6 +110,7 @@ const MatchModal = ({
   const location = matchResult?.location || '';
   const isPlace  = !!(matchResult?.location || matchResult?.budget || matchResult?.rating);
   const isRestaurantResult = hasExactCoordinates(matchResult) && !!matchResult?.location;
+  const isCinemaResult = matchResult?.venueType === 'cinema';
 
   return (
     <AnimatePresence>
@@ -178,7 +179,7 @@ const MatchModal = ({
                     <RestaurantImage key={matchResult._id || matchResult.venueId || matchResult.imageUrl} item={matchResult} alt={name} containerStyle={{ width: '100%', height: 180, borderRadius: 12, marginBottom: '1rem' }} />
                   )}
 
-                  {isRestaurantResult && <div style={{ color: '#c4b5fd', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: '.35rem' }}>Seçilen restoran</div>}
+                  {isRestaurantResult && <div style={{ color: '#c4b5fd', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase', marginBottom: '.35rem' }}>{isCinemaResult ? 'Seçilen sinema salonu' : 'Seçilen restoran'}</div>}
                   <h2 style={{ fontSize: '1.7rem', color: 'white', margin: '0 0 0.5rem 0' }}>{name}</h2>
 
                   {/* Lokasyon varsa göster */}
@@ -227,6 +228,17 @@ const MatchModal = ({
                           bg="rgba(252,68,0,0.85)"
                         />
                       </div>
+                      {isCinemaResult && matchResult.showtimesUrl && (
+                        <div style={{ display: 'flex', marginBottom: '0.75rem' }}>
+                          <ActionBtn
+                            href={matchResult.showtimesUrl}
+                            icon={<CalendarDays size={15} />}
+                            label="Seansları Gör"
+                            color="white"
+                            bg="rgba(139,92,246,0.9)"
+                          />
+                        </div>
+                      )}
                     </>
                   )}
 

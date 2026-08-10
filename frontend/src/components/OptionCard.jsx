@@ -30,7 +30,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
 
   const isCustom    = category === 'custom';
   const isFilm      = category === 'film' || category === 'movie';
-  const isRestaurant = category === 'restaurant';
+  const isRestaurant = category === 'restaurant' || category === 'cinema';
   const isLive      = option.isLiveEvent === true;
 
   return (
