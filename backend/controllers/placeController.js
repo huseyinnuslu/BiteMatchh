@@ -285,7 +285,9 @@ const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
     radius: String(radiusMeters),
     limit: '50',
     sort: 'RELEVANCE',
-    fields: 'fsq_place_id,name,latitude,longitude,geocodes,location,formatted_address,categories,distance,website,tel',
+    // Foursquare açık adresi `location.formatted_address` içinde döndürür.
+    // Yalnızca Place Search'ün desteklediği alanları isteyerek 400 hatasını önleriz.
+    fields: 'fsq_place_id,name,latitude,longitude,location,categories,distance,website,tel',
   });
   const response = await fetch(`${FOURSQUARE_PLACES_URL}?${params}`, {
     headers: {
@@ -296,6 +298,7 @@ const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
     signal: AbortSignal.timeout(12000),
   });
   if (!response.ok) {
+    console.warn(`[Foursquare Places] search failed with HTTP ${response.status}`);
     const error = new Error(response.status === 401 || response.status === 403
       ? 'Restoran veri sağlayıcısı yetkilendirilemedi. API anahtarı kontrol edilmeli.'
       : 'Gerçek restoran verisi şu anda alınamadı. Lütfen biraz sonra tekrar deneyin.');
