@@ -303,7 +303,10 @@ const Room = () => {
       : contextMatchBelongsToCurrentRoom ? matchResult : null;
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
   const isFilmMatch = ['film', 'movie'].includes(currentRoom.category) && !!activeMatch;
-  const isVenueMatch = isFoodMatch || isFilmMatch;
+  // Film kartları canlı vizyon/streaming kaynağından gelmeden sinema salonu
+  // akışını açmayız; statik bir filme gerçek seans/salon vaat etmek yanıltıcıdır.
+  // TMDb tabanlı film havuzu eklendiğinde film tarafı burada ayrıca açılacak.
+  const isVenueMatch = isFoodMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
   const isCinemaRound = currentRoom.category === 'cinema';
   const closeMatchModal = () => {
