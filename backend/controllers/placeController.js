@@ -232,10 +232,18 @@ const getFoodVenueProfile = (foodName) => {
 };
 
 const getFoursquareCoordinates = (place) => {
-  const coordinates = place.geocodes?.main || place.geocodes?.roof || place.location || place;
-  const latitude = Number(coordinates?.latitude);
-  const longitude = Number(coordinates?.longitude);
-  return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null;
+  // Places Search koordinatı güncel API'de çoğunlukla üst seviyede döndürür.
+  // `location` ise adres bilgisidir; onu ilk seçmek bütün gerçek sonuçların
+  // koordinatsız sanılıp elenmesine yol açıyordu.
+  const coordinateSources = [place.geocodes?.main, place.geocodes?.roof, place, place.location];
+  for (const coordinates of coordinateSources) {
+    const latitude = Number(coordinates?.latitude ?? coordinates?.lat);
+    const longitude = Number(coordinates?.longitude ?? coordinates?.lng);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+  return null;
 };
 
 const getFoursquareAddress = (place) => {
@@ -319,16 +327,32 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const query = profile.queries?.[0] || room.matchResult.name;
   const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
-  return places
+  const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, outsideGroupArea: 0 };
+  const venues = places
     .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
     .filter(({ place, coordinates, address }) => {
       // Foursquare araması seçilen yemek terimiyle yapılır ve sonuçlar kendi
       // Places veritabanından gelir. Burada tekrar kategori adına göre elemek,
       // "Turkish Restaurant" gibi geçerli kategorileri yanlışlıkla dışarıda
       // bırakıyordu. Kimlik + açık adres + koordinat ise zorunlu kalır.
-      if (!place.fsq_place_id || !place.name || !coordinates || !address) return false;
+      if (!place.fsq_place_id || !place.name) {
+        rejectionCounts.missingIdentity += 1;
+        return false;
+      }
+      if (!coordinates) {
+        rejectionCounts.missingCoordinates += 1;
+        return false;
+      }
+      if (!address) {
+        rejectionCounts.missingAddress += 1;
+        return false;
+      }
       const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
-      return venueMaxGroupDistanceKm <= maxGroupDistanceKm;
+      if (venueMaxGroupDistanceKm > maxGroupDistanceKm) {
+        rejectionCounts.outsideGroupArea += 1;
+        return false;
+      }
+      return true;
     })
     .map(({ place, index, coordinates, address }) => {
       const distances = locations.map((location) => haversineKm(location, coordinates));
@@ -362,6 +386,15 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
     })
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
     .slice(0, limit);
+
+  console.info('[Foursquare Places] venue selection', {
+    cuisine: room.matchResult.name,
+    query,
+    providerResultCount: places.length,
+    eligibleVenueCount: venues.length,
+    rejectionCounts,
+  });
+  return venues;
 };
 
 const recommendationForStorage = (venue) => ({
