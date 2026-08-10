@@ -141,6 +141,16 @@ const FOOD_VENUE_PROFILES = [
   { names: ['kahve'], queries: ['kahve', 'pastane'], types: ['amenity:cafe', 'shop:coffee', 'shop:confectionery', 'shop:bakery'] },
   { names: ['falafel'], queries: ['falafel', 'levanten restoranı'] },
   { names: ['tatli & waffle'], queries: ['waffle', 'pastane', 'tatlıcı'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe', 'amenity:ice_cream', 'amenity:restaurant'] },
+  { names: ['manti'], queries: ['mantı', 'ev yemekleri'] },
+  { names: ['iskender'], queries: ['iskender kebap', 'bursa kebabı', 'kebap'] },
+  { names: ['cig kofte'], queries: ['çiğ köfte'] },
+  { names: ['kumpir'], queries: ['kumpir'] },
+  { names: ['kokorec'], queries: ['kokoreç', 'midye dolma'] },
+  { names: ['balik ekmek'], queries: ['balık ekmek', 'balık restoranı'] },
+  { names: ['baklava'], queries: ['baklava', 'katmer', 'tatlıcı'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe'] },
+  { names: ['simit'], queries: ['simit', 'çay'], types: ['shop:bakery', 'amenity:cafe'] },
+  { names: ['kore mutfagi'], queries: ['kore restoranı', 'korean restaurant', 'bibimbap'] },
+  { names: ['dondurma'], queries: ['dondurma', 'gelato'], types: ['amenity:ice_cream', 'amenity:cafe', 'shop:confectionery'] },
 ];
 
 const normalizeFoodName = (value = '') => value

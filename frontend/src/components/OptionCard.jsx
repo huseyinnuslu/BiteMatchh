@@ -115,6 +115,17 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                 <Tv size={14} /> {option.platform}
               </div>
             )}
+
+            {isFilm && !isLive && option.visualLabel && (
+              <div style={{
+                position: 'absolute', bottom: '10px', left: '10px',
+                background: 'rgba(15,23,42,.78)', backdropFilter: 'blur(5px)',
+                color: '#cbd5e1', padding: '.25rem .55rem', borderRadius: '7px',
+                fontSize: '.68rem', fontWeight: 700,
+              }}>
+                {option.visualLabel}
+              </div>
+            )}
           </div>
         ) : isRestaurant && (option.imageUrl || option.fallbackImageUrl) ? (
           <RestaurantImage

@@ -1,3 +1,5 @@
+import { curatedCatalogAdditions } from './curatedCatalogAdditions.js';
+
 /**
  * mockOptions.js – BiteMatch Kart Havuzu
  *
@@ -525,6 +527,10 @@ export const mockOptions = {
     },
   ]
 };
+
+mockOptions.mekan.push(...curatedCatalogAdditions.mekan);
+mockOptions.film.push(...curatedCatalogAdditions.film);
+mockOptions.aktivite.push(...curatedCatalogAdditions.aktivite);
 
 // Aynı konseptin art arda gelmesini önlemek için eski kartlara da keşif grubu verilir.
 // Bu alan, kart bileşenleri tarafından kullanılmaz; yalnızca havuzun dengeli seçimi içindir.
