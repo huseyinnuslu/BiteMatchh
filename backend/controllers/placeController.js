@@ -260,13 +260,6 @@ const getFoursquareCategoryNames = (place) => {
     .filter(Boolean)
 };
 
-const isFoursquareFoodVenue = (place) => {
-  const categoryText = getFoursquareCategoryNames(place)
-    .join(' ')
-    .toLocaleLowerCase('tr-TR');
-  return /restaurant|restoran|food|yiyecek|fast food|cafe|kafe|bakery|pastane|dessert|tatli|pizza|kebab|kebap|burger|sandwich|sandvic|doner|döner/.test(categoryText);
-};
-
 const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
   if (!isFoursquareConfigured()) {
     const error = new Error('Restoran önerileri için Foursquare Places bağlantısı henüz yapılandırılmadı.');
@@ -316,10 +309,10 @@ const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
 const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const center = groupCenter(locations);
   const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
-  // Katılımcılar aynı yerdeyse 3 km, birbirinden uzaktalarsa ortak merkeze
+  // Katılımcılar aynı yerdeyse 5 km, birbirinden uzaktalarsa ortak merkeze
   // göre ölçülü biçimde genişleyen bir alan kullanırız. "Yakın" öneri,
   // şehrin rastgele başka bir ucundan gelemez.
-  const maxGroupDistanceKm = Math.min(20, Math.max(3, Number((farthestMemberKm + 4).toFixed(1))));
+  const maxGroupDistanceKm = Math.min(20, Math.max(5, Number((farthestMemberKm + 4).toFixed(1))));
   const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
   const profile = getFoodVenueProfile(room.matchResult.name);
@@ -329,7 +322,11 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   return places
     .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
     .filter(({ place, coordinates, address }) => {
-      if (!place.fsq_place_id || !place.name || !coordinates || !address || !isFoursquareFoodVenue(place)) return false;
+      // Foursquare araması seçilen yemek terimiyle yapılır ve sonuçlar kendi
+      // Places veritabanından gelir. Burada tekrar kategori adına göre elemek,
+      // "Turkish Restaurant" gibi geçerli kategorileri yanlışlıkla dışarıda
+      // bırakıyordu. Kimlik + açık adres + koordinat ise zorunlu kalır.
+      if (!place.fsq_place_id || !place.name || !coordinates || !address) return false;
       const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
       return venueMaxGroupDistanceKm <= maxGroupDistanceKm;
     })
