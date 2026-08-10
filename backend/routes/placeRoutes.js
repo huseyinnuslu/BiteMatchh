@@ -1,9 +1,10 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
-import { createRestaurantVotingRoom, getRestaurantRecommendations, shareRecommendationLocation, submitRestaurantQuickVote } from '../controllers/placeController.js';
+import { createRestaurantVotingRoom, getPlacesStatus, getRestaurantRecommendations, shareRecommendationLocation, submitRestaurantQuickVote } from '../controllers/placeController.js';
 
 const router = express.Router();
 
+router.get('/status', protect, getPlacesStatus);
 router.post('/rooms/:id/location', protect, shareRecommendationLocation);
 router.get('/rooms/:id/recommendations', protect, getRestaurantRecommendations);
 router.post('/rooms/:id/quick-vote', protect, submitRestaurantQuickVote);

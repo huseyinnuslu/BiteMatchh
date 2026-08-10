@@ -12,11 +12,7 @@ import Avatar from '../components/Avatar';
 import RestaurantRecommendations from '../components/RestaurantRecommendations';
 import { connectSocket, getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
-
-// Restoran verisi doğrulanabilir bir Places sağlayıcısından gelene kadar bu
-// deneyimi beta kullanıcılarına göstermiyoruz. Akış/kod korunuyor; sağlayıcı
-// hazır olduğunda yalnızca bu bayrak açılarak yeniden etkinleştirilecek.
-const RESTAURANT_RECOMMENDATIONS_BETA_ENABLED = false;
+import api from '../api';
 
 const Room = () => {
   const { id } = useParams();
@@ -39,9 +35,18 @@ const Room = () => {
   const [chatMatchItem, setChatMatchItem] = useState(null);
   const [matchModalDismissed, setMatchModalDismissed] = useState(false);
   const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
+  const [restaurantRecommendationsEnabled, setRestaurantRecommendationsEnabled] = useState(false);
   const pollingRef = useRef(null);
   const autoOpenedChatForMatchRef = useRef(null);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
+
+  useEffect(() => {
+    let active = true;
+    api.get('/places/status')
+      .then(({ data }) => { if (active) setRestaurantRecommendationsEnabled(Boolean(data.enabled)); })
+      .catch(() => { if (active) setRestaurantRecommendationsEnabled(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const isThisRoomFinished =
@@ -299,7 +304,7 @@ const Room = () => {
   const isFoodMatch = ['mekan', 'food'].includes(currentRoom.category) && !!activeMatch;
   const isRestaurantRound = currentRoom.category === 'restaurant';
   const closeMatchModal = () => {
-    if (isFoodMatch && RESTAURANT_RECOMMENDATIONS_BETA_ENABLED) {
+    if (isFoodMatch && restaurantRecommendationsEnabled) {
       setMatchModalDismissed(true);
       setShowRestaurantFlow(true);
       setChatOpen(false);
@@ -499,7 +504,7 @@ const Room = () => {
         </>
       )}
 
-      {RESTAURANT_RECOMMENDATIONS_BETA_ENABLED && showRestaurantFlow && isFoodMatch && (
+      {restaurantRecommendationsEnabled && showRestaurantFlow && isFoodMatch && (
         <RestaurantRecommendations
           roomId={id}
           cuisine={activeMatch?.name}

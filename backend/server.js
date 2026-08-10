@@ -116,8 +116,8 @@ app.get('/health',  (_req, res) => res.json({
   status: 'ok',
   uptime: process.uptime(),
   emailConfigured: isEmailConfigured(),
-  placesConfigured: true,
-  placesProvider: 'OpenStreetMap / Nominatim',
+  placesConfigured: Boolean(process.env.FOURSQUARE_PLACES_API_KEY?.trim()),
+  placesProvider: process.env.FOURSQUARE_PLACES_API_KEY?.trim() ? 'Foursquare Places' : null,
 }));
 
 // ─── Hata Middleware ─────────────────────────────────────────────────────────

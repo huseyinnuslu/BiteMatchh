@@ -6,7 +6,13 @@ const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 3;
+const RESTAURANT_RECOMMENDATION_VERSION = 4;
+const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
+const FOURSQUARE_API_VERSION = '2025-06-17';
+const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
+const foursquareCache = new Map();
+
+const isFoursquareConfigured = () => Boolean(process.env.FOURSQUARE_PLACES_API_KEY?.trim());
 
 const isRoomParticipant = (room, userId) =>
   room.participants.some((participant) => participant.toString() === userId.toString());
@@ -225,6 +231,85 @@ const getFoodVenueProfile = (foodName) => {
   };
 };
 
+const getFoursquareCoordinates = (place) => {
+  const coordinates = place.geocodes?.main || place.geocodes?.roof || place.location || place;
+  const latitude = Number(coordinates?.latitude);
+  const longitude = Number(coordinates?.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null;
+};
+
+const getFoursquareAddress = (place) => {
+  const location = place.location || {};
+  const formatted = place.formatted_address || location.formatted_address;
+  if (typeof formatted === 'string' && formatted.trim()) return formatted.trim();
+  const parts = [
+    place.address || location.address,
+    place.locality || location.locality,
+    place.region || location.region,
+    place.postcode || location.postcode,
+  ].filter(Boolean);
+  return [...new Set(parts.map((part) => String(part).trim()))].join(', ');
+};
+
+const getFoursquareCategoryNames = (place) => {
+  const categories = place.categories || place.fsq_categories || [];
+  return categories
+    .map((category) => typeof category === 'string'
+      ? category
+      : category.name || category.fsq_category_name || category.label || category.fsq_category_label)
+    .filter(Boolean)
+};
+
+const isFoursquareFoodVenue = (place) => {
+  const categoryText = getFoursquareCategoryNames(place)
+    .join(' ')
+    .toLocaleLowerCase('tr-TR');
+  return /restaurant|restoran|food|yiyecek|fast food|cafe|kafe|bakery|pastane|dessert|tatli|pizza|kebab|kebap|burger|sandwich|sandvic|doner|döner/.test(categoryText);
+};
+
+const searchFoursquarePlaces = async ({ query, center, radiusMeters }) => {
+  if (!isFoursquareConfigured()) {
+    const error = new Error('Restoran önerileri için Foursquare Places bağlantısı henüz yapılandırılmadı.');
+    error.statusCode = 503;
+    error.code = 'PLACES_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const cacheKey = `${query}:${center.latitude.toFixed(3)}:${center.longitude.toFixed(3)}:${radiusMeters}`;
+  const cached = foursquareCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.places;
+
+  const params = new URLSearchParams({
+    query,
+    ll: `${center.latitude},${center.longitude}`,
+    radius: String(radiusMeters),
+    limit: '50',
+    sort: 'RELEVANCE',
+    fields: 'fsq_place_id,name,latitude,longitude,geocodes,location,formatted_address,categories,distance,website,tel',
+  });
+  const response = await fetch(`${FOURSQUARE_PLACES_URL}?${params}`, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${process.env.FOURSQUARE_PLACES_API_KEY.trim()}`,
+      'X-Places-Api-Version': FOURSQUARE_API_VERSION,
+    },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) {
+    const error = new Error(response.status === 401 || response.status === 403
+      ? 'Restoran veri sağlayıcısı yetkilendirilemedi. API anahtarı kontrol edilmeli.'
+      : 'Gerçek restoran verisi şu anda alınamadı. Lütfen biraz sonra tekrar deneyin.');
+    error.statusCode = response.status === 401 || response.status === 403 ? 503 : 502;
+    error.code = 'PLACES_PROVIDER_ERROR';
+    throw error;
+  }
+
+  const payload = await response.json();
+  const places = Array.isArray(payload.results) ? payload.results : [];
+  foursquareCache.set(cacheKey, { places, expiresAt: Date.now() + FOURSQUARE_CACHE_TTL_MS });
+  return places;
+};
+
 const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const center = groupCenter(locations);
   const farthestMemberKm = Math.max(...locations.map((item) => haversineKm(center, item)));
@@ -235,62 +320,44 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
   const profile = getFoodVenueProfile(room.matchResult.name);
-  const allowedTypes = new Set(profile.types || DEFAULT_FOOD_VENUE_TYPES);
-  const isUsableVenue = (place) => {
-    if (!Number.isFinite(Number(place.lat)) || !Number.isFinite(Number(place.lon))) return false;
-    if (!place.name || !allowedTypes.has(`${place.category}:${place.type}`)) return false;
-    if (!venueMatchesFoodProfile(place, profile) || !hasNavigableVenueAddress(place)) return false;
-    if (venueVerificationScore(place) < 4) return false;
+  const query = profile.queries?.[0] || room.matchResult.name;
+  const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
-    const coordinates = { latitude: Number(place.lat), longitude: Number(place.lon) };
-    const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
-    return venueMaxGroupDistanceKm <= maxGroupDistanceKm;
-  };
-  const candidatePool = [];
-  const seenVenueIds = new Set();
-
-  for (const query of profile.queries) {
-    const places = await searchNominatimPlaces({ query, center, radiusMeters });
-    places.filter(isUsableVenue).forEach((place) => {
-      const venueId = `${place.osm_type}-${place.osm_id}`;
-      if (!seenVenueIds.has(venueId)) {
-        seenVenueIds.add(venueId);
-        candidatePool.push(place);
-      }
-    });
-    // İlk üç sonucu hemen seçmeyiz; farklı arama terimlerinden gelen adayları
-    // birlikte değerlendirip gerçekten en yakın ve en doğrulanmış olanları sıralarız.
-    if (candidatePool.length >= limit * 4) break;
-  }
-
-  return candidatePool
-    .map((place) => {
-      const coordinates = { latitude: Number(place.lat), longitude: Number(place.lon) };
+  return places
+    .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
+    .filter(({ place, coordinates, address }) => {
+      if (!place.fsq_place_id || !place.name || !coordinates || !address || !isFoursquareFoodVenue(place)) return false;
+      const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
+      return venueMaxGroupDistanceKm <= maxGroupDistanceKm;
+    })
+    .map(({ place, index, coordinates, address }) => {
       const distances = locations.map((location) => haversineKm(location, coordinates));
       const venueMaxGroupDistanceKm = Math.max(...distances);
       const distanceScore = Math.max(0, 1 - venueMaxGroupDistanceKm / maxGroupDistanceKm);
-      const address = formatVenueAddress(place);
-      const verificationScore = venueVerificationScore(place);
-      const venueImage = getVenueImage(place, room.matchResult.imageUrl);
+      const relevanceScore = Math.max(0, 1 - index / Math.max(places.length, 1));
       return {
-        id: `osm-${place.osm_type}-${place.osm_id}`,
+        id: `fsq-${place.fsq_place_id}`,
         name: place.name,
-        address: address || place.display_name || '',
+        address,
         rating: null,
         reviewCount: null,
         priceLevel: '',
-        primaryType: place.type,
-        mapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
-        googleMapsUrl: osmMapsUrl(coordinates.latitude, coordinates.longitude),
-        source: 'OpenStreetMap',
-        attribution: '© OpenStreetMap contributors',
-        ...venueImage,
+        primaryType: getFoursquareCategoryNames(place).join(', '),
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
+        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
+        source: 'Foursquare Places',
+        attribution: 'Foursquare',
+        imageUrl: room.matchResult.imageUrl || '',
+        fallbackImageUrl: room.matchResult.imageUrl || '',
+        imageIsRepresentative: true,
+        imageAttribution: room.matchResult.imageUrl ? 'Temsili kategori görseli' : '',
+        imageSourceUrl: '',
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
         distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
         maxGroupDistanceKm: Number(venueMaxGroupDistanceKm.toFixed(1)),
-        verificationScore,
-        recommendationScore: Number((distanceScore * 0.7 + Math.min(1, verificationScore / 10) * 0.3).toFixed(4)),
+        verificationScore: 10,
+        recommendationScore: Number((distanceScore * 0.75 + relevanceScore * 0.25).toFixed(4)),
       };
     })
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
@@ -456,6 +523,12 @@ export const getRestaurantRecommendations = async (req, res, next) => {
     if (error.statusCode) res.status(error.statusCode);
     next(error);
   }
+};
+
+// GET /api/places/status
+// İstemci restoran akışını yalnızca gerçek Places sağlayıcısı hazırsa açar.
+export const getPlacesStatus = (_req, res) => {
+  res.json({ enabled: isFoursquareConfigured(), provider: isFoursquareConfigured() ? 'foursquare' : null });
 };
 
 // POST /api/places/rooms/:id/quick-vote
