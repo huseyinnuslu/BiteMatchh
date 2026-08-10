@@ -9,6 +9,8 @@ import {
   googleLogin,
   startGmailApiAuthorization,
   completeGmailApiAuthorization,
+  requestEmailChange,
+  confirmEmailChange,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -19,6 +21,8 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
+router.post('/email-change/request', protect, requestEmailChange);
+router.post('/email-change/confirm', protect, confirmEmailChange);
 
 // Şifre sıfırlama – Gmail OTP akışı
 router.post('/forgot-password', forgotPassword);

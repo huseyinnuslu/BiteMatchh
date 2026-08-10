@@ -588,20 +588,8 @@ export const updateUserProfile = async (req, res, next) => {
       }
 
       if (Object.prototype.hasOwnProperty.call(req.body, 'email')) {
-        const requestedEmail = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(requestedEmail)) {
-          res.status(400);
-          throw new Error('Geçerli bir e-posta adresi girin.');
-        }
-        if (requestedEmail !== user.email.toLowerCase()) {
-          const emailInUse = await User.findOne({ _id: { $ne: user._id }, email: requestedEmail }).select('_id').lean();
-          if (emailInUse) {
-            res.status(409);
-            throw new Error('Bu e-posta adresi başka bir hesapta kullanılıyor.');
-          }
-          user.email = requestedEmail;
-        }
+        res.status(400);
+        throw new Error('E-posta değişikliği yeni adres doğrulanarak yapılmalıdır.');
       }
 
       if (req.body.isStatsPublic !== undefined) {
@@ -632,6 +620,50 @@ export const updateUserProfile = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const requestEmailChange = async (req, res, next) => {
+  try {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ message: 'Geçerli bir e-posta adresi girin.' });
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    if (email === user.email.toLowerCase()) return res.status(400).json({ message: 'Bu adres zaten hesabında kayıtlı.' });
+    const emailInUse = await User.findOne({ _id: { $ne: user._id }, email }).select('_id').lean();
+    if (emailInUse) return res.status(409).json({ message: 'Bu e-posta adresi başka bir hesapta kullanılıyor.' });
+    if (!isEmailConfigured()) return res.status(503).json({ message: 'E-posta doğrulama servisi şu anda kullanılamıyor.' });
+
+    const otp = generateOTP();
+    user.pendingEmail = email;
+    user.emailChangeToken = otp;
+    user.emailChangeExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await sendEmail({
+      from: getEmailFrom(), to: email, subject: 'BiteMatch – E-posta Değişikliği Doğrulama Kodu',
+      text: `Merhaba ${user.username}, BiteMatch e-posta adresini değiştirmek için kodun: ${otp}. Kod 10 dakika geçerlidir.`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#0f172a;color:#f8fafc;border-radius:16px"><h1 style="color:#ff4b4b">BiteMatch</h1><h2>E-posta değişikliğini doğrula</h2><p>Yeni giriş adresini onaylamak için aşağıdaki kodu BiteMatch'e gir.</p><div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#ff4b4b;padding:18px;background:#1e293b;border-radius:12px;text-align:center">${otp}</div><p style="color:#94a3b8">Kod 10 dakika geçerlidir. Bu isteği sen yapmadıysan görmezden gelebilirsin.</p></div>`,
+    });
+    res.json({ message: `Doğrulama kodu ${email} adresine gönderildi.` });
+  } catch (error) { next(error); }
+};
+
+export const confirmEmailChange = async (req, res, next) => {
+  try {
+    const otp = String(req.body?.otp || '').trim();
+    const user = await User.findById(req.user._id);
+    if (!user || !user.pendingEmail || user.emailChangeToken !== otp || !user.emailChangeExpire || user.emailChangeExpire <= new Date()) {
+      return res.status(400).json({ message: 'Kod hatalı veya süresi dolmuş. Yeni kod isteyin.' });
+    }
+    const emailInUse = await User.findOne({ _id: { $ne: user._id }, email: user.pendingEmail }).select('_id').lean();
+    if (emailInUse) return res.status(409).json({ message: 'Bu e-posta adresi başka bir hesapta kullanılmaya başlandı.' });
+    user.email = user.pendingEmail;
+    user.pendingEmail = undefined;
+    user.emailChangeToken = undefined;
+    user.emailChangeExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+    res.json({ message: 'Giriş e-postan doğrulandı ve güncellendi.', email: user.email });
+  } catch (error) { next(error); }
 };
 
 // ──────────────────────────────────────────────────────────────────────────────

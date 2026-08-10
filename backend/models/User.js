@@ -49,6 +49,9 @@ const userSchema = mongoose.Schema(
     resetPasswordExpire: {
       type: Date,
     },
+    pendingEmail: { type: String, default: null },
+    emailChangeToken: { type: String, default: null },
+    emailChangeExpire: { type: Date, default: null },
 
     profilePic: {
       type: String,
