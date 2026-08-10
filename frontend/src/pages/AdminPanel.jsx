@@ -1,9 +1,9 @@
 import { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp, MessageCircle } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -11,11 +11,13 @@ import ConfirmModal from '../components/ConfirmModal';
 const AdminPanel = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('stats');
+  const [activeTab, setActiveTab] = useState(new URLSearchParams(location.search).get('tab') === 'support' ? 'support' : 'stats');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [supportRequests, setSupportRequests] = useState([]);
 
   // Bulk Delete States
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -49,6 +51,24 @@ const AdminPanel = () => {
   const fetchRooms = async () => {
     try { const { data } = await api.get('/admin/rooms'); setRooms(data); }
     catch { toast.error('Odalar yüklenemedi'); }
+  };
+  const fetchSupportRequests = async () => {
+    try { const { data } = await api.get('/admin/support'); setSupportRequests(data); }
+    catch { toast.error('Destek talepleri yüklenemedi'); }
+  };
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('tab') === 'support') {
+      setActiveTab('support');
+      fetchSupportRequests();
+    }
+  }, [location.search]);
+
+  const resolveSupportRequest = async (id, status) => {
+    try {
+      const { data } = await api.put(`/admin/support/${id}`, { status });
+      setSupportRequests(prev => prev.map(item => item._id === id ? { ...item, status: data.status } : item));
+    } catch (error) { toast.error(error.response?.data?.message || 'Destek talebi güncellenemedi'); }
   };
 
   // Rol dropdown değişince sadece local state'e yaz (henüz kaydetme)
@@ -295,6 +315,7 @@ const AdminPanel = () => {
           <button style={tabStyle('users')} onClick={() => setActiveTab('users')}><Users size={15} /> Kullanıcılar ({users.length})</button>
           <button style={tabStyle('rooms')} onClick={() => setActiveTab('rooms')}><Home size={15} /> Odalar ({rooms.length})</button>
           <button style={tabStyle('events')} onClick={() => setActiveTab('events')}>📅 Etkinlikler</button>
+          <button style={tabStyle('support')} onClick={() => { setActiveTab('support'); fetchSupportRequests(); }}><MessageCircle size={15} /> Destek ({supportRequests.filter(item => item.status === 'open').length})</button>
         </div>
 
         {/* ===== STATS TAB ===== */}
@@ -643,6 +664,20 @@ const AdminPanel = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'support' && (
+          <div style={{ display: 'grid', gap: '.8rem' }}>
+            {supportRequests.length === 0 ? <div className="glass-card" style={{ padding: '1.3rem', color: 'var(--text-muted)' }}>Henüz destek talebi yok.</div> : supportRequests.map((request) => (
+              <article key={request._id} className="glass-card" style={{ padding: '1.1rem', borderLeft: `3px solid ${request.status === 'open' ? 'var(--primary)' : 'rgba(74,222,128,.8)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div><div style={{ color: 'white', fontWeight: 800 }}>{request.subject}</div><div style={{ color: 'var(--text-muted)', fontSize: '.78rem', marginTop: 4 }}>@{request.user?.username || 'Silinmiş kullanıcı'} · {request.user?.email || '—'} · {new Date(request.createdAt).toLocaleString('tr-TR')}</div></div>
+                  <button onClick={() => resolveSupportRequest(request._id, request.status === 'open' ? 'resolved' : 'open')} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.42rem .65rem', background: request.status === 'open' ? 'rgba(74,222,128,.1)' : 'transparent', color: request.status === 'open' ? '#86efac' : 'var(--text-muted)', cursor: 'pointer', fontSize: '.76rem', fontWeight: 700 }}>{request.status === 'open' ? 'Çözüldü olarak işaretle' : 'Yeniden aç'}</button>
+                </div>
+                <p style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,.82)', lineHeight: 1.55, margin: '.85rem 0 0', fontSize: '.88rem' }}>{request.message}</p>
+              </article>
+            ))}
           </div>
         )}
 

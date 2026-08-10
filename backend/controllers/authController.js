@@ -587,7 +587,22 @@ export const updateUserProfile = async (req, res, next) => {
         }
       }
 
-      user.email = req.body.email || user.email;
+      if (Object.prototype.hasOwnProperty.call(req.body, 'email')) {
+        const requestedEmail = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(requestedEmail)) {
+          res.status(400);
+          throw new Error('Geçerli bir e-posta adresi girin.');
+        }
+        if (requestedEmail !== user.email.toLowerCase()) {
+          const emailInUse = await User.findOne({ _id: { $ne: user._id }, email: requestedEmail }).select('_id').lean();
+          if (emailInUse) {
+            res.status(409);
+            throw new Error('Bu e-posta adresi başka bir hesapta kullanılıyor.');
+          }
+          user.email = requestedEmail;
+        }
+      }
 
       if (req.body.isStatsPublic !== undefined) {
         user.isStatsPublic = req.body.isStatsPublic;

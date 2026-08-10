@@ -14,6 +14,7 @@ import User from '../models/User.js';
 import Swipe from '../models/Swipe.js';
 import Room from '../models/Room.js';
 import Notification from '../models/Notification.js';
+import SupportRequest from '../models/SupportRequest.js';
 import { getIo } from '../server.js';
 import {
   calculateCompatibility,
@@ -672,4 +673,31 @@ export const unfollowUser = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Destek talebi oluştur ve tüm adminlere bildir
+// @route   POST /api/users/support
+// @access  Private
+export const submitSupportRequest = async (req, res, next) => {
+  try {
+    const subject = String(req.body?.subject || '').trim();
+    const message = String(req.body?.message || '').trim();
+    if (subject.length < 3 || message.length < 10) {
+      return res.status(400).json({ message: 'Konu en az 3, açıklama en az 10 karakter olmalı.' });
+    }
+
+    const request = await SupportRequest.create({ user: req.user._id, subject, message });
+    const admins = await User.find({ role: 'Admin' }).select('_id').lean();
+    const io = getIo();
+    await Promise.all(admins.map(async (admin) => {
+      const notification = await Notification.create({
+        user: admin._id,
+        type: 'support',
+        message: `Yeni destek talebi: ${subject}`,
+        link: '/admin?tab=support',
+      });
+      io?.to(`user:${admin._id}`).emit('new_notification', notification);
+    }));
+    res.status(201).json({ message: 'Destek talebin BiteMatch ekibine ulaştı.', requestId: request._id });
+  } catch (error) { next(error); }
 };

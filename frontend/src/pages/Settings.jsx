@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
   ArrowLeft, AtSign, Bell, ChevronRight, Eye, EyeOff, FileText,
-  LockKeyhole, Pencil, Settings as SettingsIcon, ShieldCheck, UserRound,
+  LockKeyhole, Mail, MessageCircle, Pencil, Send, Settings as SettingsIcon, ShieldCheck, UserRound,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
@@ -54,6 +54,12 @@ const Settings = () => {
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [unblockingId, setUnblockingId] = useState(null);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [sendingSupport, setSendingSupport] = useState(false);
 
   const loadSettings = async () => {
     try {
@@ -63,6 +69,7 @@ const Settings = () => {
       ]);
       setProfile(profileResponse.data);
       setUsernameDraft(profileResponse.data.username || '');
+      setEmailDraft(profileResponse.data.email || '');
       setBlockedUsers(blockedResponse.data || []);
     } catch {
       toast.error('Ayarlar yüklenemedi. Lütfen tekrar deneyin.');
@@ -115,6 +122,35 @@ const Settings = () => {
     } finally {
       setSavingPrivacy(false);
     }
+  };
+
+  const saveEmail = async (event) => {
+    event.preventDefault();
+    const email = emailDraft.trim().toLowerCase();
+    if (email === profile.email) { setEditingEmail(false); return; }
+    setSavingEmail(true);
+    try {
+      const { data } = await api.put('/auth/profile', { email });
+      setProfile(prev => ({ ...prev, email: data.email }));
+      updateUser({ email: data.email });
+      setEditingEmail(false);
+      toast.success('Giriş e-postan güncellendi.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'E-posta güncellenemedi.');
+    } finally { setSavingEmail(false); }
+  };
+
+  const sendSupport = async (event) => {
+    event.preventDefault();
+    setSendingSupport(true);
+    try {
+      const { data } = await api.post('/users/support', { subject: supportSubject, message: supportMessage });
+      setSupportSubject('');
+      setSupportMessage('');
+      toast.success(data.message || 'Destek talebin gönderildi.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Destek talebi gönderilemedi.');
+    } finally { setSendingSupport(false); }
   };
 
   const unblockUser = async (blockedUser) => {
@@ -199,12 +235,31 @@ const Settings = () => {
           </div>
           <div style={{ height: 1, background: 'rgba(255,255,255,.08)', margin: '1rem 0' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '.8rem' }}>
-            <LockKeyhole size={19} color="var(--accent)" />
-            <div>
+            <Mail size={19} color="var(--accent)" />
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Giriş e-postası</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', marginTop: '.2rem' }}>{profile.email}</div>
             </div>
+            {!editingEmail && <button type="button" onClick={() => setEditingEmail(true)} style={{ border: '1px solid rgba(255,75,75,.45)', borderRadius: 8, padding: '.46rem .7rem', background: 'rgba(255,75,75,.09)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Pencil size={13} /> Değiştir</button>}
           </div>
+          {editingEmail && <form onSubmit={saveEmail} style={{ display: 'flex', gap: '.5rem', marginTop: '.8rem', flexWrap: 'wrap' }}>
+            <input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} autoFocus autoComplete="email" aria-label="Yeni e-posta adresi" style={{ flex: '1 1 180px', minWidth: 0, padding: '.58rem .7rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white' }} required />
+            <button type="submit" disabled={savingEmail} className="btn btn-primary" style={{ padding: '.58rem .8rem', fontSize: '.8rem' }}>{savingEmail ? 'Kaydediliyor...' : 'Kaydet'}</button>
+            <button type="button" onClick={() => { setEmailDraft(profile.email); setEditingEmail(false); }} disabled={savingEmail} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.58rem .8rem', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.8rem' }}>Vazgeç</button>
+          </form>}
+        </section>
+
+        <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Destek</p>
+        <section className="glass-card" style={panelStyle}>
+          <div style={{ display: 'flex', gap: '.8rem', alignItems: 'flex-start', marginBottom: '.9rem' }}>
+            <MessageCircle size={19} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <div><div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Bize yaz</div><div style={{ color: 'var(--text-muted)', fontSize: '.79rem', lineHeight: 1.45, marginTop: '.2rem' }}>Talebin doğrudan BiteMatch yönetim paneline düşer.</div></div>
+          </div>
+          <form onSubmit={sendSupport} style={{ display: 'grid', gap: '.65rem' }}>
+            <input value={supportSubject} onChange={(event) => setSupportSubject(event.target.value)} maxLength={120} placeholder="Konu" style={{ padding: '.68rem .75rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white' }} required />
+            <textarea value={supportMessage} onChange={(event) => setSupportMessage(event.target.value)} minLength={10} maxLength={2000} rows={4} placeholder="Sorununu veya önerini ayrıntılı yaz..." style={{ resize: 'vertical', padding: '.68rem .75rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white', fontFamily: 'inherit' }} required />
+            <button type="submit" disabled={sendingSupport} className="btn btn-primary" style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: '.45rem', padding: '.6rem .85rem', fontSize: '.82rem' }}><Send size={15} /> {sendingSupport ? 'Gönderiliyor...' : 'Destek talebi gönder'}</button>
+          </form>
         </section>
 
         <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Gizlilik ve bildirimler</p>

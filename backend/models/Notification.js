@@ -14,7 +14,7 @@ const notificationSchema = mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ['message', 'friend_request', 'room_invite', 'system'],
+      enum: ['message', 'friend_request', 'room_invite', 'support', 'system'],
     },
     link: {
       type: String, // Tıklandığında gidilecek URL (örn: /messages, /profile)

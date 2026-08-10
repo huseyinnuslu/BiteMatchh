@@ -3,6 +3,7 @@ import Room from '../models/Room.js';
 import Candidate from '../models/Candidate.js';
 import Message from '../models/Message.js';
 import Swipe from '../models/Swipe.js';
+import SupportRequest from '../models/SupportRequest.js';
 import https from 'https';
 import http  from 'http';
 
@@ -294,4 +295,23 @@ export const importEvents = async (req, res, next) => {
   }
 };
 
+export const getSupportRequests = async (_req, res, next) => {
+  try {
+    const requests = await SupportRequest.find({})
+      .populate('user', 'username email profilePic')
+      .sort({ status: 1, createdAt: -1 })
+      .lean();
+    res.json(requests);
+  } catch (error) { next(error); }
+};
+
+export const updateSupportRequest = async (req, res, next) => {
+  try {
+    const status = req.body?.status;
+    if (!['open', 'resolved'].includes(status)) return res.status(400).json({ message: 'Geçersiz destek durumu.' });
+    const request = await SupportRequest.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!request) return res.status(404).json({ message: 'Destek talebi bulunamadı.' });
+    res.json(request);
+  } catch (error) { next(error); }
+};
 

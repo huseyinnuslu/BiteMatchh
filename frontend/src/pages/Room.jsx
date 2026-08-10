@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +17,7 @@ import api from '../api';
 const Room = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom } =
     useContext(RoomContext);
   const { user } = useContext(AuthContext);
@@ -37,6 +38,7 @@ const Room = () => {
   const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
   const [restaurantRecommendationsEnabled, setRestaurantRecommendationsEnabled] = useState(false);
   const pollingRef = useRef(null);
+  const chatNotificationRequestedRef = useRef(new URLSearchParams(location.search).get('chat') === '1');
   const autoOpenedChatForMatchRef = useRef(null);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
 
@@ -47,6 +49,14 @@ const Room = () => {
       .catch(() => { if (active) setRestaurantRecommendationsEnabled(false); });
     return () => { active = false; };
   }, []);
+
+  // Oda içi mesaj bildiriminden gelindiyse sonuç modalını değil sohbeti aç.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('chat') !== '1') return;
+    chatNotificationRequestedRef.current = true;
+    setMatchModalDismissed(true);
+    setChatOpen(true);
+  }, [location.search]);
 
   useEffect(() => {
     const isThisRoomFinished =
@@ -71,7 +81,7 @@ const Room = () => {
   }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name, id]);
   useEffect(() => {
     // Yeni bir oda/sonuç geldiğinde modal ve devam akışını sıfırdan başlat.
-    setMatchModalDismissed(false);
+    setMatchModalDismissed(chatNotificationRequestedRef.current);
     setShowRestaurantFlow(false);
   }, [id, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name]);
 

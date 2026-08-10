@@ -159,7 +159,9 @@ export const initSocket = (io) => {
                   user: pId,
                   message: `${room.name} - ${username}: ${text.slice(0, 30)}`,
                   type: 'message',
-                  link: `/room/${roomId}`
+                  // Sonuçlanmış odaya düz gitmek eşleşme modalını açıyordu.
+                  // Bildirimden gelen kullanıcı doğrudan oda sohbetini görür.
+                  link: `/room/${roomId}?chat=1`
                 });
                 io.to(`user:${pId.toString()}`).emit('new_notification', notif);
               }
