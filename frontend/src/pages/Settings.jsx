@@ -4,11 +4,12 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
   ArrowLeft, AtSign, Bell, ChevronRight, Eye, EyeOff, FileText,
-  LockKeyhole, Mail, MessageCircle, Pencil, Settings as SettingsIcon, ShieldCheck, UserRound,
+  LockKeyhole, Mail, MessageCircle, Pencil, Settings as SettingsIcon, ShieldCheck, UserRound, Download, Trash2,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import api from '../api';
+import ConfirmModal from '../components/ConfirmModal';
 
 const panelStyle = {
   padding: '1.15rem', marginBottom: '1rem',
@@ -44,7 +45,7 @@ const Toggle = ({ checked, onChange, label, description, disabled }) => (
 );
 
 const Settings = () => {
-  const { user, updateUser } = useContext(AuthContext);
+  const { user, updateUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
@@ -54,6 +55,11 @@ const Settings = () => {
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [unblockingId, setUnblockingId] = useState(null);
+  const [exportingData, setExportingData] = useState(false);
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [deletionCode, setDeletionCode] = useState('');
+  const [deletionRequested, setDeletionRequested] = useState(false);
+  const [deletionLoading, setDeletionLoading] = useState(false);
 
   const loadSettings = async () => {
     try {
@@ -128,6 +134,48 @@ const Settings = () => {
     } finally {
       setUnblockingId(null);
     }
+  };
+
+  const downloadPersonalData = async () => {
+    setExportingData(true);
+    try {
+      const response = await api.get('/auth/account/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bitematch-verilerim-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('Veri dosyan indirildi.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Verilerin indirilemedi.');
+    } finally { setExportingData(false); }
+  };
+
+  const requestDeletionCode = async () => {
+    setShowDeleteWarning(false);
+    setDeletionLoading(true);
+    try {
+      const { data } = await api.post('/auth/account/delete/request');
+      setDeletionRequested(true);
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Doğrulama kodu gönderilemedi.');
+    } finally { setDeletionLoading(false); }
+  };
+
+  const confirmAccountDeletion = async (event) => {
+    event.preventDefault();
+    if (deletionCode.length !== 6) return toast.error('E-postadaki 6 haneli kodu girin.');
+    setDeletionLoading(true);
+    try {
+      const { data } = await api.delete('/auth/account', { data: { otp: deletionCode } });
+      toast.success(data.message);
+      logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Hesap silinemedi.');
+    } finally { setDeletionLoading(false); }
   };
 
   if (loading) {
@@ -253,12 +301,51 @@ const Settings = () => {
           ))}
         </section>
 
+        <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Verilerin ve hesabın</p>
+        <section className="glass-card" style={panelStyle}>
+          <div style={{ display: 'flex', gap: '.8rem', alignItems: 'flex-start' }}>
+            <Download size={19} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Verilerimi indir</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', lineHeight: 1.45, marginTop: '.2rem' }}>Profil, oylama, oda, mesaj, bildirim ve destek kayıtlarını JSON dosyası olarak indir.</div>
+              <button type="button" onClick={downloadPersonalData} disabled={exportingData} style={{ marginTop: '.72rem', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.5rem .7rem', background: 'rgba(255,255,255,.04)', color: 'white', fontWeight: 700, cursor: exportingData ? 'wait' : 'pointer', fontSize: '.78rem' }}>{exportingData ? 'Hazırlanıyor...' : 'Verilerimi indir'}</button>
+            </div>
+          </div>
+          <div style={{ height: 1, background: 'rgba(255,255,255,.08)', margin: '1rem 0' }} />
+          <div style={{ display: 'flex', gap: '.8rem', alignItems: 'flex-start' }}>
+            <Trash2 size={19} color="#f87171" style={{ marginTop: 2, flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Hesabımı sil</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', lineHeight: 1.45, marginTop: '.2rem' }}>Hesabın ve kişisel verilerin kalıcı olarak silinir. İşlem e-postana gelen kodla doğrulanır.</div>
+              {!deletionRequested ? (
+                <button type="button" onClick={() => setShowDeleteWarning(true)} disabled={deletionLoading} style={{ marginTop: '.72rem', border: '1px solid rgba(248,113,113,.5)', borderRadius: 8, padding: '.5rem .7rem', background: 'rgba(239,68,68,.08)', color: '#fca5a5', fontWeight: 700, cursor: 'pointer', fontSize: '.78rem' }}>Silme kodu gönder</button>
+              ) : (
+                <form onSubmit={confirmAccountDeletion} style={{ display: 'flex', gap: '.5rem', marginTop: '.72rem', flexWrap: 'wrap' }}>
+                  <input value={deletionCode} onChange={(event) => setDeletionCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="6 haneli kod" aria-label="Hesap silme doğrulama kodu" style={{ flex: '1 1 150px', padding: '.55rem .7rem', background: 'var(--surface)', border: '1px solid rgba(248,113,113,.45)', borderRadius: 8, color: 'white', letterSpacing: '.2em', fontWeight: 800 }} />
+                  <button type="submit" disabled={deletionLoading} style={{ border: 'none', borderRadius: 8, padding: '.55rem .75rem', background: '#dc2626', color: 'white', fontWeight: 800, cursor: deletionLoading ? 'wait' : 'pointer', fontSize: '.78rem' }}>{deletionLoading ? 'Siliniyor...' : 'Hesabımı kalıcı sil'}</button>
+                </form>
+              )}
+            </div>
+          </div>
+        </section>
+
         <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Yasal</p>
         <Link to="/terms" className="glass-card" style={{ ...panelStyle, display: 'flex', alignItems: 'center', gap: '.8rem', color: 'inherit', textDecoration: 'none' }}>
           <FileText size={19} color="var(--primary)" />
           <span style={{ flex: 1 }}><span style={{ display: 'block', color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Kullanıcı sözleşmesi ve KVKK</span><span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '.79rem', marginTop: '.2rem' }}>Verilerinin nasıl işlendiğini incele.</span></span>
           <ChevronRight size={18} color="var(--text-muted)" />
         </Link>
+        {showDeleteWarning && (
+          <ConfirmModal
+            icon="⚠️"
+            title="Hesabı silme kodu gönderilsin mi?"
+            message="Kayıtlı e-posta adresine 10 dakika geçerli bir doğrulama kodu gönderilecek. Kod girilmeden hesabın silinmez."
+            confirmText="Kodu gönder"
+            confirmColor="#dc2626"
+            onConfirm={requestDeletionCode}
+            onCancel={() => setShowDeleteWarning(false)}
+          />
+        )}
       </motion.div>
     </div>
   );

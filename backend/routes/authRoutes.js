@@ -11,6 +11,9 @@ import {
   completeGmailApiAuthorization,
   requestEmailChange,
   confirmEmailChange,
+  requestAccountDeletion,
+  deleteOwnAccount,
+  exportPersonalData,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -23,6 +26,9 @@ router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
 router.post('/email-change/request', protect, requestEmailChange);
 router.post('/email-change/confirm', protect, confirmEmailChange);
+router.post('/account/delete/request', protect, requestAccountDeletion);
+router.get('/account/export', protect, exportPersonalData);
+router.delete('/account', protect, deleteOwnAccount);
 
 // Şifre sıfırlama – Gmail OTP akışı
 router.post('/forgot-password', forgotPassword);

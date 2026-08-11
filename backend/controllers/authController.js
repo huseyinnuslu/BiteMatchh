@@ -2,7 +2,15 @@ import nodemailer from 'nodemailer';
 import { resolve4 } from 'node:dns/promises';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
+import mongoose from 'mongoose';
+import { GridFSBucket } from 'mongodb';
 import User from '../models/User.js';
+import Room from '../models/Room.js';
+import Swipe from '../models/Swipe.js';
+import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
+import SupportRequest from '../models/SupportRequest.js';
+import LocationShare from '../models/LocationShare.js';
 import generateToken from '../utils/generateToken.js';
 
 // ─── Google OAuth2 client ───────────────────────────────────────────────────
@@ -663,6 +671,86 @@ export const confirmEmailChange = async (req, res, next) => {
     user.emailChangeExpire = undefined;
     await user.save({ validateBeforeSave: false });
     res.json({ message: 'Giriş e-postan doğrulandı ve güncellendi.', email: user.email });
+  } catch (error) { next(error); }
+};
+
+// Hesap silme iki adımlıdır: kod yalnızca hesaba kayıtlı e-postaya gider.
+export const requestAccountDeletion = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    if (!isEmailConfigured()) return res.status(503).json({ message: 'E-posta doğrulama servisi şu anda kullanılamıyor.' });
+
+    const otp = generateOTP();
+    user.accountDeletionToken = otp;
+    user.accountDeletionExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await sendEmail({
+      from: getEmailFrom(), to: user.email, subject: 'BiteMatch – Hesap Silme Doğrulama Kodu',
+      text: `Merhaba ${user.username}, BiteMatch hesabını silmek için kodun: ${otp}. Kod 10 dakika geçerlidir. Bu isteği sen yapmadıysan işlem yapma.`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#0f172a;color:#f8fafc;border-radius:16px"><h1 style="color:#ff4b4b">BiteMatch</h1><h2>Hesap silmeyi doğrula</h2><p>Bu işlem hesabını ve kişisel verilerini kalıcı olarak siler.</p><div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#ff4b4b;padding:18px;background:#1e293b;border-radius:12px;text-align:center">${otp}</div><p style="color:#94a3b8">Kod 10 dakika geçerlidir. Bu isteği sen yapmadıysan görmezden gel.</p></div>`,
+    });
+    res.json({ message: 'Doğrulama kodu kayıtlı e-posta adresine gönderildi.' });
+  } catch (error) { next(error); }
+};
+
+// Kullanıcının uygulamada tuttuğumuz kişisel verilerini taşınabilir JSON olarak
+// dışa aktarır. Şifre, oturum ve doğrulama anahtarları kesinlikle dahil edilmez.
+export const exportPersonalData = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const [user, swipes, rooms, messages, notifications, supportRequests] = await Promise.all([
+      User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpire -emailChangeToken -emailChangeExpire -accountDeletionToken -accountDeletionExpire -pushSubscription').lean(),
+      Swipe.find({ user: userId }).lean(),
+      Room.find({ participants: userId }).lean(),
+      Message.find({ $or: [{ sender: userId }, { recipient: userId }] }).lean(),
+      Notification.find({ user: userId }).lean(),
+      SupportRequest.find({ user: userId }).lean(),
+    ]);
+    if (!user) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+
+    res.set({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="bitematch-verilerim-${new Date().toISOString().slice(0, 10)}.json"`,
+      'Cache-Control': 'no-store',
+    });
+    res.json({
+      exportedAt: new Date().toISOString(),
+      profile: user,
+      swipes,
+      rooms,
+      directMessages: messages,
+      notifications,
+      supportRequests,
+    });
+  } catch (error) { next(error); }
+};
+
+export const deleteOwnAccount = async (req, res, next) => {
+  try {
+    const otp = String(req.body?.otp || '').trim();
+    const user = await User.findById(req.user._id);
+    if (!user || user.accountDeletionToken !== otp || !user.accountDeletionExpire || user.accountDeletionExpire <= new Date()) {
+      return res.status(400).json({ message: 'Kod hatalı veya süresi dolmuş. Yeni kod isteyin.' });
+    }
+
+    const userId = user._id;
+    const hostedRoomIds = (await Room.find({ host: userId }).select('_id').lean()).map((room) => room._id);
+    const avatarBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'avatars' });
+    const avatarFiles = await avatarBucket.find({ 'metadata.userId': userId.toString() }).toArray();
+    await Promise.all([
+      Message.deleteMany({ $or: [{ sender: userId }, { recipient: userId }, { room: { $in: hostedRoomIds } }] }),
+      Swipe.deleteMany({ $or: [{ user: userId }, { room: { $in: hostedRoomIds } }] }),
+      Notification.deleteMany({ user: userId }),
+      SupportRequest.deleteMany({ user: userId }),
+      LocationShare.deleteMany({ user: userId }),
+      Room.deleteMany({ _id: { $in: hostedRoomIds } }),
+      Room.updateMany({ participants: userId }, { $pull: { participants: userId } }),
+      User.updateMany({}, { $pull: { friends: userId, followers: userId, following: userId, pendingFriendRequests: userId, blockedUsers: userId } }),
+      ...avatarFiles.map((file) => avatarBucket.delete(file._id)),
+    ]);
+    await user.deleteOne();
+    res.json({ message: 'Hesabın ve kişisel verilerin silindi.' });
   } catch (error) { next(error); }
 };
 

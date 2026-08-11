@@ -52,6 +52,8 @@ const userSchema = mongoose.Schema(
     pendingEmail: { type: String, default: null },
     emailChangeToken: { type: String, default: null },
     emailChangeExpire: { type: Date, default: null },
+    accountDeletionToken: { type: String, default: null },
+    accountDeletionExpire: { type: Date, default: null },
 
     profilePic: {
       type: String,
