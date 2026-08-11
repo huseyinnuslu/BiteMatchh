@@ -238,16 +238,15 @@ export const getUserProfile = async (req, res, next) => {
 
     const isFriend = (userAgg.friends || []).map(id => id.toString()).includes(callerId);
     const isFollowing = (userAgg.followers || []).map(id => id.toString()).includes(callerId);
+    const tUserId = mongoose.Types.ObjectId.createFromHexString
+      ? mongoose.Types.ObjectId.createFromHexString(userAgg._id.toString())
+      : new mongoose.Types.ObjectId(userAgg._id.toString());
 
     // Calculate stat logic similar to getProfile, but only if isStatsPublic is true
     let statsData = null;
     const isPublic = userAgg.isStatsPublic !== undefined ? userAgg.isStatsPublic : true;
     
     if (isPublic) {
-      const tUserId = mongoose.Types.ObjectId.createFromHexString
-        ? mongoose.Types.ObjectId.createFromHexString(userAgg._id.toString())
-        : new mongoose.Types.ObjectId(userAgg._id.toString());
-
       const [swipeStats, categoryData] = await Promise.all([
         Swipe.aggregate([
           { $match: { user: tUserId } },
@@ -295,6 +294,25 @@ export const getUserProfile = async (req, res, next) => {
       };
     }
 
+    // Rütbe, arkadaşlar arasındaki sosyal ilerleme bilgisidir. Genel istatistik
+    // tercihi kapalı olsa bile yalnızca arkadaşlara gösterilir.
+    let gamification = null;
+    if (isFriend) {
+      const [totalSwipes, completedRooms] = await Promise.all([
+        Swipe.countDocuments({ user: tUserId }),
+        Room.countDocuments({
+          participants: tUserId,
+          status: 'finished',
+          $expr: { $gte: [{ $size: '$participants' }, 2] },
+        }),
+      ]);
+      const progress = buildGamification({ totalSwipes, completedRooms });
+      gamification = {
+        xp: progress.xp,
+        currentRank: progress.currentRank,
+      };
+    }
+
     // isPending calculation: Am I in their pending requests?
     const isPending = (userAgg.pendingFriendRequests || []).map(id => id.toString()).includes(callerId);
 
@@ -313,6 +331,7 @@ export const getUserProfile = async (req, res, next) => {
       friendCount: (userAgg.friends || []).length,
       isStatsPublic: isPublic,
       stats: statsData,
+      gamification,
     });
   } catch (error) {
     next(error);

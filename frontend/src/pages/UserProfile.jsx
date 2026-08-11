@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
   Users, BarChart2, UserPlus, UserMinus, Clock, ArrowLeft,
-  UserCheck, UserX
+  UserCheck, UserX, Award
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -113,6 +113,16 @@ const UserProfile = () => {
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: '0 0 0.3rem 0', fontSize: '1.6rem' }}>{profile.name}</h2>
             <p style={{ margin: 0, color: 'var(--primary)', fontWeight: 600, fontSize: '0.95rem' }}>@{profile.username}</p>
+            {profile.gamification?.currentRank && (
+              <div
+                title={`${profile.gamification.xp} XP`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '.42rem', marginTop: '.58rem', padding: '.36rem .58rem', borderRadius: 999, color: '#fef3c7', fontSize: '.76rem', fontWeight: 800, background: 'linear-gradient(135deg, rgba(251,113,133,.16), rgba(139,92,246,.18))', border: '1px solid rgba(196,181,253,.35)' }}
+              >
+                <Award size={14} />
+                <span>{profile.gamification.currentRank.icon}</span>
+                {profile.gamification.currentRank.title} · Seviye {profile.gamification.currentRank.level}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Clock size={13} /> {joinDate}
