@@ -27,7 +27,7 @@ const panelStyle = {
   boxShadow: '0 16px 42px rgba(0,0,0,0.28)',
 };
 
-const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKind = 'restaurant', onStartRestaurantRound, onRestaurantMatched, onExit }) => {
+const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKind = 'restaurant', onStartRestaurantRound, onRestaurantMatched, onComplete, onExit }) => {
   const isCinema = venueKind === 'cinema';
   const venueLabel = isCinema ? 'sinema salonu' : 'restoran';
   const venueLabelPlural = isCinema ? 'sinema salonları' : 'restoranlar';
@@ -331,8 +331,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
         title={isCinema ? 'SİNEMA SALONU BELİRLENDİ!' : 'RESTORAN BELİRLENDİ!'}
         subtitle="Gizli tercihleriniz ortak bir kararda buluştu."
         closeLabel="Kararı Tamamla & Keşfete Dön"
-        onClose={onExit}
-        onExitRoom={onExit}
+        onClose={onComplete || onExit}
       />
     </>
   );

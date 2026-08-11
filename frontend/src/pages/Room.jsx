@@ -327,7 +327,12 @@ const Room = () => {
       setChatOpen(false);
       return;
     }
-    setExitDialogOpen(true);
+    // Karar zaten tamamlandı; ikinci bir çıkış onayı kullanıcıyı gereksiz
+    // durduruyordu. Sonucu kaydedilmiş odada güvenle Keşfet'e dönüyoruz.
+    setMatchModalDismissed(true);
+    resetRoom();
+    toast.success('Sana fark eder! Ortak kararınız hazır.');
+    navigate('/dashboard');
   };
 
   const requestRoomExit = () => setExitDialogOpen(true);
@@ -547,6 +552,11 @@ const Room = () => {
           participantCount={currentRoom.participants.length}
           onStartRestaurantRound={(restaurantRoomId) => navigate(`/room/${restaurantRoomId}`)}
           onRestaurantMatched={openRestaurantMatchChat}
+          onComplete={() => {
+            resetRoom();
+            toast.success('Sana fark eder! Restoran kararınız hazır.');
+            navigate('/dashboard');
+          }}
           onExit={requestRoomExit}
         />
       )}

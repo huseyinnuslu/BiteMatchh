@@ -1,15 +1,18 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { AuthContext } from '../context/AuthContext';
 import { RoomContext } from '../context/RoomContext';
-import { Loader, Play, Users, Link, UserPlus, Clock } from 'lucide-react';
+import { Loader, Play, Users, Link, UserPlus, Clock, LogOut } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getSocket } from '../socket/socketClient';
 import api from '../api';
+import ConfirmModal from '../components/ConfirmModal';
 
 const WaitingRoom = () => {
-  const { currentRoom, startRoom, fetchRoomStatus } = useContext(RoomContext);
+  const { currentRoom, startRoom, fetchRoomStatus, resetRoom } = useContext(RoomContext);
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [friends, setFriends] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
@@ -17,6 +20,7 @@ const WaitingRoom = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [platforms, setPlatforms] = useState([]);
   const [savingPlatforms, setSavingPlatforms] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
 
   const isHost = currentRoom.host._id === user._id || currentRoom.host === user._id;
   const inviteLink = window.location.href;
@@ -143,7 +147,12 @@ const WaitingRoom = () => {
   return (
     <div className="flex-center animate-slide-up" style={{ minHeight: '70vh', flexDirection: 'column' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>{currentRoom.name}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem', marginBottom: '.5rem' }}>
+          <h2 style={{ color: 'var(--primary)', margin: 0, textTransform: 'capitalize', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentRoom.name}</h2>
+          <button type="button" onClick={() => setExitDialogOpen(true)} className="btn" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.5rem .7rem', color: '#fca5a5', border: '1px solid rgba(248,113,113,.5)', background: 'rgba(239,68,68,.1)', fontSize: '.78rem', fontWeight: 800 }}>
+            <LogOut size={15} /> Odadan Çık
+          </button>
+        </div>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Bekleme Salonu</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', width: '100%' }}>
@@ -288,6 +297,17 @@ const WaitingRoom = () => {
           </div>
         )}
       </div>
+      {exitDialogOpen && (
+        <ConfirmModal
+          icon={<LogOut size={26} color="#f87171" />}
+          title="Odadan ayrılmak istiyor musun?"
+          message="Odan açık kalır; davet bağlantısıyla tekrar katılabilirsin."
+          confirmText="Odadan Ayrıl"
+          confirmColor="#ef4444"
+          onCancel={() => setExitDialogOpen(false)}
+          onConfirm={() => { setExitDialogOpen(false); resetRoom(); navigate('/dashboard'); }}
+        />
+      )}
     </div>
   );
 };

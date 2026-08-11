@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { RoomContext } from '../context/RoomContext';
 import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History, Bell } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { getSocket } from '../socket/socketClient';
@@ -10,12 +11,39 @@ import { toast } from 'react-toastify';
 // ---- Navbar ----
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
+  const { currentRoom, resetRoom } = useContext(RoomContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingRoomNavigation, setPendingRoomNavigation] = useState(null);
+
+  const roomPathMatch = location.pathname.match(/^\/room\/([^/]+)/);
+  const isActiveRoomRoute = Boolean(
+    roomPathMatch &&
+    currentRoom?._id &&
+    String(currentRoom._id) === roomPathMatch[1] &&
+    ['waiting', 'voting'].includes(currentRoom.status)
+  );
+
+  const guardRoomNavigation = (event) => {
+    const anchor = event.target.closest('a[href]');
+    const destination = anchor?.getAttribute('href');
+    if (!isActiveRoomRoute || !destination || destination === '#' || destination === location.pathname || /^https?:/i.test(destination)) return;
+
+    event.preventDefault();
+    setShowNotifications(false);
+    setPendingRoomNavigation(destination);
+  };
+
+  const confirmRoomNavigation = () => {
+    const destination = pendingRoomNavigation;
+    setPendingRoomNavigation(null);
+    resetRoom();
+    navigate(destination || '/dashboard');
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -88,7 +116,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav style={{
+      <nav onClickCapture={guardRoomNavigation} style={{
         padding: isMobile ? '0.75rem 0' : '1rem 0',
         borderBottom: '1px solid var(--border)',
         background: 'rgba(15, 23, 42, 0.85)',
@@ -323,7 +351,7 @@ const Navbar = () => {
 
       {/* Mobil Alt Navigasyon Barı (Mobile Bottom Navigation Bar) */}
       {isMobile && user && user._id && (
-        <div style={{
+        <div onClickCapture={guardRoomNavigation} style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: 'rgba(15, 23, 42, 0.96)',
           backdropFilter: 'blur(20px)',
@@ -395,6 +423,17 @@ const Navbar = () => {
           confirmColor="#ef4444"
           onConfirm={() => { logout(); setShowLogoutModal(false); }}
           onCancel={() => setShowLogoutModal(false)}
+        />
+      )}
+      {pendingRoomNavigation && (
+        <ConfirmModal
+          icon={<LogOut size={26} color="#f87171" />}
+          title="Odadan ayrılmak istiyor musun?"
+          message="Odan açık kalır ve davet bağlantısıyla tekrar katılabilirsin. Sayfadan ayrıldığında mevcut seçim ekranın kapatılır."
+          confirmText="Odadan Ayrıl"
+          confirmColor="#ef4444"
+          onConfirm={confirmRoomNavigation}
+          onCancel={() => setPendingRoomNavigation(null)}
         />
       )}
     </>

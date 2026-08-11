@@ -308,6 +308,16 @@ const hasReliableFoursquareAddress = (place, address) => {
   return hasStreetDetail && hasAreaDetail;
 };
 
+const hasFoursquareBusinessContact = (place) => {
+  const location = place.location || {};
+  const phone = String(place.tel || place.phone || location.tel || '').replace(/\D/g, '');
+  const website = String(place.website || location.website || '').trim();
+  // Ücretsiz Places kaynağında "açık/kapalı" bilgisini güvenilir biçimde
+  // alamıyoruz. En azından iletişim izi olmayan, eski/pin niteliğindeki
+  // kayıtları gerçek bir işletme gibi kartlara taşımayalım.
+  return phone.length >= 7 || /^https?:\/\//i.test(website);
+};
+
 const getFoursquareCategoryNames = (place) => {
   const categories = place.categories || place.fsq_categories || [];
   return categories
@@ -396,7 +406,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const { query, venueType, profile } = venueSearch;
   const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
-  const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, unreliableAddress: 0, outsideGroupArea: 0 };
+  const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, unreliableAddress: 0, missingContact: 0, outsideGroupArea: 0 };
   const venues = places
     .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
     .filter(({ place, coordinates, address }) => {
@@ -422,6 +432,10 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
       }
       if (!hasReliableFoursquareAddress(place, address)) {
         rejectionCounts.unreliableAddress += 1;
+        return false;
+      }
+      if (venueType === 'restaurant' && !hasFoursquareBusinessContact(place)) {
+        rejectionCounts.missingContact += 1;
         return false;
       }
       const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
