@@ -8,6 +8,27 @@ import { getIo } from '../server.js';
 import LocationShare from '../models/LocationShare.js';
 
 const EARTH_RADIUS_KM = 6371;
+const STREAMING_PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'];
+
+const isStreamingFilmRoom = (room) => ['film', 'movie'].includes(room.category) && room.watchMode === 'streaming';
+const sanitizeStreamingRoom = (room, userId) => {
+  const plainRoom = room.toObject ? room.toObject() : room;
+  if (!isStreamingFilmRoom(plainRoom)) return plainRoom;
+  const mine = (plainRoom.platformSelections || []).find((selection) => String(selection.user?._id || selection.user) === String(userId));
+  const safeRoom = { ...plainRoom };
+  delete safeRoom.platformSelections;
+  safeRoom.streamingSetup = {
+    completedCount: (plainRoom.platformSelections || []).length,
+    participantCount: (plainRoom.participants || []).length,
+    myPlatforms: mine?.platforms || [],
+  };
+  return safeRoom;
+};
+
+const selectFilmOptionsForPlatforms = (platforms) => {
+  const pool = mockOptions.film.filter((option) => platforms.includes(option.platform));
+  return selectDiverseOptions(pool, Math.min(pool.length, Math.floor(Math.random() * 6) + 10));
+};
 
 const haversineKm = (from, to) => {
   const radians = (degrees) => (degrees * Math.PI) / 180;
@@ -62,14 +83,24 @@ const personalizeRestaurantDistances = async (room, userId) => {
 // @access  Private
 export const createRoom = async (req, res, next) => {
   try {
-    const { name, category, options, priceRange, timeLimit } = req.body;
+    const { name, category, options, priceRange, timeLimit, watchMode, streamingPlatforms } = req.body;
 
     let roomOptions = options || [];
     const cleanCategory = category ? category.toLowerCase() : 'custom';
     const activePriceRange = priceRange || [];
+    const normalizedWatchMode = cleanCategory === 'film'
+      ? (watchMode === 'cinema' ? 'cinema' : 'streaming')
+      : null;
+    const selectedPlatforms = [...new Set((Array.isArray(streamingPlatforms) ? streamingPlatforms : [])
+      .filter((platform) => STREAMING_PLATFORMS.includes(platform)))];
+    if (cleanCategory === 'film' && normalizedWatchMode === 'streaming' && selectedPlatforms.length === 0) {
+      return res.status(400).json({ message: 'Evde izleme için en az bir platform seçmelisin.' });
+    }
 
     if (cleanCategory && cleanCategory !== 'custom' && mockOptions[cleanCategory] && roomOptions.length === 0) {
-      let sourcePool = mockOptions[cleanCategory];
+      let sourcePool = cleanCategory === 'film' && normalizedWatchMode === 'streaming'
+        ? mockOptions.film.filter((option) => selectedPlatforms.includes(option.platform))
+        : mockOptions[cleanCategory];
 
       if (activePriceRange.length > 0 && sourcePool.some(item => item.budget)) {
         const filteredPool = sourcePool.filter(item => {
@@ -97,12 +128,17 @@ export const createRoom = async (req, res, next) => {
       participants: [req.user._id],
       options: roomOptions,
       category: cleanCategory,
+      watchMode: normalizedWatchMode,
+      streamingPlatforms: cleanCategory === 'film' && normalizedWatchMode === 'streaming' ? selectedPlatforms : [],
+      platformSelections: cleanCategory === 'film' && normalizedWatchMode === 'streaming'
+        ? [{ user: req.user._id, platforms: selectedPlatforms, submittedAt: new Date() }]
+        : [],
       priceRange: activePriceRange,
       timeLimit: Number(timeLimit) || 0,
       status: 'waiting',
     });
 
-    res.status(201).json(room);
+    res.status(201).json(sanitizeStreamingRoom(room, req.user._id));
   } catch (error) {
     next(error);
   }
@@ -178,7 +214,7 @@ export const getRoomById = async (req, res, next) => {
 
         const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(updatedRoom), req.user._id);
         return res.json({
-          ...personalizedRoom,
+          ...sanitizeStreamingRoom(personalizedRoom, req.user._id),
           userSwipes: userSwipes.map(s => s.optionId.toString()),
           participantStatuses,
         });
@@ -208,7 +244,7 @@ export const getRoomById = async (req, res, next) => {
 
     const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(room.toObject()), req.user._id);
     res.json({
-      ...personalizedRoom,
+      ...sanitizeStreamingRoom(personalizedRoom, req.user._id),
       userSwipes: userSwipes.map(s => s.optionId.toString()),
       participantStatuses,
     });
@@ -245,7 +281,7 @@ export const joinRoom = async (req, res, next) => {
       { new: true }
     ).populate('host', 'username').populate('participants', 'username');
 
-    res.json(updatedRoom);
+    res.json(sanitizeStreamingRoom(updatedRoom, req.user._id));
   } catch (error) {
     next(error);
   }
@@ -311,19 +347,58 @@ export const startRoom = async (req, res, next) => {
       throw new Error('Odayı başlatmak için en az 1 kişi daha davet etmelisiniz (Toplam en az 2 kişi).');
     }
 
+    if (isStreamingFilmRoom(room)) {
+      const selections = room.platformSelections || [];
+      if (selections.length < room.participants.length) {
+        return res.status(400).json({ message: 'Film kartlarını hazırlamak için herkes erişebildiği platformları seçmeli.' });
+      }
+      const commonPlatforms = room.streamingPlatforms.filter((platform) =>
+        selections.every((selection) => selection.platforms.includes(platform))
+      );
+      const filmOptions = selectFilmOptionsForPlatforms(commonPlatforms);
+      if (filmOptions.length < 2) {
+        return res.status(400).json({ message: 'Grubun ortak platformlarında yeterli film veya dizi bulunamadı. Platform seçimlerini güncelleyin.' });
+      }
+      room.options = filmOptions;
+    }
     room.status = 'voting';
     room.votingStartedAt = new Date();
     await room.save();
 
     const io = getIo();
     if (io) {
-      io.to(room._id.toString()).emit('room_started', room);
+      // Platform tercihleri özel veridir; socket odasına ham listeyi yaymayız.
+      io.to(room._id.toString()).emit('room_started', sanitizeStreamingRoom(room, null));
     }
 
-    res.json(room);
+    res.json(sanitizeStreamingRoom(room, req.user._id));
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Streaming film odasında kendi erişilebilir platformlarını kaydet
+// @route   PUT /api/rooms/:id/streaming-platforms
+// @access  Private
+export const updateStreamingPlatforms = async (req, res, next) => {
+  try {
+    const room = await Room.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Oda bulunamadı.' });
+    if (!room.participants.some((participant) => String(participant) === String(req.user._id))) {
+      return res.status(403).json({ message: 'Bu odada platform tercihi kaydedemezsin.' });
+    }
+    if (!isStreamingFilmRoom(room) || room.status !== 'waiting') {
+      return res.status(400).json({ message: 'Bu odada platform tercihi değiştirilemez.' });
+    }
+    const platforms = [...new Set((Array.isArray(req.body?.platforms) ? req.body.platforms : [])
+      .filter((platform) => room.streamingPlatforms.includes(platform) && STREAMING_PLATFORMS.includes(platform)))];
+    if (!platforms.length) return res.status(400).json({ message: 'En az bir erişebildiğin platformu seçmelisin.' });
+    room.platformSelections = (room.platformSelections || []).filter((selection) => String(selection.user) !== String(req.user._id));
+    room.platformSelections.push({ user: req.user._id, platforms, submittedAt: new Date() });
+    await room.save();
+    getIo()?.to(room._id.toString()).emit('streaming_platforms_updated', { roomId: room._id.toString() });
+    res.json(sanitizeStreamingRoom(room, req.user._id));
+  } catch (error) { next(error); }
 };
 
 // @desc    Kullanıcının geçmiş başarılı eşleşmelerini getir

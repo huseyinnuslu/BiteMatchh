@@ -43,6 +43,19 @@ const roomSchema = mongoose.Schema(
       type: String,
       default: 'custom'
     },
+    watchMode: {
+      type: String,
+      enum: ['streaming', 'cinema', null],
+      default: null,
+    },
+    streamingPlatforms: [{ type: String }],
+    // Herkes sadece kendi erişimini işaretler; istemciye diğer üyelerin
+    // platform listesi değil yalnızca tamamlayan kişi sayısı gönderilir.
+    platformSelections: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      platforms: [{ type: String }],
+      submittedAt: { type: Date, default: Date.now },
+    }],
     priceRange: [
       {
         type: String

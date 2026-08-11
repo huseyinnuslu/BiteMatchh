@@ -15,9 +15,17 @@ const WaitingRoom = () => {
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [invitedIds, setInvitedIds] = useState(new Set());
   const [timeLeft, setTimeLeft] = useState(null);
+  const [platforms, setPlatforms] = useState([]);
+  const [savingPlatforms, setSavingPlatforms] = useState(false);
 
   const isHost = currentRoom.host._id === user._id || currentRoom.host === user._id;
   const inviteLink = window.location.href;
+  const isStreamingFilmRoom = currentRoom.category === 'film' && currentRoom.watchMode === 'streaming';
+  const streamingSetup = currentRoom.streamingSetup || {};
+
+  useEffect(() => {
+    if (isStreamingFilmRoom) setPlatforms(streamingSetup.myPlatforms || []);
+  }, [isStreamingFilmRoom, currentRoom._id, JSON.stringify(streamingSetup.myPlatforms || [])]);
 
   // 1. Arkadaş listesini çek
   useEffect(() => {
@@ -51,10 +59,12 @@ const WaitingRoom = () => {
 
     socket.on('participant_joined', handleJoined);
     socket.on('participant_left', handleLeft);
+    socket.on('streaming_platforms_updated', handleJoined);
 
     return () => {
       socket.off('participant_joined', handleJoined);
       socket.off('participant_left', handleLeft);
+      socket.off('streaming_platforms_updated', handleJoined);
     };
   }, [currentRoom._id, fetchRoomStatus]);
 
@@ -87,6 +97,17 @@ const WaitingRoom = () => {
       return;
     }
     await startRoom(currentRoom._id);
+  };
+
+  const savePlatforms = async () => {
+    if (!platforms.length) return toast.error('En az bir platform seçmelisin.');
+    setSavingPlatforms(true);
+    try {
+      const { data } = await api.put(`/rooms/${currentRoom._id}/streaming-platforms`, { platforms });
+      fetchRoomStatus(currentRoom._id);
+      toast.success(data.streamingSetup?.completedCount === data.streamingSetup?.participantCount ? 'Platform tercihleri tamamlandı.' : 'Platform tercihin kaydedildi.');
+    } catch (error) { toast.error(error.response?.data?.message || 'Platform tercihi kaydedilemedi.'); }
+    finally { setSavingPlatforms(false); }
   };
 
   const handleCopyLink = () => {
@@ -231,19 +252,34 @@ const WaitingRoom = () => {
           </div>
         </div>
 
+        {isStreamingFilmRoom && (
+          <div style={{ marginBottom: '1.35rem', textAlign: 'left', padding: '1rem', borderRadius: 12, background: 'rgba(99,102,241,.1)', border: '1px solid rgba(129,140,248,.32)' }}>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: '.92rem' }}>Streaming erişimin</div>
+            <p style={{ margin: '.35rem 0 .75rem', color: 'var(--text-muted)', fontSize: '.77rem', lineHeight: 1.45 }}>Sadece ikinizin de erişebildiği platformlardaki film ve diziler gelir. Diğer katılımcılar seçimini göremez.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem', marginBottom: '.75rem' }}>
+              {(currentRoom.streamingPlatforms || []).map((platform) => {
+                const selected = platforms.includes(platform);
+                return <button key={platform} type="button" onClick={() => setPlatforms(prev => selected ? prev.filter(item => item !== platform) : [...prev, platform])} style={{ padding: '.48rem .62rem', borderRadius: 20, border: `1px solid ${selected ? 'var(--primary)' : 'rgba(255,255,255,.16)'}`, background: selected ? 'rgba(255,75,75,.17)' : 'transparent', color: selected ? 'white' : 'var(--text-muted)', cursor: 'pointer', fontSize: '.75rem', fontWeight: 700 }}>{platform}</button>;
+              })}
+            </div>
+            <button type="button" onClick={savePlatforms} disabled={savingPlatforms} className="btn" style={{ width: '100%', padding: '.62rem', background: 'rgba(255,75,75,.88)', color: 'white', fontWeight: 800 }}>{savingPlatforms ? 'Kaydediliyor...' : 'Platformlarımı Kaydet'}</button>
+            <div style={{ color: '#c4b5fd', fontSize: '.73rem', fontWeight: 700, textAlign: 'center', marginTop: '.65rem' }}>{streamingSetup.completedCount || 0}/{streamingSetup.participantCount || currentRoom.participants.length} katılımcı tercihini tamamladı</div>
+          </div>
+        )}
+
         {isHost ? (
           <button 
             onClick={handleStart} 
-            disabled={currentRoom.participants.length < 2}
-            className={`btn ${currentRoom.participants.length < 2 ? 'btn-outline' : 'btn-primary pulse-primary'}`} 
+            disabled={currentRoom.participants.length < 2 || (isStreamingFilmRoom && streamingSetup.completedCount < currentRoom.participants.length)}
+            className={`btn ${currentRoom.participants.length < 2 || (isStreamingFilmRoom && streamingSetup.completedCount < currentRoom.participants.length) ? 'btn-outline' : 'btn-primary pulse-primary'}`}
             style={{ 
               width: '100%', fontSize: '1rem', padding: '0.85rem', 
-              opacity: currentRoom.participants.length < 2 ? 0.6 : 1, 
-              cursor: currentRoom.participants.length < 2 ? 'not-allowed' : 'pointer' 
+              opacity: currentRoom.participants.length < 2 || (isStreamingFilmRoom && streamingSetup.completedCount < currentRoom.participants.length) ? 0.6 : 1,
+              cursor: currentRoom.participants.length < 2 || (isStreamingFilmRoom && streamingSetup.completedCount < currentRoom.participants.length) ? 'not-allowed' : 'pointer'
             }}
           >
             <Play size={18} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} /> 
-            {currentRoom.participants.length < 2 ? 'Odayı Başlatmak İçin Arkadaş Davet Edin' : 'Herkes Hazır, Oylamayı Başlat!'}
+            {currentRoom.participants.length < 2 ? 'Odayı Başlatmak İçin Arkadaş Davet Edin' : isStreamingFilmRoom && streamingSetup.completedCount < currentRoom.participants.length ? 'Platform Tercihleri Bekleniyor' : 'Herkes Hazır, Oylamayı Başlat!'}
           </button>
         ) : (
           <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
