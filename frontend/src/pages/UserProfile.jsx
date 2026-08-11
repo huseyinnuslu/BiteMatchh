@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
+import ConfirmModal from '../components/ConfirmModal';
 import { getSocket } from '../socket/socketClient';
 
 const CATEGORY_ICONS = {
@@ -23,6 +24,7 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   useEffect(() => {
     if (id === currentUser?._id) {
@@ -134,7 +136,7 @@ const UserProfile = () => {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {profile.isFriend ? (
-              <button onClick={handleRemoveFriend} disabled={actionId === id} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.6rem 1rem' }}>
+              <button onClick={() => setShowRemoveConfirm(true)} disabled={actionId === id} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.6rem 1rem' }}>
                 <UserMinus size={16} style={{ marginRight: 6 }} /> Çıkar
               </button>
             ) : profile.isPending ? (
@@ -195,6 +197,21 @@ const UserProfile = () => {
             Bu kullanıcı istatistiklerini herkese açık olarak paylaşmıyor.
           </p>
         </div>
+      )}
+
+      {showRemoveConfirm && (
+        <ConfirmModal
+          icon="👋"
+          title="Arkadaşlıktan çıkar?"
+          message={`@${profile.username} ile arkadaşlığı sonlandırmak istediğine emin misin? Daha sonra yeniden arkadaşlık isteği gönderebilirsin.`}
+          confirmText="Arkadaşlıktan çıkar"
+          confirmColor="#ef4444"
+          onCancel={() => setShowRemoveConfirm(false)}
+          onConfirm={() => {
+            handleRemoveFriend();
+            setShowRemoveConfirm(false);
+          }}
+        />
       )}
     </div>
   );

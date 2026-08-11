@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
+import ConfirmModal from '../components/ConfirmModal';
 import { getSocket } from '../socket/socketClient';
 
 // ── Kategori emoji haritası ──────────────────────────────────────────────────
@@ -99,6 +100,7 @@ const Profile = () => {
   const [searching, setSearching] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [showRanks, setShowRanks] = useState(false);
+  const [removeFriendTarget, setRemoveFriendTarget] = useState(null);
 
   // ── Profil yükle ──────────────────────────────────────────────────────────
   const loadProfile = async () => {
@@ -693,7 +695,7 @@ const Profile = () => {
                     </div>
 
                     <button
-                      onClick={() => handleRemoveFriend(f._id)}
+                      onClick={() => setRemoveFriendTarget(f)}
                       disabled={actionId === f._id}
                       title="Arkadaşlıktan çıkar"
                       style={{
@@ -920,6 +922,21 @@ const Profile = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {removeFriendTarget && (
+        <ConfirmModal
+          icon="👋"
+          title="Arkadaşlıktan çıkar?"
+          message={`@${removeFriendTarget.username} ile arkadaşlığı sonlandırmak istediğine emin misin? Bu işlem geri alınabilir; daha sonra yeniden arkadaşlık isteği gönderebilirsin.`}
+          confirmText="Arkadaşlıktan çıkar"
+          confirmColor="#ef4444"
+          onCancel={() => setRemoveFriendTarget(null)}
+          onConfirm={() => {
+            handleRemoveFriend(removeFriendTarget._id);
+            setRemoveFriendTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };
