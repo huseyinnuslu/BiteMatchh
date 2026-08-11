@@ -83,6 +83,62 @@ export const curatedCatalogAdditions = {
       budget: '₺', discoveryGroup: 'ice-cream', venueConcept: 'Dondurmacı',
       description: 'Yürüyüşe eşlik edecek, hafif ve mevsim fark etmeksizin keyifli bir tatlı molası.',
     },
+    {
+      name: 'Gözleme & Ayran',
+      mapsQuery: 'gözleme',
+      imageUrl: 'https://turkishfoodie.com/wp-content/uploads/2019/09/Gozleme-1068x551.jpg',
+      budget: '₺', discoveryGroup: 'anatolian-flatbread', venueConcept: 'Anadolu mutfağı',
+      description: 'Peynirli, ıspanaklı veya kıymalı gözlemeyi soğuk ayranla tamamlayan sade ve paylaşması kolay bir mola.',
+    },
+    {
+      name: 'Menemen & Kahvaltı',
+      mapsQuery: 'menemen kahvaltı',
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/LH/hvi8-listing.jpg',
+      budget: '₺₺', discoveryGroup: 'turkish-breakfast', venueConcept: 'Kahvaltıcı',
+      description: 'Domates, biber ve yumurtayla hazırlanan sıcak menemen; uzun hafta sonu sohbetleri için güçlü bir başlangıç.',
+    },
+    {
+      name: 'Meze & Rakı-Balık',
+      mapsQuery: 'meze balık restoranı',
+      imageUrl: 'https://i.kocatepegazetesi.com/c/80/740x417/s/dosya/haber/kultur-ve-turizm-bakanligi-nin_1726733766_xQcDwH.jpeg',
+      budget: '₺₺₺', discoveryGroup: 'meze-seafood', venueConcept: 'Meyhane & balıkçı',
+      description: 'Paylaşmalık soğuk mezeler, sıcak ara sıcaklar ve uzun bir akşam yemeği isteyen gruplar için.',
+    },
+    {
+      name: 'Çorba & Esnaf Lokantası',
+      mapsQuery: 'çorbacı esnaf lokantası',
+      imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=1200&q=85',
+      budget: '₺', discoveryGroup: 'soup-home-style', venueConcept: 'Esnaf lokantası',
+      description: 'Mercimek, kelle paça veya günün ev yemeğiyle hızlı, sıcak ve bütçe dostu bir öğün.',
+    },
+    {
+      name: 'Tavuk Döner & Pilav',
+      mapsQuery: 'tavuk döner pilav',
+      imageUrl: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=1200&q=85',
+      budget: '₺', discoveryGroup: 'chicken-street-food', venueConcept: 'Hızlı servis',
+      description: 'Tavuk döner, pilav ve ayranla kısa sürede doyurucu bir öğle veya akşam seçeneği.',
+    },
+    {
+      name: 'Pankek & Kahvaltı',
+      mapsQuery: 'pankek kahvaltı kafe',
+      imageUrl: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'sweet-breakfast', venueConcept: 'Brunch kafe',
+      description: 'Meyve, bal ve yumuşak pankeklerle tatlı başlayan, kahve eşlikli keyifli bir brunch planı.',
+    },
+    {
+      name: 'Cheesecake & Kahve',
+      mapsQuery: 'cheesecake kahve kafe',
+      imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'coffee-dessert', venueConcept: 'Tatlı kafe',
+      description: 'Kahve yanında paylaşılacak bir dilim cheesecake; kısa buluşmalar için tatlı ve pratik bir tercih.',
+    },
+    {
+      name: 'Mangal & Izgara',
+      mapsQuery: 'mangal ızgara restoranı',
+      imageUrl: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=1200&q=85',
+      budget: '₺₺₺', discoveryGroup: 'open-fire-grill', venueConcept: 'Izgara restoranı',
+      description: 'Köz ateşinde et, tavuk ve sebzelerle kalabalık arkadaş gruplarına uygun, uzun sofralık bir plan.',
+    },
   ],
   film: [
     {
@@ -135,6 +191,46 @@ export const curatedCatalogAdditions = {
       imdbScore: 7.8, duration: '129 dk', discoveryGroup: 'romance', visualLabel: 'Temsili dönem görseli',
       description: 'Elizabeth Bennet ve Bay Darcy’nin önyargılarla başlayan zamansız aşk hikâyesi.',
     },
+    {
+      name: 'Arcane', imageUrl: 'https://images.unsplash.com/photo-1519608487953-e999c86e745b?w=1200&q=85',
+      imdbScore: 9.0, duration: '41 dk', platform: 'Netflix', discoveryGroup: 'animated-fantasy', visualLabel: 'Temsili fantastik şehir görseli',
+      description: 'Piltover ve Zaun’un iki zıt dünyasında geçen, güçlü görsel diliyle öne çıkan animasyon dizisi.',
+    },
+    {
+      name: 'Dark', imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&q=85',
+      imdbScore: 8.7, duration: '60 dk', platform: 'Netflix', discoveryGroup: 'time-mystery', visualLabel: 'Temsili karanlık orman görseli',
+      description: 'Kayıp bir çocukla başlayan hikâyenin zaman döngüleri ve aile sırlarıyla iç içe geçtiği Alman gizemi.',
+    },
+    {
+      name: 'BoJack Horseman', imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&q=85',
+      imdbScore: 8.8, duration: '25 dk', platform: 'Netflix', discoveryGroup: 'animated-drama', visualLabel: 'Temsili Hollywood görseli',
+      description: 'Şöhret, bağımlılık ve dostluk üzerine beklenmedik derecede derin yetişkin animasyonu.',
+    },
+    {
+      name: 'The Crown', imageUrl: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85',
+      imdbScore: 8.6, duration: '58 dk', platform: 'Netflix', discoveryGroup: 'historical-drama', visualLabel: 'Temsili saray görseli',
+      description: 'II. Elizabeth dönemini merkezine alan, kraliyet ile kişisel hayat arasındaki gerilimi anlatan dönem draması.',
+    },
+    {
+      name: 'Wednesday', imageUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&q=85',
+      imdbScore: 8.0, duration: '45 dk', platform: 'Netflix', discoveryGroup: 'gothic-mystery', visualLabel: 'Temsili gotik okul görseli',
+      description: 'Wednesday Addams’ın yatılı okulda hem yeni çevresini hem de doğaüstü bir gizemi çözmesini anlatan kara komedi.',
+    },
+    {
+      name: 'Chernobyl', imageUrl: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1200&q=85',
+      imdbScore: 9.3, duration: '60 dk', platform: 'HBO Max', discoveryGroup: 'historical-disaster', visualLabel: 'Temsili endüstriyel görsel',
+      description: '1986 nükleer felaketinin ardındaki insan hatalarını ve bedelini sarsıcı biçimde anlatan mini dizi.',
+    },
+    {
+      name: 'Fleabag', imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=1200&q=85',
+      imdbScore: 8.7, duration: '26 dk', platform: 'Prime Video', discoveryGroup: 'dark-comedy', visualLabel: 'Temsili sahne görseli',
+      description: 'Yas, ilişki ve aile karmaşasını doğrudan kameraya konuşan keskin mizahlı bir kadın karakterin gözünden anlatır.',
+    },
+    {
+      name: 'Silo', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85',
+      imdbScore: 8.1, duration: '49 dk', platform: 'Apple TV+', discoveryGroup: 'dystopian-mystery', visualLabel: 'Temsili distopik teknoloji görseli',
+      description: 'İnsanlığın yer altındaki dev bir siloda yaşadığı dünyada, saklanan gerçekleri araştıran bilimkurgu gizemi.',
+    },
   ],
   aktivite: [
     {
@@ -176,6 +272,38 @@ export const curatedCatalogAdditions = {
     {
       name: 'Doğa Yürüyüşü', mapsQuery: 'doğa yürüyüş parkuru', imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=1200&q=85',
       budget: 'Bedava', discoveryGroup: 'outdoor-hike', venueConcept: 'Açık hava', description: 'Şehirden kısa süreli uzaklaşmak, hareket etmek ve birlikte rota keşfetmek için.',
+    },
+    {
+      name: 'Mini Golf', mapsQuery: 'mini golf', imageUrl: 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'casual-sport', venueConcept: 'Sosyal oyun', description: 'Kısa turlar, kolay rekabet ve bol fotoğraf molasıyla sakin ama eğlenceli bir buluşma.',
+    },
+    {
+      name: 'Bilardo & Dart', mapsQuery: 'bilardo dart kafe', imageUrl: 'https://images.unsplash.com/photo-1770120971750-1acb39382c4b?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'bar-game', venueConcept: 'Sosyal oyun', description: 'Sohbeti bölmeden küçük turnuvalar yapabileceğiniz, akşam planına uygun rahat bir aktivite.',
+    },
+    {
+      name: 'Kahve Tadımı', mapsQuery: 'kahve tadımı üçüncü nesil kahve', imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'coffee-experience', venueConcept: 'Kahve deneyimi', description: 'Farklı çekirdekleri, demleme yöntemlerini ve tat notalarını birlikte deneyebileceğiniz sakin bir keşif.',
+    },
+    {
+      name: 'Plakçı & Müzik Keşfi', mapsQuery: 'plakçı müzik mağazası', imageUrl: 'https://images.unsplash.com/photo-1461360228754-6e81c478b882?w=1200&q=85',
+      budget: 'Bedava', discoveryGroup: 'music-culture', venueConcept: 'Müzik kültürü', description: 'Plak rafları arasında yeni albümler keşfedip ardından yakınlarda kahve molası verebileceğiniz bir rota.',
+    },
+    {
+      name: 'Sörf & SUP', mapsQuery: 'sup sörf dersi', imageUrl: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=1200&q=85',
+      budget: '₺₺₺', discoveryGroup: 'water-sport', venueConcept: 'Su sporu', description: 'Deniz veya gölde denge, hareket ve açık hava isteyenler için başlangıç seviyesine uygun su sporu planı.',
+    },
+    {
+      name: 'Yaratıcı Yazarlık Atölyesi', mapsQuery: 'yaratıcı yazarlık atölyesi', imageUrl: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'writing-workshop', venueConcept: 'Kültür atölyesi', description: 'Kısa yazma egzersizleri ve yeni insanlarla tanışma fırsatı sunan, sakin bir üretim etkinliği.',
+    },
+    {
+      name: 'Masa Tenisi', mapsQuery: 'masa tenisi salonu', imageUrl: 'https://images.unsplash.com/photo-1516703713542-594d741f66c1?w=1200&q=85',
+      budget: '₺', discoveryGroup: 'racket-sport', venueConcept: 'Spor & eğlence', description: 'Hızlı öğrenilen, kısa setlerle oynanan ve iki kişilik buluşmalara çok uygun bir spor seçeneği.',
+    },
+    {
+      name: 'Kamp & Gün Batımı', mapsQuery: 'kamp alanı gün batımı', imageUrl: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1200&q=85',
+      budget: '₺₺', discoveryGroup: 'camping', venueConcept: 'Doğa kaçamağı', description: 'Şehirden uzaklaşıp kamp ateşi, manzara ve uzun sohbetlerle günü kapatmak isteyenlere.',
     },
   ],
 };
