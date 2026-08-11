@@ -22,33 +22,7 @@ import Support from './pages/Support';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { ToastContainer, toast } from 'react-toastify';
-import { BellRing, CalendarPlus, MessageCircle, ShieldCheck, Sparkles, UserPlus } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
-
-const notificationMeta = (type) => {
-  const types = {
-    message: { title: 'Yeni mesaj', icon: MessageCircle, color: '#60a5fa' },
-    friend_request: { title: 'Arkadaşlık isteği', icon: UserPlus, color: '#c4b5fd' },
-    room_invite: { title: 'Oda daveti', icon: CalendarPlus, color: '#86efac' },
-    match: { title: 'Eşleşme sağlandı', icon: Sparkles, color: '#fda4af' },
-    support: { title: 'Yeni destek talebi', icon: ShieldCheck, color: '#fcd34d' },
-  };
-  return types[type] || { title: 'BiteMatch bildirimi', icon: BellRing, color: '#93c5fd' };
-};
-
-const InAppNotificationToast = ({ type, message, onOpen }) => {
-  const { title, icon: Icon, color } = notificationMeta(type);
-  return (
-    <button type="button" className="bitematch-notification-toast" onClick={onOpen}>
-      <span className="bitematch-notification-icon" style={{ color, background: `${color}1f`, borderColor: `${color}55` }}><Icon size={18} /></span>
-      <span className="bitematch-notification-copy">
-        <span className="bitematch-notification-title">{title}</span>
-        <span className="bitematch-notification-message">{message}</span>
-      </span>
-      <span className="bitematch-notification-cta">Aç</span>
-    </button>
-  );
-};
 
 function App() {
   const { user } = useContext(AuthContext);
@@ -93,25 +67,27 @@ function App() {
       if (notif.type === 'room_invite') return;
 
       toast.info(
-        <InAppNotificationToast
-          type={notif.type}
-          message={notif.message}
-          onOpen={() => { if (notif.link) window.location.href = notif.link; }}
-        />,
-        { autoClose: 6000, closeOnClick: false }
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer' }}
+          onClick={() => { if (notif.link) window.location.href = notif.link; }}
+        >
+          <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {notif.type === 'message' ? 'Yeni Mesaj 💬' :
+             notif.type === 'friend_request' ? 'Arkadaşlık İsteği! 🤝' :
+             notif.type === 'room_invite' ? 'Oda Daveti! 📬' : 'Bildirim 🔔'}
+          </div>
+          <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{notif.message}</div>
+        </div>,
+        { autoClose: 6000, closeOnClick: true }
       );
     };
 
     const handleRoomInvitation = ({ roomId, inviterName, message }) => {
       // This is a dedicated fallback for invitations. It keeps the invitation
       // visible even if the generic notification event is delayed.
-      toast.info(<InAppNotificationToast
-        type="room_invite"
-        message={message || `${inviterName} sizi bir odaya davet etti!`}
-        onOpen={() => { window.location.href = `/room/${roomId}`; }}
-      />, {
+      toast.info(`${message || `${inviterName} sizi bir odaya davet etti!`}`, {
         autoClose: 6000,
-        closeOnClick: false,
+        onClick: () => { window.location.href = `/room/${roomId}`; },
       });
     };
 
@@ -175,19 +151,7 @@ function App() {
         </Routes>
       </div>
       <Footer />
-      <ToastContainer
-        position="top-right"
-        theme="dark"
-        autoClose={3500}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable={false}
-        className="bitematch-toast-container"
-        toastClassName="bitematch-toast"
-        bodyClassName="bitematch-toast-body"
-        progressClassName="bitematch-toast-progress"
-      />
+      <ToastContainer position="top-right" theme="dark" autoClose={3000} />
     </div>
   );
 }

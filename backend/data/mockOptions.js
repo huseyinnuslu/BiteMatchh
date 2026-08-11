@@ -216,7 +216,7 @@ export const mockOptions = {
     {
       name: 'Falafel & Levanten',
       mapsQuery: 'falafel Levanten mutfağı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb0?w=1200&q=85',
+      imageUrl: 'https://images.unsplash.com/photo-1741980597454-54f338cea614?w=1200&q=85',
       budget: '₺',
       discoveryGroup: 'middle-east',
       venueConcept: 'Sokak lezzetleri',
@@ -225,7 +225,7 @@ export const mockOptions = {
     {
       name: 'Tatlı & Waffle',
       mapsQuery: 'waffle tatlı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1562376552-0d160a2f35c5?w=1200&q=85',
+      imageUrl: 'https://images.unsplash.com/photo-1662751421284-9faa7d4f8302?w=1200&q=85',
       budget: '₺',
       discoveryGroup: 'cafe-dessert',
       venueConcept: 'Tatlıcı',
@@ -319,7 +319,7 @@ export const mockOptions = {
     },
     {
       name: 'Game of Thrones',
-      imageUrl: 'https://images.unsplash.com/photo-1599727488059-4fccbf36706e?w=600&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1655560584182-293458a88fa9?w=1200&q=85',
       imdbScore: 9.2,
       duration: '57 dk',
       platform: 'HBO Max',
@@ -374,14 +374,14 @@ export const mockOptions = {
     {
       name: 'Bowling',
       mapsQuery: 'bowling İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1588286492390-f4a5e7b9fa6e?w=600&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1671959986201-db542c4456d8?w=1200&q=85',
       budget: '₺₺',
       description: 'Grev mi, spare mi? Rekabetçi ve eğlenceli bir bowling gecesi için Maps\'te yakın salonu bul.'
     },
     {
       name: 'Lunapark & Tema Parkı',
       mapsQuery: 'lunapark tema parkı İstanbul',
-      imageUrl: 'https://images.unsplash.com/photo-1534445867742-43195f401964?w=600&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1640904940493-96a49045039a?w=1200&q=85',
       budget: '₺₺',
       description: 'Hız treni, çarpışan arabalar, dönme dolap. Çocukluğa dönüş ve adrenalin keyfi.'
     },

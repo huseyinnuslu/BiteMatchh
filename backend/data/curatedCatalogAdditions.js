@@ -3,7 +3,7 @@
  *
  * Bu dosyadaki yemek ve aktivite kartları, bir marka/tek şube değil, kullanıcı
  * konumuna göre gerçek işletme araması yapılacak niyetlerdir. Görseller sabit
- * Unsplash görselleridir; rastgele sorgu URL'si kullanılmaz, böylece kartın
+ * kaynak URL'leridir; rastgele sorgu URL'si kullanılmaz, böylece kartın
  * görseli oturumlar arasında değişmez.
  *
  * Film/dizi kartlarında lisanssız poster kullanmıyoruz. `visualLabel`, kartta
@@ -37,7 +37,7 @@ export const curatedCatalogAdditions = {
     {
       name: 'Kumpir',
       mapsQuery: 'kumpir',
-      imageUrl: 'https://images.unsplash.com/photo-1585238342028-4a7f8e10e854?w=1200&q=85',
+      imageUrl: 'https://kibris.nethouse.ru/static/img/0000/0003/3028/33028348.lz6gvagoqi.W665.jpg',
       budget: '₺', discoveryGroup: 'street-comfort', venueConcept: 'Sokak lezzetleri',
       description: 'Fırın patatesini kendi malzemelerinle doldur; paylaşması kolay, keyifli bir buluşma seçeneği.',
     },
