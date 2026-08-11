@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Star, MapPin, Clock, Tv, Calendar } from 'lucide-react';
 import RestaurantImage from './RestaurantImage';
+import OptionImage from './OptionImage';
 
 // Tarih formatlayıcı — "23 Tem, Çrş 20:00" formatı
 const formatEventDate = (dateStr) => {
@@ -63,12 +64,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
       {/* ── Görsel Alan ────────────────────────────────────────────────── */}
       {!isCustom && (
         option.imageUrl && !isRestaurant ? (
-          <div style={{
-            height: '55%', width: '100%',
-            backgroundImage: `url(${option.imageUrl})`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-            position: 'relative',
-          }}>
+          <OptionImage src={option.imageUrl} alt={option.name} category={category} isLive={isLive}>
             {/* 🔴 CANLI ETKİNLİK rozeti */}
             {isLive && (
               <div style={{
@@ -126,7 +122,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                 {option.visualLabel}
               </div>
             )}
-          </div>
+          </OptionImage>
         ) : isRestaurant && (option.imageUrl || option.fallbackImageUrl) ? (
           <RestaurantImage
             key={option._id || option.imageUrl}

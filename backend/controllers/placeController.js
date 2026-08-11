@@ -6,7 +6,7 @@ const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 4;
+const RESTAURANT_RECOMMENDATION_VERSION = 5;
 const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
 const FOURSQUARE_API_VERSION = '2025-06-17';
 const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -258,15 +258,37 @@ const getFoursquareCoordinates = (place) => {
 
 const getFoursquareAddress = (place) => {
   const location = place.location || {};
-  const formatted = place.formatted_address || location.formatted_address;
-  if (typeof formatted === 'string' && formatted.trim()) return formatted.trim();
+  const formatted = String(place.formatted_address || location.formatted_address || '').trim();
   const parts = [
     place.address || location.address,
     place.locality || location.locality,
     place.region || location.region,
-    place.postcode || location.postcode,
-  ].filter(Boolean);
+  ].map((part) => String(part || '').trim()).filter(Boolean);
+
+  // Bazı sonuçlarda `formatted_address` yalnızca "34349" gibi bir posta kodu
+  // oluyor. Bu kullanıcıyı gerçek işletmeye götürmez; adı + açık adresi olan
+  // mekanlar dışında sonuç üretmemek için burada reddedilir.
+  const isPostalCodeOnly = /^\d{4,6}$/.test(formatted.replace(/\s/g, ''));
+  if (!isPostalCodeOnly && formatted && /[\p{L}]/u.test(formatted)) return formatted;
   return [...new Set(parts.map((part) => String(part).trim()))].join(', ');
+};
+
+const hasReliableFoursquareAddress = (place, address) => {
+  const location = place.location || {};
+  const street = String(place.address || location.address || '').trim();
+  const locality = String(place.locality || location.locality || '').trim();
+  const region = String(place.region || location.region || '').trim();
+  const normalizedAddress = String(address || '').trim();
+
+  // Salt posta kodu, yalnızca ilçe adı veya boş konum bir mekan adresi değildir.
+  if (!normalizedAddress || /^\d{4,6}$/.test(normalizedAddress.replace(/\s/g, ''))) return false;
+
+  // Kullanıcıya yönlendirme için en az bir sokak/bina bilgisi ve onu şehirde
+  // anlamlı kılan bir ilçe/şehir parçası gerekir. Böylece yalnız "Cadde X"
+  // veya "Beşiktaş" gibi belirsiz kayıtlar önerilmez.
+  const hasStreetDetail = /[\p{L}]/u.test(street) && street.length >= 4;
+  const hasAreaDetail = /[\p{L}]/u.test(locality) || /[\p{L}]/u.test(region);
+  return hasStreetDetail && hasAreaDetail;
 };
 
 const getFoursquareCategoryNames = (place) => {
@@ -356,7 +378,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const { query, venueType } = venueSearch;
   const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
-  const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, outsideGroupArea: 0 };
+  const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, unreliableAddress: 0, outsideGroupArea: 0 };
   const venues = places
     .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
     .filter(({ place, coordinates, address }) => {
@@ -374,6 +396,10 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
       }
       if (!address) {
         rejectionCounts.missingAddress += 1;
+        return false;
+      }
+      if (!hasReliableFoursquareAddress(place, address)) {
+        rejectionCounts.unreliableAddress += 1;
         return false;
       }
       const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
@@ -404,8 +430,11 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         showtimesUrl: typeof place.website === 'string' && place.website
           ? place.website
           : `https://www.google.com/search?q=${encodeURIComponent(`${room.matchResult.name} ${place.name} seans`)}`,
-        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
-        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}`,
+        // Koordinat pin'i Maps'te çoğu zaman isimsiz bir nokta gösterir. İsim +
+        // doğrulanmış açık adresle arama yapmak kullanıcıyı işletme sayfasına
+        // götürür ve yanlış sokak/posta kodu hissini ortadan kaldırır.
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name}, ${address}`)}`,
+        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name}, ${address}`)}`,
         source: 'Foursquare Places',
         attribution: 'Foursquare',
         imageUrl: room.matchResult.imageUrl || '',
