@@ -78,7 +78,14 @@ const AdminPanel = () => {
   };
   const fetchCatalog = async () => {
     setCatalogLoading(true);
-    try { const { data } = await api.get('/admin/catalog'); setCatalog(data); }
+    try {
+      const { data } = await api.get(`/admin/catalog?fresh=${Date.now()}`);
+      setCatalog({
+        mekan: Array.isArray(data?.mekan) ? data.mekan : [],
+        film: Array.isArray(data?.film) ? data.film : [],
+        aktivite: Array.isArray(data?.aktivite) ? data.aktivite : [],
+      });
+    }
     catch { toast.error('Kart kataloğu yüklenemedi'); }
     finally { setCatalogLoading(false); }
   };
@@ -762,24 +769,34 @@ const AdminPanel = () => {
                     <option value="default">Varsayılan sıralama</option><option value="likes">En çok beğenilenler</option><option value="rate">En yüksek beğeni oranı</option><option value="least">En az etkileşim alanlar</option>
                   </select>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem', alignItems: 'start' }}>
-                  {[...(catalog?.[catalogCategory] || [])].sort((a, b) => catalogSort === 'likes' ? b.likes - a.likes : catalogSort === 'rate' ? (b.likeRate ?? -1) - (a.likeRate ?? -1) : catalogSort === 'least' ? a.swipes - b.swipes : 0).map((card) => (
-                    <article key={`${catalogCategory}-${card.sourceName}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)', background: '#18243a' }}>
-                      <CatalogImage src={card.imageUrl} alt={card.name} />
-                      <div style={{ padding: '.9rem' }}>
+                <div style={{ display: 'grid', gap: '.7rem' }}>
+                  {[...(catalog?.[catalogCategory] || [])].sort((a, b) => catalogSort === 'likes' ? (Number(b.likes) || 0) - (Number(a.likes) || 0) : catalogSort === 'rate' ? (Number(b.likeRate) || -1) - (Number(a.likeRate) || -1) : catalogSort === 'least' ? (Number(a.swipes) || 0) - (Number(b.swipes) || 0) : 0).map((card) => {
+                    const displayName = card.name || card.sourceName || card.mapsQuery || 'Adı tanımlanmamış kart';
+                    const likes = Number(card.likes) || 0;
+                    const swipes = Number(card.swipes) || 0;
+                    const likeRate = Number.isFinite(Number(card.likeRate)) ? Number(card.likeRate) : null;
+                    return (
+                  <article key={`${catalogCategory}-${card.sourceName}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)', background: '#18243a' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr) auto', gap: '1rem', padding: '.85rem', alignItems: 'center' }}>
+                      <div style={{ borderRadius: 10, overflow: 'hidden' }}><CatalogImage src={card.imageUrl} alt={displayName} /></div>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.7rem', alignItems: 'flex-start' }}>
-                          <div><h4 style={{ margin: 0, color: 'white', fontSize: '1rem', lineHeight: 1.2 }}>{card.name}</h4><span style={{ color: 'var(--text-muted)', fontSize: '.68rem' }}>{catalogCategory === 'mekan' ? 'Yemek kartı' : catalogCategory === 'film' ? 'Film / dizi kartı' : 'Aktivite kartı'}</span></div>
-                          <button type="button" onClick={() => editingCard === card.sourceName ? setEditingCard(null) : startCatalogEdit(card)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.42rem', color: 'white', background: 'rgba(255,255,255,.06)', cursor: 'pointer' }} title="Kartı düzenle"><Pencil size={14} /></button>
+                          <div><h4 style={{ margin: 0, color: '#fff', fontSize: '1.08rem', lineHeight: 1.25, display: 'block' }}>{displayName}</h4><span style={{ color: 'var(--accent)', fontSize: '.72rem', fontWeight: 700 }}>{catalogCategory === 'mekan' ? 'Yemek kartı' : catalogCategory === 'film' ? 'Film / dizi kartı' : 'Aktivite kartı'}</span></div>
                         </div>
-                        <p style={{ margin: '.6rem 0', color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45, minHeight: 44 }}>{card.description}</p>
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: '.6rem', display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '.72rem' }}><span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={12} fill="#ff6b6b" color="#ff6b6b" /> {card.likes} beğeni</span><span>{card.swipes} oy{card.likeRate !== null ? ` · %${card.likeRate}` : ''}</span></div>
+                        <p style={{ margin: '.35rem 0 .65rem', color: 'var(--text-muted)', fontSize: '.84rem', lineHeight: 1.45 }}>{card.description || 'Bu kart için henüz bir açıklama girilmedi.'}</p>
+                        <div style={{ display: 'flex', gap: '.45rem', flexWrap: 'wrap', color: 'var(--text-muted)', fontSize: '.74rem' }}><span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={12} fill="#ff6b6b" color="#ff6b6b" /> {likes} beğeni</span><span>{swipes} oy{likeRate !== null ? ` · %${likeRate}` : ''}</span>{card.budget && <span>{card.budget}</span>}{card.platform && <span>{card.platform}</span>}</div>
+                      </div>
+                      <button type="button" onClick={() => editingCard === card.sourceName ? setEditingCard(null) : startCatalogEdit(card)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.55rem', color: 'white', background: 'rgba(255,255,255,.06)', cursor: 'pointer', alignSelf: 'start' }} title="Kartı düzenle"><Pencil size={16} /></button>
+                      <div style={{ gridColumn: '1 / -1', padding: '0 .2rem' }}>
                         {editingCard === card.sourceName && <div style={{ display: 'grid', gap: '.5rem', marginTop: '.8rem', paddingTop: '.8rem', borderTop: '1px solid rgba(255,255,255,.1)' }}>
                           {[['name', 'Kart adı'], ['imageUrl', 'Görsel URL'], ['description', 'Açıklama'], ['mapsQuery', 'Harita araması'], ['budget', 'Bütçe'], ['platform', 'Platform'], ['imdbScore', 'IMDb puanı'], ['duration', 'Süre']].map(([field, label]) => <label key={field} style={{ color: 'var(--text-muted)', fontSize: '.7rem' }}>{label}<input value={catalogDraft[field] ?? ''} onChange={(event) => setCatalogDraft(prev => ({ ...prev, [field]: event.target.value }))} style={{ width: '100%', boxSizing: 'border-box', marginTop: '.25rem', padding: '.5rem', borderRadius: 7, color: 'white', background: '#101a2d', border: '1px solid rgba(255,255,255,.16)' }} /></label>)}
                           <div style={{ display: 'flex', gap: '.5rem' }}><button onClick={() => saveCatalogCard(card)} disabled={savingCatalogCard} style={{ flex: 1, border: 0, borderRadius: 7, padding: '.55rem', background: 'var(--primary)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>{savingCatalogCard ? 'Kaydediliyor...' : 'Kaydet'}</button><button onClick={() => setEditingCard(null)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 7, padding: '.55rem .75rem', background: 'transparent', color: 'white', cursor: 'pointer' }}>Vazgeç</button></div>
                         </div>}
                       </div>
+                      </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
