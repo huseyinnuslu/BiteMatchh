@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
   Users, BarChart2, UserPlus, UserMinus, Clock, ArrowLeft,
-  UserCheck, UserX, Award
+  UserCheck, UserX, Award, MessageCircle
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -136,9 +136,18 @@ const UserProfile = () => {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {profile.isFriend ? (
-              <button onClick={() => setShowRemoveConfirm(true)} disabled={actionId === id} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.6rem 1rem' }}>
-                <UserMinus size={16} style={{ marginRight: 6 }} /> Çıkar
-              </button>
+              <>
+                <button
+                  onClick={() => navigate('/messages', { state: { recipient: { _id: profile._id, username: profile.username, name: profile.name, profilePic: profile.profilePic } } })}
+                  className="btn btn-primary"
+                  style={{ padding: '0.6rem 1rem' }}
+                >
+                  <MessageCircle size={16} style={{ marginRight: 6 }} /> Mesaj gönder
+                </button>
+                <button onClick={() => setShowRemoveConfirm(true)} disabled={actionId === id} className="btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.6rem 1rem' }}>
+                  <UserMinus size={16} style={{ marginRight: 6 }} /> Çıkar
+                </button>
+              </>
             ) : profile.isPending ? (
               <button onClick={handleCancelRequest} disabled={actionId === id} className="btn" style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.6rem 1rem' }}>
                 <Clock size={16} style={{ marginRight: 6 }} /> İstek Gönderildi

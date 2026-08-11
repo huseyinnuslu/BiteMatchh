@@ -13,7 +13,7 @@
 import {
   useState, useEffect, useRef, useContext, useCallback,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { connectSocket, getSocket } from '../socket/socketClient';
 import api from '../api';
@@ -21,7 +21,7 @@ import { toast } from 'react-toastify';
 import {
   Send, Search, MessageCircle, ArrowLeft,
   Plus, X, MoreVertical, ShieldBan, ShieldCheck,
-  CheckCheck, Circle, ChevronDown, ChevronUp, ExternalLink,
+  CheckCheck, Circle, ChevronDown, ChevronUp, ExternalLink, Trash2,
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import Avatar from '../components/Avatar';
@@ -210,12 +210,14 @@ const Messages = () => {
   const [loadingConvs, setLoadingConvs]   = useState(true);
   const [showBlocked, setShowBlocked]     = useState(false); // engellenenler bölümü aç/kapa
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [activeUser, setActiveUser]     = useState(null);
   const [messages, setMessages]         = useState([]);
   const [input, setInput]               = useState('');
   const [loadingMsgs, setLoadingMsgs]   = useState(false);
   const [showMenu, setShowMenu]         = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const [showNewDM, setShowNewDM]       = useState(false);
   const [mobileView, setMobileView]     = useState('list');
@@ -304,12 +306,24 @@ const Messages = () => {
       });
     });
 
+    const handleDeletedMessage = ({ messageId, sender, recipient }) => {
+      const activeId = activeUserRef.current?._id?.toString();
+      const otherId = sender?.toString() === user._id?.toString() ? recipient : sender;
+      if (activeId === otherId?.toString()) {
+        setMessages(prev => prev.filter(message => message._id !== messageId));
+      }
+      // Silinen kayıt son mesaj olabilir; konuşma özetini sunucudan yenile.
+      api.get('/messages/conversations').then(({ data }) => setConversations(data)).catch(() => {});
+    };
+    socket.on('direct_message_deleted', handleDeletedMessage);
+
     return () => {
       socket.off('connect', handleConnect);
       socket.off('online_friends');
       socket.off('friend_online');
       socket.off('friend_offline');
       socket.off('receive_direct_message');
+      socket.off('direct_message_deleted', handleDeletedMessage);
     };
   }, [user._id]);
 
@@ -368,6 +382,14 @@ const Messages = () => {
     );
   }, []);
 
+  // Arkadaş profilindeki “Mesaj gönder” eylemi doğru sohbeti doğrudan açar.
+  useEffect(() => {
+    const recipient = location.state?.recipient;
+    if (!recipient?._id || recipient._id?.toString() === user?._id?.toString()) return;
+    openChat(recipient);
+    navigate('/messages', { replace: true, state: null });
+  }, [location.key, location.state, navigate, openChat, user?._id]);
+
   /* ─── Mesaj gönder ── */
   const sendMsg = useCallback(() => {
     const txt = input.trim();
@@ -415,6 +437,22 @@ const Messages = () => {
       return prev;
     });
   }, [input, activeUser, user]);
+
+  const handleDeleteMessage = useCallback(async () => {
+    if (!deleteTarget?._id || String(deleteTarget._id).startsWith('tmp_')) return;
+
+    try {
+      await api.delete(`/messages/dm/${deleteTarget._id}`);
+      setMessages(prev => prev.filter(message => message._id !== deleteTarget._id));
+      const { data } = await api.get('/messages/conversations');
+      setConversations(data);
+      toast.success('Mesaj silindi');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Mesaj silinemedi');
+    } finally {
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget]);
 
   /* ─── Konuşma + Arkadaş birleştirilmiş listesi ── */
   const convUserIds  = new Set(conversations.map(c => c.user?._id?.toString()));
@@ -913,6 +951,17 @@ const Messages = () => {
                           }}>
                             {fmtTime(msg.createdAt)}
                             {isMine && <CheckCheck size={11} style={{ opacity: 0.6 }} />}
+                            {isMine && !String(msg._id || '').startsWith('tmp_') && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(msg)}
+                                title="Mesajı sil"
+                                aria-label="Mesajı sil"
+                                style={{ border: 0, padding: 0, background: 'transparent', color: 'rgba(255,255,255,.62)', cursor: 'pointer', display: 'inline-grid', placeItems: 'center' }}
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -990,6 +1039,17 @@ const Messages = () => {
           confirmColor={blockTarget.action === 'block' ? '#ef4444' : '#22c55e'}
           onConfirm={confirmBlockAction}
           onCancel={() => { setShowConfirmBlock(false); setBlockTarget(null); }}
+        />
+      )}
+      {deleteTarget && (
+        <ConfirmModal
+          icon="🗑️"
+          title="Mesaj silinsin mi?"
+          message="Bu mesaj sohbetin her iki tarafı için kaldırılacak. Bu işlem geri alınamaz."
+          confirmText="Mesajı sil"
+          confirmColor="#ef4444"
+          onConfirm={handleDeleteMessage}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </>

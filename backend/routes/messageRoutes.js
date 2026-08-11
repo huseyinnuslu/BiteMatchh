@@ -175,4 +175,38 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── DELETE /api/messages/dm/:messageId ──────────────────────────────────────
+// Gönderen, kendi doğrudan mesajını her iki taraftan da kaldırabilir.
+router.delete('/dm/:messageId', protect, async (req, res, next) => {
+  try {
+    const messageId = req.params.messageId;
+    if (!mongoose.isValidObjectId(messageId)) {
+      res.status(400);
+      throw new Error('Geçersiz mesaj ID');
+    }
+
+    const message = await Message.findOneAndDelete({
+      _id: messageId,
+      type: 'direct',
+      sender: req.user._id,
+    }).lean();
+
+    if (!message) {
+      res.status(404);
+      throw new Error('Mesaj bulunamadı veya silme yetkiniz yok');
+    }
+
+    const payload = {
+      messageId: message._id.toString(),
+      sender: message.sender.toString(),
+      recipient: message.recipient.toString(),
+    };
+    const io = getIo();
+    io?.to(`user:${payload.sender}`).emit('direct_message_deleted', payload);
+    io?.to(`user:${payload.recipient}`).emit('direct_message_deleted', payload);
+
+    res.json({ message: 'Mesaj silindi', messageId: payload.messageId });
+  } catch (e) { next(e); }
+});
+
 export default router;
