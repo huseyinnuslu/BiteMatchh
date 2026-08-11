@@ -89,10 +89,10 @@ const AdminPanel = () => {
     catch { toast.error('Kart kataloğu yüklenemedi'); }
     finally { setCatalogLoading(false); }
   };
-  const startCatalogEdit = (card) => {
+  const startCatalogEdit = (card, editorKey) => {
     const cardId = card.sourceName || card.name;
     if (!cardId) return toast.error('Bu kartın kimliği alınamadı. Kataloğu yenileyip tekrar dene.');
-    setEditingCard(cardId);
+    setEditingCard(editorKey);
     setCatalogDraft({ name: card.name, imageUrl: card.imageUrl, description: card.description, budget: card.budget, platform: card.platform, imdbScore: card.imdbScore ?? '', duration: card.duration, mapsQuery: card.mapsQuery, venueConcept: card.venueConcept, visualLabel: card.visualLabel });
   };
   const saveCatalogCard = async (card) => {
@@ -762,7 +762,7 @@ const AdminPanel = () => {
                 <button type="button" onClick={fetchCatalog} disabled={catalogLoading} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.5rem .7rem', background: 'rgba(255,255,255,.05)', color: 'white', fontSize: '.76rem', fontWeight: 700, cursor: catalogLoading ? 'wait' : 'pointer' }}>{catalogLoading ? 'Yükleniyor...' : 'Yenile'}</button>
               </div>
               <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-                {[['mekan', 'Ne Yiyelim'], ['film', 'Ne İzleyelim'], ['aktivite', 'Ne Yapalım']].map(([key, label]) => <button key={key} type="button" onClick={() => setCatalogCategory(key)} style={{ border: `1px solid ${catalogCategory === key ? 'var(--primary)' : 'rgba(255,255,255,.14)'}`, borderRadius: 20, padding: '.45rem .75rem', background: catalogCategory === key ? 'rgba(255,75,75,.15)' : 'transparent', color: catalogCategory === key ? 'white' : 'var(--text-muted)', fontSize: '.78rem', cursor: 'pointer', fontWeight: 800 }}>{label} ({catalog?.[key]?.length || 0})</button>)}
+                {[['mekan', 'Ne Yiyelim'], ['film', 'Ne İzleyelim'], ['aktivite', 'Ne Yapalım']].map(([key, label]) => <button key={key} type="button" onClick={() => { setCatalogCategory(key); setEditingCard(null); }} style={{ border: `1px solid ${catalogCategory === key ? 'var(--primary)' : 'rgba(255,255,255,.14)'}`, borderRadius: 20, padding: '.45rem .75rem', background: catalogCategory === key ? 'rgba(255,75,75,.15)' : 'transparent', color: catalogCategory === key ? 'white' : 'var(--text-muted)', fontSize: '.78rem', cursor: 'pointer', fontWeight: 800 }}>{label} ({catalog?.[key]?.length || 0})</button>)}
               </div>
             </div>
 
@@ -774,14 +774,15 @@ const AdminPanel = () => {
                   </select>
                 </div>
                 <div style={{ display: 'grid', gap: '.7rem' }}>
-                  {[...(catalog?.[catalogCategory] || [])].sort((a, b) => catalogSort === 'likes' ? (Number(b.likes) || 0) - (Number(a.likes) || 0) : catalogSort === 'rate' ? (Number(b.likeRate) || -1) - (Number(a.likeRate) || -1) : catalogSort === 'least' ? (Number(a.swipes) || 0) - (Number(b.swipes) || 0) : 0).map((card) => {
+                  {[...(catalog?.[catalogCategory] || [])].sort((a, b) => catalogSort === 'likes' ? (Number(b.likes) || 0) - (Number(a.likes) || 0) : catalogSort === 'rate' ? (Number(b.likeRate) || -1) - (Number(a.likeRate) || -1) : catalogSort === 'least' ? (Number(a.swipes) || 0) - (Number(b.swipes) || 0) : 0).map((card, index) => {
                     const cardId = card.sourceName || card.name || card.mapsQuery;
+                    const editorKey = `${catalogCategory}:${cardId}:${index}`;
                     const displayName = card.name || card.sourceName || card.mapsQuery || 'Adı tanımlanmamış kart';
                     const likes = Number(card.likes) || 0;
                     const swipes = Number(card.swipes) || 0;
                     const likeRate = Number.isFinite(Number(card.likeRate)) ? Number(card.likeRate) : null;
                     return (
-                  <article key={`${catalogCategory}-${cardId}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)', background: '#18243a' }}>
+                  <article key={editorKey} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)', background: '#18243a' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr) auto', gap: '1rem', padding: '.85rem', alignItems: 'center' }}>
                       <div style={{ borderRadius: 10, overflow: 'hidden' }}><CatalogImage src={card.imageUrl} alt={displayName} /></div>
                       <div style={{ minWidth: 0 }}>
@@ -791,10 +792,10 @@ const AdminPanel = () => {
                         <p style={{ margin: '.35rem 0 .65rem', color: 'var(--text-muted)', fontSize: '.84rem', lineHeight: 1.45 }}>{card.description || 'Bu kart için henüz bir açıklama girilmedi.'}</p>
                         <div style={{ display: 'flex', gap: '.45rem', flexWrap: 'wrap', color: 'var(--text-muted)', fontSize: '.74rem' }}><span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={12} fill="#ff6b6b" color="#ff6b6b" /> {likes} beğeni</span><span>{swipes} oy{likeRate !== null ? ` · %${likeRate}` : ''}</span>{card.budget && <span>{card.budget}</span>}{card.platform && <span>{card.platform}</span>}</div>
                       </div>
-                      <button type="button" onClick={() => editingCard === cardId ? setEditingCard(null) : startCatalogEdit(card)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.55rem', color: 'white', background: 'rgba(255,255,255,.06)', cursor: 'pointer', alignSelf: 'start' }} title="Kartı düzenle"><Pencil size={16} /></button>
+                      <button type="button" onClick={() => editingCard === editorKey ? setEditingCard(null) : startCatalogEdit(card, editorKey)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.55rem', color: 'white', background: 'rgba(255,255,255,.06)', cursor: 'pointer', alignSelf: 'start' }} title="Kartı düzenle"><Pencil size={16} /></button>
                       <div style={{ gridColumn: '1 / -1', padding: '0 .2rem' }}>
-                        {editingCard === cardId && <div style={{ display: 'grid', gap: '.5rem', marginTop: '.8rem', paddingTop: '.8rem', borderTop: '1px solid rgba(255,255,255,.1)' }}>
-                          {[['name', 'Kart adı'], ['imageUrl', 'Görsel URL'], ['description', 'Açıklama'], ['mapsQuery', 'Harita araması'], ['budget', 'Bütçe'], ['platform', 'Platform'], ['imdbScore', 'IMDb puanı'], ['duration', 'Süre']].map(([field, label]) => <label key={field} style={{ color: 'var(--text-muted)', fontSize: '.7rem' }}>{label}<input value={catalogDraft[field] ?? ''} onChange={(event) => setCatalogDraft(prev => ({ ...prev, [field]: event.target.value }))} style={{ width: '100%', boxSizing: 'border-box', marginTop: '.25rem', padding: '.5rem', borderRadius: 7, color: 'white', background: '#101a2d', border: '1px solid rgba(255,255,255,.16)' }} /></label>)}
+                        {editingCard === editorKey && <div style={{ display: 'grid', gap: '.5rem', marginTop: '.8rem', paddingTop: '.8rem', borderTop: '1px solid rgba(255,255,255,.1)' }}>
+                          {[['name', 'Kart adı'], ['imageUrl', 'Görsel URL'], ['description', 'Açıklama'], ['mapsQuery', 'Harita araması'], ['budget', 'Bütçe'], ['platform', 'Platform'], ['imdbScore', 'IMDb puanı'], ['duration', 'Süre']].map(([field, label]) => <label key={`${editorKey}-${field}`} style={{ color: 'var(--text-muted)', fontSize: '.7rem' }}>{label}<input value={catalogDraft[field] ?? ''} onChange={(event) => setCatalogDraft(prev => ({ ...prev, [field]: event.target.value }))} style={{ width: '100%', boxSizing: 'border-box', marginTop: '.25rem', padding: '.5rem', borderRadius: 7, color: 'white', background: '#101a2d', border: '1px solid rgba(255,255,255,.16)' }} /></label>)}
                           <div style={{ display: 'flex', gap: '.5rem' }}><button onClick={() => saveCatalogCard(card)} disabled={savingCatalogCard} style={{ flex: 1, border: 0, borderRadius: 7, padding: '.55rem', background: 'var(--primary)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>{savingCatalogCard ? 'Kaydediliyor...' : 'Kaydet'}</button><button onClick={() => setEditingCard(null)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 7, padding: '.55rem .75rem', background: 'transparent', color: 'white', cursor: 'pointer' }}>Vazgeç</button></div>
                         </div>}
                       </div>
