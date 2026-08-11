@@ -4,6 +4,8 @@ import Candidate from '../models/Candidate.js';
 import Message from '../models/Message.js';
 import Swipe from '../models/Swipe.js';
 import SupportRequest from '../models/SupportRequest.js';
+import Notification from '../models/Notification.js';
+import { getIo } from '../server.js';
 import https from 'https';
 import http  from 'http';
 
@@ -299,6 +301,7 @@ export const getSupportRequests = async (_req, res, next) => {
   try {
     const requests = await SupportRequest.find({})
       .populate('user', 'username email profilePic')
+      .populate('replies.admin', 'username')
       .sort({ status: 1, createdAt: -1 })
       .lean();
     res.json(requests);
@@ -315,3 +318,29 @@ export const updateSupportRequest = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// @desc    Destek talebine ekip yanıtı ekle ve kullanıcıyı anında bilgilendir
+// @route   POST /api/admin/support/:id/replies
+// @access  Admin
+export const replyToSupportRequest = async (req, res, next) => {
+  try {
+    const message = String(req.body?.message || '').trim();
+    if (message.length < 2 || message.length > 2000) {
+      return res.status(400).json({ message: 'Yanıt 2 ile 2000 karakter arasında olmalı.' });
+    }
+    const request = await SupportRequest.findByIdAndUpdate(
+      req.params.id,
+      { $push: { replies: { message, admin: req.user._id, createdAt: new Date() } } },
+      { new: true }
+    ).populate('user', 'username').populate('replies.admin', 'username');
+    if (!request) return res.status(404).json({ message: 'Destek talebi bulunamadı.' });
+
+    const notification = await Notification.create({
+      user: request.user._id,
+      type: 'support',
+      message: `BiteMatch Destek talebini yanıtladı: ${request.subject}`,
+      link: '/support',
+    });
+    getIo()?.to(`user:${request.user._id}`).emit('new_notification', notification);
+    res.status(201).json(request);
+  } catch (error) { next(error); }
+};

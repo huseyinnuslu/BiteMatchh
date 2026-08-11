@@ -26,6 +26,7 @@ import {
   followUser,
   unfollowUser,
   submitSupportRequest,
+  getMySupportRequests,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -57,6 +58,7 @@ router.delete('/friends/:id', removeFriend);
 
 // Engelleme
 router.get('/blocked',         getBlockedUsers);
+router.get('/support', getMySupportRequests);
 router.post('/support', submitSupportRequest);
 router.post('/block/:id',      blockUser);
 router.delete('/block/:id',    unblockUser);

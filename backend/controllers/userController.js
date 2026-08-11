@@ -701,3 +701,16 @@ export const submitSupportRequest = async (req, res, next) => {
     res.status(201).json({ message: 'Destek talebin BiteMatch ekibine ulaştı.', requestId: request._id });
   } catch (error) { next(error); }
 };
+
+// @desc    Kullanıcının kendi destek taleplerini ve ekip yanıtlarını getir
+// @route   GET /api/users/support
+// @access  Private
+export const getMySupportRequests = async (req, res, next) => {
+  try {
+    const requests = await SupportRequest.find({ user: req.user._id })
+      .populate('replies.admin', 'username')
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .lean();
+    res.json(requests);
+  } catch (error) { next(error); }
+};

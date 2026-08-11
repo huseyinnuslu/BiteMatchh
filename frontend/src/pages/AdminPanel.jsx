@@ -18,6 +18,8 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [supportRequests, setSupportRequests] = useState([]);
+  const [supportReplyDrafts, setSupportReplyDrafts] = useState({});
+  const [replyingToSupport, setReplyingToSupport] = useState(null);
 
   // Bulk Delete States
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -69,6 +71,19 @@ const AdminPanel = () => {
       const { data } = await api.put(`/admin/support/${id}`, { status });
       setSupportRequests(prev => prev.map(item => item._id === id ? { ...item, status: data.status } : item));
     } catch (error) { toast.error(error.response?.data?.message || 'Destek talebi güncellenemedi'); }
+  };
+
+  const sendSupportReply = async (id) => {
+    const message = String(supportReplyDrafts[id] || '').trim();
+    if (message.length < 2) return toast.error('Yanıtın en az 2 karakter olmalı.');
+    setReplyingToSupport(id);
+    try {
+      const { data } = await api.post(`/admin/support/${id}/replies`, { message });
+      setSupportRequests(prev => prev.map(item => item._id === id ? data : item));
+      setSupportReplyDrafts(prev => ({ ...prev, [id]: '' }));
+      toast.success('Yanıt kullanıcıya iletildi.');
+    } catch (error) { toast.error(error.response?.data?.message || 'Destek yanıtı gönderilemedi'); }
+    finally { setReplyingToSupport(null); }
   };
 
   // Rol dropdown değişince sadece local state'e yaz (henüz kaydetme)
@@ -676,6 +691,11 @@ const AdminPanel = () => {
                   <button onClick={() => resolveSupportRequest(request._id, request.status === 'open' ? 'resolved' : 'open')} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.42rem .65rem', background: request.status === 'open' ? 'rgba(74,222,128,.1)' : 'transparent', color: request.status === 'open' ? '#86efac' : 'var(--text-muted)', cursor: 'pointer', fontSize: '.76rem', fontWeight: 700 }}>{request.status === 'open' ? 'Çözüldü olarak işaretle' : 'Yeniden aç'}</button>
                 </div>
                 <p style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,.82)', lineHeight: 1.55, margin: '.85rem 0 0', fontSize: '.88rem' }}>{request.message}</p>
+                {(request.replies || []).map((reply) => <div key={reply._id || reply.createdAt} style={{ marginTop: '.7rem', padding: '.7rem .8rem', background: 'rgba(110,86,255,.1)', border: '1px solid rgba(135,112,255,.24)', borderRadius: 8 }}><div style={{ color: '#c4b5fd', fontWeight: 800, fontSize: '.73rem' }}>Destek yanıtı · @{reply.admin?.username || 'admin'}</div><div style={{ color: 'white', whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '.84rem' }}>{reply.message}</div></div>)}
+                <div style={{ display: 'flex', gap: '.55rem', marginTop: '.85rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <textarea value={supportReplyDrafts[request._id] || ''} onChange={(event) => setSupportReplyDrafts(prev => ({ ...prev, [request._id]: event.target.value }))} maxLength={2000} rows={3} placeholder="Kullanıcıya destek yanıtı yaz..." style={{ flex: '1 1 300px', minHeight: 72, padding: '.65rem', background: 'rgba(0,0,0,.16)', border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, color: 'white', resize: 'vertical', fontFamily: 'inherit' }} />
+                  <button onClick={() => sendSupportReply(request._id)} disabled={replyingToSupport === request._id} style={{ border: 0, borderRadius: 8, padding: '.65rem .8rem', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontSize: '.78rem', fontWeight: 800 }}>{replyingToSupport === request._id ? 'Gönderiliyor...' : 'Yanıtla'}</button>
+                </div>
               </article>
             ))}
           </div>
