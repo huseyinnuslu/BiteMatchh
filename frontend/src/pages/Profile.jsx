@@ -114,6 +114,34 @@ const Profile = () => {
 
   useEffect(() => { loadProfile(); }, []);
 
+  // Arkadaşın fotoğrafı değiştiğinde sayfayı yenilemeden arkadaş listesini güncel tut.
+  useEffect(() => {
+    const handleAvatarUpdated = ({ detail }) => {
+      if (!detail?.userId) return;
+
+      const profilePic = detail.avatarUrl
+        ? `${detail.avatarUrl}?v=${detail.version || Date.now()}`
+        : '';
+
+      setProfile((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          profilePic: String(prev._id) === String(detail.userId) ? profilePic : prev.profilePic,
+          friends: (prev.friends || []).map((friend) => (
+            String(friend._id) === String(detail.userId)
+              ? { ...friend, profilePic }
+              : friend
+          )),
+        };
+      });
+    };
+
+    window.addEventListener('bitematch_avatar_updated', handleAvatarUpdated);
+    return () => window.removeEventListener('bitematch_avatar_updated', handleAvatarUpdated);
+  }, []);
+
   // ── Gizlilik Ayarı Toggle ────────────────────────────────────────────────
   const handleTogglePrivacy = async () => {
     const newValue = !profile.isStatsPublic;
@@ -201,9 +229,11 @@ const Profile = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       toast.success(data.message);
-      // Profil verisini ve Context'i güncelle
-      setProfile(prev => ({ ...prev, profilePic: data.avatarUrl }));
-      updateUser({ profilePic: data.avatarUrl });
+      // Aynı dosya adına denk gelse bile tarayıcının eski resmi önbellekten
+      // göstermemesi için sunucunun gönderdiği sürümü URL'ye ekliyoruz.
+      const freshAvatarUrl = `${data.avatarUrl}?v=${data.version || Date.now()}`;
+      setProfile(prev => ({ ...prev, profilePic: freshAvatarUrl }));
+      updateUser({ profilePic: freshAvatarUrl });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Fotoğraf yüklenemedi');
     } finally {

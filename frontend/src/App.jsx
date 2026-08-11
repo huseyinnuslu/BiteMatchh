@@ -26,7 +26,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
-  const { user } = useContext(AuthContext);
+  const { user, updateUser } = useContext(AuthContext);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
@@ -95,6 +95,13 @@ function App() {
 
     socket.on('new_notification', handleNewNotification);
     socket.on('room_invitation', handleRoomInvitation);
+    const handleAvatarUpdated = (payload) => {
+      if (payload?.userId === user._id) {
+        updateUser({ profilePic: payload.avatarUrl ? `${payload.avatarUrl}?v=${payload.version || Date.now()}` : '' });
+      }
+      window.dispatchEvent(new CustomEvent('bitematch_avatar_updated', { detail: payload }));
+    };
+    socket.on('profile_avatar_updated', handleAvatarUpdated);
 
     // Her bağlanmada (ilk + reconnect) user_online emit et
     socket.on('connect', emitOnline);
@@ -104,6 +111,7 @@ function App() {
       socket.off('connect', emitOnline); 
       socket.off('new_notification', handleNewNotification);
       socket.off('room_invitation', handleRoomInvitation);
+      socket.off('profile_avatar_updated', handleAvatarUpdated);
     };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────

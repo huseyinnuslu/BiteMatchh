@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import User from '../models/User.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { getIo } from '../server.js';
 
 const router = express.Router();
 
@@ -62,10 +63,17 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
     // Veritabanını güncelle
     user.profilePic = avatarUrl;
     await user.save();
+    const version = Date.now();
+    (user.friends || []).forEach((friendId) => {
+      getIo()?.to(`user:${friendId.toString()}`).emit('profile_avatar_updated', {
+        userId: user._id.toString(), avatarUrl, version,
+      });
+    });
 
     res.json({
       message: 'Profil fotoğrafı başarıyla güncellendi',
-      avatarUrl
+      avatarUrl,
+      version,
     });
   } catch (error) {
     next(error);
@@ -90,6 +98,12 @@ router.delete('/avatar', protect, async (req, res, next) => {
       }
       user.profilePic = '';
       await user.save();
+      const version = Date.now();
+      (user.friends || []).forEach((friendId) => {
+        getIo()?.to(`user:${friendId.toString()}`).emit('profile_avatar_updated', {
+          userId: user._id.toString(), avatarUrl: '', version,
+        });
+      });
     }
 
     res.json({ message: 'Profil fotoğrafı kaldırıldı' });
