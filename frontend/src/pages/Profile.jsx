@@ -18,6 +18,23 @@ const CATEGORY_ICONS = {
   aktivite: '🎯', mekan: '📍', muzik: '🎵', oyun: '🎮', custom: '✨',
 };
 
+// Backend güncellenirken veya PWA eski bir API yanıtını gösterirken dahi
+// rütbe yolunun boş görünmemesi için istemci tarafında da tutulur.
+const RANK_PATH = [
+  { level: 1, minXp: 0, title: 'Karar Çırağı', icon: '🌱', description: 'İlk tercihlerine yön veriyorsun.' },
+  { level: 2, minXp: 25, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
+  { level: 3, minXp: 60, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
+  { level: 4, minXp: 120, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
+  { level: 5, minXp: 220, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
+  { level: 6, minXp: 360, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
+  { level: 7, minXp: 550, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
+  { level: 8, minXp: 800, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
+  { level: 9, minXp: 1100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
+  { level: 10, minXp: 1500, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
+  { level: 11, minXp: 2000, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
+  { level: 12, minXp: 2800, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
+];
+
 // ── Sekme bileşeni ───────────────────────────────────────────────────────────
 const Tab = ({ id, label, icon: Icon, active, onClick, badge }) => (
   <button
@@ -295,13 +312,19 @@ const Profile = () => {
   if (!profile) return null;
 
   const { stats, friends, pendingFriendRequests, pendingCount } = profile;
-  const gamification = profile.gamification || {
+  const fallbackGamification = {
     xp: stats?.totalSwipes || 0,
     progress: 0,
     xpToNext: 0,
     currentRank: { level: 1, title: 'Karar Çırağı', icon: '🌱', minXp: 0, description: 'İlk tercihlerine yön veriyorsun.' },
     nextRank: null,
-    ranks: [],
+    ranks: RANK_PATH,
+  };
+  const gamification = {
+    ...fallbackGamification,
+    ...(profile.gamification || {}),
+    currentRank: profile.gamification?.currentRank || fallbackGamification.currentRank,
+    ranks: profile.gamification?.ranks?.length ? profile.gamification.ranks : RANK_PATH,
   };
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
