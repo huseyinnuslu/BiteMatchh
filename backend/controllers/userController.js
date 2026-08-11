@@ -25,22 +25,22 @@ import {
 // kayıtlarından türetilir. Böylece kullanıcı tarayıcıdan seviye değiştiremez.
 const RANKS = [
   { level: 1, minXp: 0, title: 'Karar Çırağı', icon: '🌱', description: 'İlk tercihlerine yön veriyorsun.' },
-  { level: 2, minXp: 25, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
-  { level: 3, minXp: 60, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
-  { level: 4, minXp: 120, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
-  { level: 5, minXp: 220, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
-  { level: 6, minXp: 360, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
-  { level: 7, minXp: 550, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
-  { level: 8, minXp: 800, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
-  { level: 9, minXp: 1100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
-  { level: 10, minXp: 1500, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
-  { level: 11, minXp: 2000, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
-  { level: 12, minXp: 2800, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
+  { level: 2, minXp: 35, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
+  { level: 3, minXp: 100, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
+  { level: 4, minXp: 220, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
+  { level: 5, minXp: 420, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
+  { level: 6, minXp: 700, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
+  { level: 7, minXp: 1050, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
+  { level: 8, minXp: 1500, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
+  { level: 9, minXp: 2100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
+  { level: 10, minXp: 3000, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
+  { level: 11, minXp: 4200, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
+  { level: 12, minXp: 6000, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
 ];
 
 const buildGamification = ({ totalSwipes, completedRooms }) => {
   const swipeXp = totalSwipes;
-  const completionXp = completedRooms * 10;
+  const completionXp = completedRooms * 15;
   const xp = swipeXp + completionXp;
   const currentIndex = RANKS.reduce((bestIndex, rank, index) => (xp >= rank.minXp ? index : bestIndex), 0);
   const currentRank = RANKS[currentIndex];

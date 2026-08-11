@@ -22,17 +22,17 @@ const CATEGORY_ICONS = {
 // rütbe yolunun boş görünmemesi için istemci tarafında da tutulur.
 const RANK_PATH = [
   { level: 1, minXp: 0, title: 'Karar Çırağı', icon: '🌱', description: 'İlk tercihlerine yön veriyorsun.' },
-  { level: 2, minXp: 25, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
-  { level: 3, minXp: 60, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
-  { level: 4, minXp: 120, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
-  { level: 5, minXp: 220, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
-  { level: 6, minXp: 360, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
-  { level: 7, minXp: 550, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
-  { level: 8, minXp: 800, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
-  { level: 9, minXp: 1100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
-  { level: 10, minXp: 1500, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
-  { level: 11, minXp: 2000, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
-  { level: 12, minXp: 2800, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
+  { level: 2, minXp: 35, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
+  { level: 3, minXp: 100, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
+  { level: 4, minXp: 220, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
+  { level: 5, minXp: 420, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
+  { level: 6, minXp: 700, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
+  { level: 7, minXp: 1050, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
+  { level: 8, minXp: 1500, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
+  { level: 9, minXp: 2100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
+  { level: 10, minXp: 3000, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
+  { level: 11, minXp: 4200, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
+  { level: 12, minXp: 6000, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
 ];
 
 // ── Sekme bileşeni ───────────────────────────────────────────────────────────
@@ -312,19 +312,21 @@ const Profile = () => {
   if (!profile) return null;
 
   const { stats, friends, pendingFriendRequests, pendingCount } = profile;
-  const fallbackGamification = {
-    xp: stats?.totalSwipes || 0,
-    progress: 0,
-    xpToNext: 0,
-    currentRank: { level: 1, title: 'Karar Çırağı', icon: '🌱', minXp: 0, description: 'İlk tercihlerine yön veriyorsun.' },
-    nextRank: null,
-    ranks: RANK_PATH,
-  };
+  const localXp = (stats?.totalSwipes || 0) + ((stats?.completedRooms || 0) * 15);
+  const xp = Number.isFinite(Number(profile.gamification?.xp)) ? Number(profile.gamification.xp) : localXp;
+  // Rütbe her zaman güncel XP'den hesaplanır. Böylece API/PWA eski bir
+  // currentRank cevabı döndürse bile kullanıcı açtığı rütbede kalmaz.
+  const currentRankIndex = RANK_PATH.reduce((currentIndex, rank, index) => (xp >= rank.minXp ? index : currentIndex), 0);
+  const currentRank = RANK_PATH[currentRankIndex];
+  const nextRank = RANK_PATH[currentRankIndex + 1] || null;
+  const progress = nextRank ? Math.min(100, Math.round(((xp - currentRank.minXp) / (nextRank.minXp - currentRank.minXp)) * 100)) : 100;
   const gamification = {
-    ...fallbackGamification,
-    ...(profile.gamification || {}),
-    currentRank: profile.gamification?.currentRank || fallbackGamification.currentRank,
-    ranks: profile.gamification?.ranks?.length ? profile.gamification.ranks : RANK_PATH,
+    xp,
+    progress,
+    xpToNext: nextRank ? Math.max(0, nextRank.minXp - xp) : 0,
+    currentRank,
+    nextRank,
+    ranks: RANK_PATH,
   };
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
@@ -872,7 +874,7 @@ const Profile = () => {
                 {gamification.nextRank ? <><div style={{ height: 7, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,.1)', marginTop: '.9rem' }}><div style={{ width: `${gamification.progress}%`, height: '100%', background: 'linear-gradient(90deg,#fb7185,#a78bfa)', borderRadius: 99 }} /></div><div style={{ marginTop: '.4rem', color: 'var(--text-muted)', fontSize: '.73rem' }}>{gamification.nextRank.title} için {gamification.xpToNext} XP kaldı</div></> : <div style={{ marginTop: '.65rem', color: '#fef3c7', fontSize: '.78rem', fontWeight: 700 }}>Zirvedesin. Karar Efsanesi rütbesi açıldı!</div>}
               </div>
 
-              <p style={{ color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45, margin: '0 0 .8rem' }}>Her kaydırma +1 XP verir. Tamamlanan her grup odası +10 XP bonus kazandırır.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45, margin: '0 0 .8rem' }}>Her kaydırma +1 XP verir. Tamamlanan her grup odası +15 XP bonus kazandırır.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '.55rem' }}>
                 {gamification.ranks.map((rank) => {
                   const unlocked = gamification.xp >= rank.minXp;
