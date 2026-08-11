@@ -556,10 +556,9 @@ const Room = () => {
         isOpen={!!activeMatch && !matchModalDismissed}
         matchResult={activeMatch}
         onClose={closeMatchModal}
-        onExitRoom={requestRoomExit}
         title={isRestaurantRound ? 'RESTORAN BELİRLENDİ!' : isCinemaRound ? 'SİNEMA SALONU BELİRLENDİ!' : undefined}
         subtitle={isRestaurantRound ? 'Grubunuz nerede yiyeceğine karar verdi.' : isCinemaRound ? 'Grubunuz filmi nerede izleyeceğine karar verdi.' : undefined}
-        closeLabel={isRestaurantRound || isCinemaRound ? 'Kararı Tamamla & Keşfete Dön' : undefined}
+        closeLabel={isVenueMatch && restaurantRecommendationsEnabled ? 'Nerede Yiyelim’e Devam Et' : 'Oylamayı Bitir & Keşfete Dön'}
       />
       <ChatDrawer
         isOpen={chatOpen}

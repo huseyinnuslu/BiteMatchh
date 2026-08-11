@@ -11,6 +11,11 @@ const EARTH_RADIUS_KM = 6371;
 const STREAMING_PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'];
 
 const isStreamingFilmRoom = (room) => ['film', 'movie'].includes(room.category) && room.watchMode === 'streaming';
+const completedStreamingParticipantIds = (room) => new Set(
+  (room.platformSelections || [])
+    .map((selection) => String(selection.user?._id || selection.user))
+    .filter((userId) => (room.participants || []).some((participant) => String(participant?._id || participant) === userId))
+);
 const sanitizeStreamingRoom = (room, userId) => {
   const plainRoom = room.toObject ? room.toObject() : room;
   if (!isStreamingFilmRoom(plainRoom)) return plainRoom;
@@ -18,7 +23,7 @@ const sanitizeStreamingRoom = (room, userId) => {
   const safeRoom = { ...plainRoom };
   delete safeRoom.platformSelections;
   safeRoom.streamingSetup = {
-    completedCount: (plainRoom.platformSelections || []).length,
+    completedCount: completedStreamingParticipantIds(plainRoom).size,
     participantCount: (plainRoom.participants || []).length,
     myPlatforms: mine?.platforms || [],
   };
@@ -349,11 +354,14 @@ export const startRoom = async (req, res, next) => {
 
     if (isStreamingFilmRoom(room)) {
       const selections = room.platformSelections || [];
-      if (selections.length < room.participants.length) {
+      const completedParticipantIds = completedStreamingParticipantIds(room);
+      if (completedParticipantIds.size < room.participants.length) {
         return res.status(400).json({ message: 'Film kartlarını hazırlamak için herkes erişebildiği platformları seçmeli.' });
       }
       const commonPlatforms = room.streamingPlatforms.filter((platform) =>
-        selections.every((selection) => selection.platforms.includes(platform))
+        room.participants.every((participant) => selections
+          .filter((selection) => String(selection.user) === String(participant))
+          .some((selection) => selection.platforms.includes(platform)))
       );
       const filmOptions = selectFilmOptionsForPlatforms(commonPlatforms);
       if (filmOptions.length < 2) {
