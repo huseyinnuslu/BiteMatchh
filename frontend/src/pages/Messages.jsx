@@ -218,6 +218,7 @@ const Messages = () => {
   const [loadingMsgs, setLoadingMsgs]   = useState(false);
   const [showMenu, setShowMenu]         = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const [showNewDM, setShowNewDM]       = useState(false);
   const [mobileView, setMobileView]     = useState('list');
@@ -453,6 +454,21 @@ const Messages = () => {
       setDeleteTarget(null);
     }
   }, [deleteTarget]);
+
+  const handleClearConversation = useCallback(async () => {
+    if (!activeUser?._id) return;
+
+    try {
+      await api.delete(`/messages/conversation/${activeUser._id}`);
+      setMessages([]);
+      setConversations(prev => prev.filter(conv => conv.user?._id?.toString() !== activeUser._id?.toString()));
+      toast.success('Sohbet senin için temizlendi');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Sohbet temizlenemedi');
+    } finally {
+      setShowClearConfirm(false);
+    }
+  }, [activeUser]);
 
   /* ─── Konuşma + Arkadaş birleştirilmiş listesi ── */
   const convUserIds  = new Set(conversations.map(c => c.user?._id?.toString()));
@@ -778,6 +794,20 @@ const Messages = () => {
                       boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                     }}>
                       <button
+                        onClick={() => { setShowClearConfirm(true); setShowMenu(false); }}
+                        style={{
+                          width: '100%', padding: '11px 16px',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600, textAlign: 'left',
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                      >
+                        <Trash2 size={16} /> Sohbeti temizle
+                      </button>
+                      <button
                         onClick={handleBlockMenuClick}
                         style={{
                           width: '100%', padding: '11px 16px',
@@ -1050,6 +1080,17 @@ const Messages = () => {
           confirmColor="#ef4444"
           onConfirm={handleDeleteMessage}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+      {showClearConfirm && activeUser && (
+        <ConfirmModal
+          icon="🧹"
+          title="Sohbet temizlensin mi?"
+          message={`@${activeUser.username} ile olan mesajlar yalnızca senin ekranından kaldırılacak. Karşı tarafın sohbeti etkilenmez.`}
+          confirmText="Sohbeti temizle"
+          confirmColor="#ef4444"
+          onConfirm={handleClearConversation}
+          onCancel={() => setShowClearConfirm(false)}
         />
       )}
     </>

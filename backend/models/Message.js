@@ -42,6 +42,13 @@ const messageSchema = new mongoose.Schema(
       ticketUrl:   { type: String },
       mapsQuery:   { type: String },
     },
+    // “Sohbeti temizle” işlemi karşı tarafın kayıtlarını silmez. Mesaj,
+    // temizleyen kullanıcının görünümünden gizlenir; yeni mesaj gelince sohbet
+    // doğal olarak tekrar görünür.
+    hiddenFor: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
     // Oda mesajları 7 gün, DM'ler 90 gün saklanır
     expireAt: {
       type:    Date,
@@ -57,6 +64,7 @@ messageSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 messageSchema.index({ room: 1, createdAt: 1 });
 // DM sorguları – (sender, recipient) çifti
 messageSchema.index({ sender: 1, recipient: 1, createdAt: 1 });
+messageSchema.index({ hiddenFor: 1 });
 
 const Message = mongoose.model('Message', messageSchema);
 export default Message;

@@ -47,6 +47,7 @@ router.get('/conversations', protect, async (req, res, next) => {
     const msgs = await Message.find({
       type: 'direct',
       $or: [{ sender: myId }, { recipient: myId }],
+      hiddenFor: { $ne: myId },
       // Engellenenlerle konusmayi gizle
       sender:    { $nin: blocked },
       recipient: { $nin: blocked },
@@ -102,6 +103,7 @@ router.get('/dm/:userId', protect, async (req, res, next) => {
         { sender: myId,    recipient: otherId },
         { sender: otherId, recipient: myId    },
       ],
+      hiddenFor: { $ne: myId },
     })
       .sort({ createdAt: -1 })
       .limit(100)
@@ -172,6 +174,31 @@ router.post('/dm/:userId', protect, async (req, res, next) => {
     }
 
     res.status(201).json(msg);
+  } catch (e) { next(e); }
+});
+
+// ── DELETE /api/messages/conversation/:userId ───────────────────────────────
+// Sohbet yalnızca isteği yapan kullanıcının ekranından temizlenir.
+router.delete('/conversation/:userId', protect, async (req, res, next) => {
+  try {
+    const otherId = req.params.userId;
+    if (!mongoose.isValidObjectId(otherId)) {
+      res.status(400);
+      throw new Error('Geçersiz kullanıcı ID');
+    }
+
+    await Message.updateMany(
+      {
+        type: 'direct',
+        $or: [
+          { sender: req.user._id, recipient: otherId },
+          { sender: otherId, recipient: req.user._id },
+        ],
+      },
+      { $addToSet: { hiddenFor: req.user._id } },
+    );
+
+    res.json({ message: 'Sohbet temizlendi' });
   } catch (e) { next(e); }
 });
 
