@@ -33,6 +33,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
   const isFilm      = category === 'film' || category === 'movie';
   const isRestaurant = category === 'restaurant' || category === 'cinema';
   const isLive      = option.isLiveEvent === true;
+  const hasDetailRow = (!isFilm && !!option.duration) || !!option.location || (isRestaurant && option.distanceFromYouKm !== null && option.distanceFromYouKm !== undefined) || !!option.budget;
 
   return (
     <motion.div
@@ -201,7 +202,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
             )}
 
             {/* Bilgi satırı: süre / konum / bütçe */}
-            <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            {hasDetailRow && <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               {!isFilm && option.duration && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <Clock size={16} /> {option.duration}
@@ -222,7 +223,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                   {option.budget}
                 </span>
               )}
-            </div>
+            </div>}
 
             {option.description && (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', marginTop: 'auto' }}>
