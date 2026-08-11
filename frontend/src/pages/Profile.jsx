@@ -305,7 +305,6 @@ const Profile = () => {
   };
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
-  const topCategory = categoryEntries[0];
   const nextUsernameChangeAt = profile.usernameChangedAt
     ? new Date(new Date(profile.usernameChangedAt).getTime() + 7 * 24 * 60 * 60 * 1000)
     : null;
@@ -392,11 +391,6 @@ const Profile = () => {
                   style={{ fontSize: '0.82rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontWeight: 600 }}
                 >
                   🔔 {pendingCount} bekleyen istek
-                </span>
-              )}
-              {topCategory && (
-                <span style={{ fontSize: '0.82rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  {CATEGORY_ICONS[topCategory[0]] || '⭐'} {topCategory[0]} ustası
                 </span>
               )}
             </div>
