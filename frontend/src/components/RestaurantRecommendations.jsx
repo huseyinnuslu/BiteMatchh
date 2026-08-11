@@ -198,6 +198,16 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
     }
   };
 
+  // Bu bağlantı Google Places verisi çekmez; yalnızca kullanıcının kendi
+  // Google Maps uygulamasında/sekmesinde yakındaki tüm seçenekleri açar.
+  // Böylece ücretli bir Maps API'sine ihtiyaç duymadan alternatif bir çıkış
+  // sunar ve oda/oylama akışına hiç dokunmaz.
+  const openMapSearch = () => {
+    const searchTerm = isCinema ? `${cuisine} için sinema salonu` : cuisine;
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${searchTerm} yakınımda`)}`;
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const isBusy = ['locating', 'loading', 'submitting-vote', 'creating-round', 'starting-round'].includes(status);
   const currentPlace = recommendations[recommendationIndex];
 
@@ -297,6 +307,18 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
 
         {status === 'empty' && <div style={{ padding: '1rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '.9rem', lineHeight: 1.5 }}>{emptyMessage}</div>}
         {status === 'error' && <button onClick={() => loadRecommendations()} className="btn" style={{ width: '100%', border: '1px solid rgba(255,255,255,.2)', color: 'white' }}>Tekrar Dene</button>}
+
+        <button
+          type="button"
+          onClick={openMapSearch}
+          className="btn"
+          style={{ width: '100%', marginTop: '1rem', minHeight: 48, color: '#dbeafe', border: '1px solid rgba(96,165,250,.45)', background: 'rgba(59,130,246,.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}
+        >
+          <Navigation size={18} /> {isCinema ? 'Salonları Haritada İnceleyeyim' : 'Mekanları Kendim İnceleyeyim'}
+        </button>
+        <p style={{ margin: '.45rem 0 0', color: 'var(--text-muted)', fontSize: '.72rem', lineHeight: 1.4, textAlign: 'center' }}>
+          Google Maps'te yakındaki tüm {venueLabelPlural} açılır.
+        </p>
 
         <button onClick={onExit} className="btn" style={{ width: '100%', marginTop: '1rem', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,.12)', background: 'transparent' }}>
           Bu adımı geç ve Keşfete dön
