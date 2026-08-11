@@ -14,17 +14,6 @@ const panelStyle = {
   padding: '1.15rem', marginBottom: '1rem',
 };
 
-const EMAIL_CHANGE_STORAGE_KEY = 'bitematch-email-change';
-
-const getSavedEmailChange = () => {
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(EMAIL_CHANGE_STORAGE_KEY) || 'null');
-    return saved?.email ? saved : null;
-  } catch {
-    return null;
-  }
-};
-
 const Toggle = ({ checked, onChange, label, description, disabled }) => (
   <button
     type="button"
@@ -65,11 +54,6 @@ const Settings = () => {
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [unblockingId, setUnblockingId] = useState(null);
-  const [savedEmailChange] = useState(getSavedEmailChange);
-  const [emailDraft, setEmailDraft] = useState(() => savedEmailChange?.email || '');
-  const [emailChangeStep, setEmailChangeStep] = useState(() => savedEmailChange ? 'verify' : 'idle');
-  const [emailOtp, setEmailOtp] = useState('');
-  const [savingEmail, setSavingEmail] = useState(false);
 
   const loadSettings = async () => {
     try {
@@ -79,7 +63,6 @@ const Settings = () => {
       ]);
       setProfile(profileResponse.data);
       setUsernameDraft(profileResponse.data.username || '');
-      setEmailDraft((current) => current || profileResponse.data.email || '');
       setBlockedUsers(blockedResponse.data || []);
     } catch {
       toast.error('Ayarlar yüklenemedi. Lütfen tekrar deneyin.');
@@ -132,45 +115,6 @@ const Settings = () => {
     } finally {
       setSavingPrivacy(false);
     }
-  };
-
-  const requestEmailChange = async (event) => {
-    event.preventDefault();
-    const email = emailDraft.trim().toLowerCase();
-    if (email === profile.email) { setEmailChangeStep('idle'); return; }
-    setSavingEmail(true);
-    try {
-      const { data } = await api.post('/auth/email-change/request', { email });
-      sessionStorage.setItem(EMAIL_CHANGE_STORAGE_KEY, JSON.stringify({ email }));
-      setEmailChangeStep('verify');
-      toast.success(data.message);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'E-posta güncellenemedi.');
-    } finally { setSavingEmail(false); }
-  };
-
-  const confirmEmailChange = async (event) => {
-    event.preventDefault();
-    setSavingEmail(true);
-    try {
-      const { data } = await api.post('/auth/email-change/confirm', { otp: emailOtp });
-      setProfile(prev => ({ ...prev, email: data.email }));
-      updateUser({ email: data.email });
-      sessionStorage.removeItem(EMAIL_CHANGE_STORAGE_KEY);
-      setEmailOtp('');
-      setEmailDraft(data.email);
-      setEmailChangeStep('idle');
-      toast.success(data.message);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'E-posta doğrulanamadı.');
-    } finally { setSavingEmail(false); }
-  };
-
-  const cancelEmailChange = () => {
-    sessionStorage.removeItem(EMAIL_CHANGE_STORAGE_KEY);
-    setEmailOtp('');
-    setEmailDraft(profile.email);
-    setEmailChangeStep('idle');
   };
 
   const unblockUser = async (blockedUser) => {
@@ -260,23 +204,9 @@ const Settings = () => {
               <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Giriş e-postası</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', marginTop: '.2rem' }}>{profile.email}</div>
             </div>
-            {emailChangeStep === 'idle' && <button type="button" onClick={() => setEmailChangeStep('email')} style={{ border: '1px solid rgba(255,75,75,.45)', borderRadius: 8, padding: '.46rem .7rem', background: 'rgba(255,75,75,.09)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Pencil size={13} /> Değiştir</button>}
+            <button type="button" onClick={() => navigate('/settings/email')} style={{ border: '1px solid rgba(255,75,75,.45)', borderRadius: 8, padding: '.46rem .7rem', background: 'rgba(255,75,75,.09)', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Pencil size={13} /> Değiştir</button>
           </div>
-          {emailChangeStep === 'email' && <form onSubmit={requestEmailChange} style={{ display: 'flex', gap: '.5rem', marginTop: '.8rem', flexWrap: 'wrap' }}>
-            <input type="email" value={emailDraft} onChange={(event) => setEmailDraft(event.target.value)} autoFocus autoComplete="email" aria-label="Yeni e-posta adresi" style={{ flex: '1 1 180px', minWidth: 0, padding: '.58rem .7rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white' }} required />
-            <button type="submit" disabled={savingEmail} className="btn btn-primary" style={{ padding: '.58rem .8rem', fontSize: '.8rem' }}>{savingEmail ? 'Gönderiliyor...' : 'Kodu gönder'}</button>
-            <button type="button" onClick={cancelEmailChange} disabled={savingEmail} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.58rem .8rem', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.8rem' }}>Vazgeç</button>
-          </form>}
-          {emailChangeStep === 'verify' && <div style={{ marginTop: '.85rem', padding: '.85rem', borderRadius: 10, background: 'rgba(99,102,241,.09)', border: '1px solid rgba(129,140,248,.35)' }}>
-            <div style={{ color: 'white', fontWeight: 750, fontSize: '.84rem', marginBottom: '.25rem' }}>Yeni adresini doğrula</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45 }}>Kod <strong style={{ color: 'white' }}>{emailDraft}</strong> adresine gönderildi. Bu ekranı kapatsan veya yenilesen bile doğrulamaya buradan devam edebilirsin.</div>
-            <form onSubmit={confirmEmailChange} style={{ display: 'flex', gap: '.5rem', marginTop: '.75rem', flexWrap: 'wrap' }}>
-              <input inputMode="numeric" value={emailOtp} onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 haneli doğrulama kodu" autoFocus style={{ flex: '1 1 180px', minWidth: 0, padding: '.58rem .7rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white', letterSpacing: '.16em' }} required />
-              <button type="submit" disabled={savingEmail || emailOtp.length !== 6} className="btn btn-primary" style={{ padding: '.58rem .8rem', fontSize: '.8rem' }}>{savingEmail ? 'Doğrulanıyor...' : 'Doğrula'}</button>
-              <button type="button" onClick={cancelEmailChange} disabled={savingEmail} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.58rem .8rem', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '.8rem' }}>İptal</button>
-            </form>
-          </div>}
-          {emailChangeStep !== 'idle' && <div style={{ color: 'var(--text-muted)', fontSize: '.75rem', lineHeight: 1.45, marginTop: '.65rem' }}>Adres, yeni e-posta hesabına gönderilen 6 haneli kod doğrulanmadan değişmez.</div>}
+          <div style={{ color: 'var(--text-muted)', fontSize: '.75rem', lineHeight: 1.45, marginTop: '.7rem' }}>Yeni adres, ayrı güvenlik ekranında gönderilen 6 haneli kod doğrulanmadan değişmez.</div>
         </section>
 
         <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Destek</p>

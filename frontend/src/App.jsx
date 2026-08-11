@@ -18,6 +18,7 @@ import Messages from './pages/Messages';
 import MatchHistory from './pages/MatchHistory';
 import Terms from './pages/Terms';
 import Settings from './pages/Settings';
+import EmailChange from './pages/EmailChange';
 import Support from './pages/Support';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
@@ -143,6 +144,7 @@ function App() {
             path="/settings"
             element={<ProtectedRoute><Settings /></ProtectedRoute>}
           />
+          <Route path="/settings/email" element={<ProtectedRoute><EmailChange /></ProtectedRoute>} />
           <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
           <Route 
             path="/messages" 

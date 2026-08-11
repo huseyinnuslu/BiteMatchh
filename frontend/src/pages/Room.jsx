@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, LogOut } from 'lucide-react';
+import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, LogOut, AlertTriangle } from 'lucide-react';
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
@@ -37,6 +37,7 @@ const Room = () => {
   const [matchModalDismissed, setMatchModalDismissed] = useState(false);
   const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
   const [restaurantRecommendationsEnabled, setRestaurantRecommendationsEnabled] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const pollingRef = useRef(null);
   const chatNotificationRequestedRef = useRef(new URLSearchParams(location.search).get('chat') === '1');
   const autoOpenedChatForMatchRef = useRef(null);
@@ -326,6 +327,12 @@ const Room = () => {
       setChatOpen(false);
       return;
     }
+    setExitDialogOpen(true);
+  };
+
+  const requestRoomExit = () => setExitDialogOpen(true);
+  const confirmRoomExit = () => {
+    setExitDialogOpen(false);
     navigate('/dashboard');
   };
   return (
@@ -342,13 +349,25 @@ const Room = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{currentRoom.name}</h3>
-        <button
-          onClick={copyLink}
-          className="btn"
-          style={{ background: 'var(--surface)', color: 'white', padding: '0.5rem 1rem' }}
-        >
-          {copied ? <Check size={18} color="var(--success)" /> : <LinkIcon size={18} />}
-        </button>
+        <div style={{ display: 'flex', gap: '.5rem' }}>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="btn"
+            aria-label="Oda bağlantısını kopyala"
+            style={{ background: 'var(--surface)', color: 'white', padding: '0.5rem .7rem' }}
+          >
+            {copied ? <Check size={18} color="var(--success)" /> : <LinkIcon size={18} />}
+          </button>
+          <button
+            type="button"
+            onClick={requestRoomExit}
+            className="btn"
+            style={{ background: 'rgba(255,255,255,.05)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,.14)', padding: '0.5rem .7rem', gap: '.35rem', fontSize: '.78rem' }}
+          >
+            <LogOut size={16} /> Çık
+          </button>
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -438,7 +457,7 @@ const Room = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={requestRoomExit}
                   className="btn"
                   style={{
                     width: '100%', marginTop: isHost ? '0.75rem' : 0, padding: '0.85rem',
@@ -528,7 +547,7 @@ const Room = () => {
           participantCount={currentRoom.participants.length}
           onStartRestaurantRound={(restaurantRoomId) => navigate(`/room/${restaurantRoomId}`)}
           onRestaurantMatched={openRestaurantMatchChat}
-          onExit={() => navigate('/dashboard')}
+          onExit={requestRoomExit}
         />
       )}
 
@@ -537,7 +556,7 @@ const Room = () => {
         isOpen={!!activeMatch && !matchModalDismissed}
         matchResult={activeMatch}
         onClose={closeMatchModal}
-        onExitRoom={() => navigate('/dashboard')}
+        onExitRoom={requestRoomExit}
         title={isRestaurantRound ? 'RESTORAN BELİRLENDİ!' : isCinemaRound ? 'SİNEMA SALONU BELİRLENDİ!' : undefined}
         subtitle={isRestaurantRound ? 'Grubunuz nerede yiyeceğine karar verdi.' : isCinemaRound ? 'Grubunuz filmi nerede izleyeceğine karar verdi.' : undefined}
         closeLabel={isRestaurantRound || isCinemaRound ? 'Kararı Tamamla & Keşfete Dön' : undefined}
@@ -549,6 +568,31 @@ const Room = () => {
         roomId={id}
         matchedItem={chatMatchItem || matchResult || socketMatch}
       />
+      <AnimatePresence>
+        {exitDialogOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'grid', placeItems: 'center', padding: '1rem', background: 'rgba(2,6,23,.72)', backdropFilter: 'blur(5px)' }}
+            onMouseDown={() => setExitDialogOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: .96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: .96, y: 12 }}
+              onMouseDown={(event) => event.stopPropagation()}
+              className="glass-card"
+              style={{ width: '100%', maxWidth: 410, padding: '1.35rem', border: '1px solid rgba(248,113,113,.32)', background: 'rgba(30,41,59,.98)' }}
+              role="dialog" aria-modal="true" aria-labelledby="leave-room-title"
+            >
+              <div style={{ width: 42, height: 42, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(248,113,113,.12)', color: '#fca5a5', marginBottom: '.9rem' }}><AlertTriangle size={22} /></div>
+              <h2 id="leave-room-title" style={{ fontSize: '1.2rem', margin: 0, color: 'white' }}>Odadan çıkmak istiyor musun?</h2>
+              <p style={{ margin: '.55rem 0 1.15rem', color: 'var(--text-muted)', fontSize: '.88rem', lineHeight: 1.5 }}>Keşfet sayfasına döneceksin. Bu oda açık kaldığı sürece davet bağlantısıyla tekrar katılabilirsin; ancak mevcut seçim ekranın sıfırlanır.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.65rem' }}>
+                <button type="button" onClick={() => setExitDialogOpen(false)} className="btn" style={{ minHeight: 46, background: 'rgba(255,255,255,.06)', color: 'white', border: '1px solid rgba(255,255,255,.13)' }}>Kal</button>
+                <button type="button" onClick={confirmRoomExit} className="btn" style={{ minHeight: 46, background: 'rgba(239,68,68,.14)', color: '#fecaca', border: '1px solid rgba(248,113,113,.42)' }}>Odadan çık</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
