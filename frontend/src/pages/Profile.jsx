@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera, Trash2, Inbox, Pencil, Settings
+  UserCircle, Camera, Trash2, Inbox, Pencil, Settings, Lock, Sparkles, X
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
@@ -81,6 +81,7 @@ const Profile = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [actionId, setActionId] = useState(null);
+  const [showRanks, setShowRanks] = useState(false);
 
   // ── Profil yükle ──────────────────────────────────────────────────────────
   const loadProfile = async () => {
@@ -294,6 +295,14 @@ const Profile = () => {
   if (!profile) return null;
 
   const { stats, friends, pendingFriendRequests, pendingCount } = profile;
+  const gamification = profile.gamification || {
+    xp: stats?.totalSwipes || 0,
+    progress: 0,
+    xpToNext: 0,
+    currentRank: { level: 1, title: 'Karar Çırağı', icon: '🌱', minXp: 0, description: 'İlk tercihlerine yön veriyorsun.' },
+    nextRank: null,
+    ranks: [],
+  };
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
   const topCategory = categoryEntries[0];
@@ -405,18 +414,19 @@ const Profile = () => {
             <Settings size={15} /> Ayarlar
           </button>
 
-          {/* Rozet */}
-          <div style={{
-            background: 'rgba(255,75,75,0.1)', border: '1px solid rgba(255,75,75,0.2)',
-            borderRadius: '10px', padding: '0.6rem 1rem', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '1.5rem' }}>
-              {stats.totalSwipes > 100 ? '🔥' : stats.totalSwipes > 50 ? '⚡' : '🌱'}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {stats.totalSwipes > 100 ? 'Ateşli' : stats.totalSwipes > 50 ? 'Aktif' : 'Yeni'}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowRanks(true)}
+            aria-label="Rütbeler ve XP ilerlemesini görüntüle"
+            style={{
+              background: 'linear-gradient(145deg, rgba(255,75,75,.14), rgba(139,92,246,.14))', border: '1px solid rgba(196,181,253,.36)',
+              borderRadius: '12px', padding: '.65rem .85rem', textAlign: 'left', color: 'white', cursor: 'pointer', minWidth: 132,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.76rem', color: '#ddd6fe', fontWeight: 800 }}><Sparkles size={13} /> RÜTBE</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontWeight: 800, marginTop: '.3rem', fontSize: '.9rem' }}><span style={{ fontSize: '1.2rem' }}>{gamification.currentRank.icon}</span>{gamification.currentRank.title}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '.7rem', marginTop: '.28rem' }}>{gamification.xp} XP · Sev. {gamification.currentRank.level}</div>
+          </button>
         </div>
       </motion.div>
 
@@ -813,6 +823,53 @@ const Profile = () => {
           </motion.div>
         )}
 
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showRanks && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onMouseDown={() => setShowRanks(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 2100, display: 'grid', placeItems: 'center', padding: '1rem', background: 'rgba(2,6,23,.78)', backdropFilter: 'blur(7px)' }}
+          >
+            <motion.section
+              initial={{ opacity: 0, y: 18, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: .98 }}
+              onMouseDown={(event) => event.stopPropagation()}
+              className="glass-card"
+              role="dialog" aria-modal="true" aria-labelledby="rank-dialog-title"
+              style={{ width: '100%', maxWidth: 520, maxHeight: '82vh', overflowY: 'auto', padding: '1.15rem', border: '1px solid rgba(196,181,253,.35)', background: 'linear-gradient(145deg, rgba(30,41,59,.99), rgba(15,23,42,.99))' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ color: '#c4b5fd', fontSize: '.74rem', fontWeight: 800, letterSpacing: '.07em' }}>BITEMATCH İLERLEMEN</div>
+                  <h2 id="rank-dialog-title" style={{ margin: '.25rem 0 0', color: 'white', fontSize: '1.3rem' }}>Rütbeler ve XP</h2>
+                </div>
+                <button type="button" onClick={() => setShowRanks(false)} aria-label="Rütbeleri kapat" style={{ border: 0, width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,.08)', color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><X size={18} /></button>
+              </div>
+
+              <div style={{ margin: '1rem 0', padding: '1rem', borderRadius: 14, background: 'linear-gradient(135deg, rgba(255,75,75,.16), rgba(139,92,246,.16))', border: '1px solid rgba(196,181,253,.22)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}><span style={{ fontSize: '2rem' }}>{gamification.currentRank.icon}</span><div><div style={{ color: 'white', fontWeight: 800 }}>{gamification.currentRank.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '.76rem', marginTop: '.15rem' }}>{gamification.currentRank.description}</div></div></div>
+                  <div style={{ color: '#fef3c7', fontWeight: 900, whiteSpace: 'nowrap' }}>{gamification.xp} XP</div>
+                </div>
+                {gamification.nextRank ? <><div style={{ height: 7, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,.1)', marginTop: '.9rem' }}><div style={{ width: `${gamification.progress}%`, height: '100%', background: 'linear-gradient(90deg,#fb7185,#a78bfa)', borderRadius: 99 }} /></div><div style={{ marginTop: '.4rem', color: 'var(--text-muted)', fontSize: '.73rem' }}>{gamification.nextRank.title} için {gamification.xpToNext} XP kaldı</div></> : <div style={{ marginTop: '.65rem', color: '#fef3c7', fontSize: '.78rem', fontWeight: 700 }}>Zirvedesin. Karar Efsanesi rütbesi açıldı!</div>}
+              </div>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45, margin: '0 0 .8rem' }}>Her kaydırma +1 XP verir. Tamamlanan her grup odası +10 XP bonus kazandırır.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.55rem' }}>
+                {gamification.ranks.map((rank) => {
+                  const unlocked = gamification.xp >= rank.minXp;
+                  const active = rank.level === gamification.currentRank.level;
+                  return <div key={rank.level} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.72rem .78rem', borderRadius: 12, border: `1px solid ${active ? 'rgba(251,113,133,.7)' : unlocked ? 'rgba(134,239,172,.22)' : 'rgba(255,255,255,.08)'}`, background: active ? 'rgba(255,75,75,.11)' : unlocked ? 'rgba(34,197,94,.05)' : 'rgba(255,255,255,.025)', opacity: unlocked ? 1 : .56 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: unlocked ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)', fontSize: '1.05rem' }}>{unlocked ? rank.icon : <Lock size={15} color="#94a3b8" />}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: 'white', fontWeight: 800, fontSize: '.86rem' }}>Seviye {rank.level} · {rank.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '.72rem', marginTop: '.12rem' }}>{rank.description}</div></div>
+                    <div style={{ color: unlocked ? '#86efac' : 'var(--text-muted)', fontSize: '.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>{unlocked ? 'Açıldı' : `${rank.minXp} XP`}</div>
+                  </div>;
+                })}
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
