@@ -164,7 +164,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                 {option.name}
               </h2>
 
-              {(option.rating || option.imdbScore) && (
+              {!isFilm && (option.rating || option.imdbScore) && (
                 <div style={{
                   display: 'flex', alignItems: 'center',
                   background: 'rgba(255,255,255,0.1)',
@@ -202,7 +202,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
 
             {/* Bilgi satırı: süre / konum / bütçe */}
             <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', marginBottom: '0.8rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              {option.duration && (
+              {!isFilm && option.duration && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <Clock size={16} /> {option.duration}
                 </div>

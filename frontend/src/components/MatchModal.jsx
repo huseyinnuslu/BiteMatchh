@@ -196,8 +196,8 @@ const MatchModal = ({
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {matchResult.rating    && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>⭐ {matchResult.rating}</span>}
                     {matchResult.budget    && <span style={{ background: 'rgba(34,197,94,0.2)', color: 'var(--success)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>{matchResult.budget}</span>}
-                    {matchResult.imdbScore && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>Puan: {matchResult.imdbScore}</span>}
-                    {matchResult.duration  && <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white',          padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>⏱ {matchResult.duration}</span>}
+                    {isPlace && matchResult.imdbScore && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>Puan: {matchResult.imdbScore}</span>}
+                    {isPlace && matchResult.duration  && <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white',          padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>⏱ {matchResult.duration}</span>}
                   </div>
                 </div>
               )}

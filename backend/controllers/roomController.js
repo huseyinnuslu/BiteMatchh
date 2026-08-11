@@ -92,9 +92,9 @@ export const createRoom = async (req, res, next) => {
     let roomOptions = options || [];
     const cleanCategory = category ? category.toLowerCase() : 'custom';
     const activePriceRange = priceRange || [];
-    const normalizedWatchMode = cleanCategory === 'film'
-      ? (watchMode === 'cinema' ? 'cinema' : 'streaming')
-      : null;
+    // Canlı ve lisanslı seans verisi olmadan sinema akışı göstermiyoruz.
+    // Film odaları yalnızca ortak streaming platformları üzerinden başlar.
+    const normalizedWatchMode = cleanCategory === 'film' ? 'streaming' : null;
     const selectedPlatforms = [...new Set((Array.isArray(streamingPlatforms) ? streamingPlatforms : [])
       .filter((platform) => STREAMING_PLATFORMS.includes(platform)))];
     if (cleanCategory === 'film' && normalizedWatchMode === 'streaming' && selectedPlatforms.length === 0) {

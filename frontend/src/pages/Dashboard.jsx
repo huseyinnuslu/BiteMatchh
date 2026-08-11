@@ -265,18 +265,13 @@ const Dashboard = () => {
 
           {category === 'film' && (
             <div className="animate-slide-up" style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 12, background: 'rgba(99,102,241,.09)', border: '1px solid rgba(129,140,248,.32)' }}>
-              <div style={{ color: 'white', fontWeight: 800, marginBottom: '.35rem' }}>Nasıl izlemek istiyorsunuz?</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '.78rem', lineHeight: 1.45, marginBottom: '.8rem' }}>Streaming seçimleri herkes için gizli tutulur; yalnızca ortak platformlardaki kartlar gelir.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.6rem', marginBottom: watchMode === 'streaming' ? '.85rem' : 0 }}>
-                {[['streaming', 'Evde / Streaming'], ['cinema', 'Sinemada']].map(([value, label]) => <button key={value} type="button" onClick={() => setWatchMode(value)} style={{ padding: '.7rem .4rem', borderRadius: 9, border: `1px solid ${watchMode === value ? 'var(--primary)' : 'rgba(255,255,255,.14)'}`, background: watchMode === value ? 'rgba(255,75,75,.15)' : 'var(--surface)', color: watchMode === value ? 'white' : 'var(--text-muted)', fontWeight: 800, cursor: 'pointer', fontSize: '.78rem' }}>{label}</button>)}
-              </div>
-              {watchMode === 'streaming' && <>
-                <div style={{ color: 'white', fontWeight: 700, fontSize: '.82rem', marginBottom: '.5rem' }}>Senin erişebildiğin platformlar</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem' }}>{['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'].map((platform) => {
+              <div style={{ color: 'white', fontWeight: 800, marginBottom: '.35rem' }}>Evde ne izleyelim?</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.78rem', lineHeight: 1.45, marginBottom: '.8rem' }}>Herkes erişebildiği platformları gizli olarak seçer; yalnızca ortak platformlardaki kartlar gelir.</div>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: '.82rem', marginBottom: '.5rem' }}>Senin erişebildiğin platformlar</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem' }}>{['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'].map((platform) => {
                   const selected = streamingPlatforms.includes(platform);
                   return <button key={platform} type="button" onClick={() => setStreamingPlatforms(prev => selected ? prev.filter(item => item !== platform) : [...prev, platform])} style={{ padding: '.48rem .62rem', borderRadius: 20, border: `1px solid ${selected ? 'var(--primary)' : 'rgba(255,255,255,.15)'}`, background: selected ? 'rgba(255,75,75,.17)' : 'transparent', color: selected ? 'white' : 'var(--text-muted)', fontWeight: 700, cursor: 'pointer', fontSize: '.75rem' }}>{platform}</button>;
-                })}</div>
-              </>}
+              })}</div>
             </div>
           )}
 
