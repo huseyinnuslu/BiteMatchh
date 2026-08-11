@@ -1,15 +1,17 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History, Bell } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { getSocket } from '../socket/socketClient';
 import api from '../api';
+import { toast } from 'react-toastify';
 
 // ---- Navbar ----
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [notifications, setNotifications] = useState([]);
@@ -71,11 +73,14 @@ const Navbar = () => {
 
   const handleNotificationClick = async (notif) => {
     setShowNotifications(false);
-    if (!notif.isRead) {
-      try {
-        await api.put(`/notifications/${notif._id}/read`);
-        setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, isRead: true } : n));
-      } catch (err) { console.error(err); }
+    try {
+      const { data } = await api.post(`/notifications/${notif._id}/open`);
+      setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, isRead: true } : n));
+      if (data.inactive) toast.info('Bu oda daveti artık geçerli değil. Keşfet’e yönlendirildin.');
+      navigate(data.link || '/dashboard');
+    } catch (err) {
+      console.error(err);
+      navigate('/dashboard');
     }
   };
 
@@ -180,7 +185,7 @@ const Navbar = () => {
                         notifications.map(n => (
                           <Link 
                             key={n._id} to={n.link || '#'}
-                            onClick={() => handleNotificationClick(n)}
+                            onClick={(event) => { event.preventDefault(); handleNotificationClick(n); }}
                             style={{ 
                               display: 'block', padding: '0.75rem 1rem', textDecoration: 'none',
                               background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',
@@ -272,7 +277,7 @@ const Navbar = () => {
                         notifications.slice(0, 10).map(n => (
                           <Link
                             key={n._id} to={n.link || '#'}
-                            onClick={() => { handleNotificationClick(n); setShowNotifications(false); }}
+                            onClick={(event) => { event.preventDefault(); handleNotificationClick(n); }}
                             style={{
                               display: 'block', padding: '0.6rem 0.9rem', textDecoration: 'none',
                               background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',

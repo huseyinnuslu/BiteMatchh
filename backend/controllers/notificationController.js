@@ -1,4 +1,5 @@
 import Notification from '../models/Notification.js';
+import Room from '../models/Room.js';
 
 // @desc    Kullanıcının bildirimlerini getir
 // @route   GET /api/notifications
@@ -47,4 +48,34 @@ export const markAsRead = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Bildirimin hedefini güvenli şekilde aç
+// @route   POST /api/notifications/:id/open
+// @access  Private
+export const openNotification = async (req, res, next) => {
+  try {
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { isRead: true },
+      { new: true }
+    );
+    if (!notification) return res.status(404).json({ message: 'Bildirim bulunamadı.' });
+
+    let link = notification.link || '/dashboard';
+    let inactive = false;
+    if (notification.type === 'room_invite') {
+      const roomId = String(link).match(/^\/room\/([a-f\d]{24})$/i)?.[1];
+      const room = roomId ? await Room.findById(roomId).select('status inviteExpiresAt') : null;
+      // Davet yalnızca bekleme salonu açıkken anlamlıdır. Bitmiş, silinmiş,
+      // oylamaya geçmiş ya da süresi dolmuş odada eski davet sonucu açılmaz.
+      const invitationIsActive = room?.status === 'waiting' &&
+        room.inviteExpiresAt && new Date(room.inviteExpiresAt) > new Date();
+      if (!invitationIsActive) {
+        link = '/dashboard';
+        inactive = true;
+      }
+    }
+    res.json({ link, inactive });
+  } catch (error) { next(error); }
 };

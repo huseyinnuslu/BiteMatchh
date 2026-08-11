@@ -88,7 +88,8 @@ function App() {
       // visible even if the generic notification event is delayed.
       toast.info(`${message || `${inviterName} sizi bir odaya davet etti!`}`, {
         autoClose: 6000,
-        onClick: () => { window.location.href = `/room/${roomId}`; },
+        // Davet geçerliliği yalnız bildirim merkezinden sunucuda kontrol
+        // edilerek açılır; eski toast'ın bitmiş odayı açmasına izin vermeyiz.
       });
     };
 
