@@ -6,7 +6,7 @@ const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 5;
+const RESTAURANT_RECOMMENDATION_VERSION = 6;
 const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
 const FOURSQUARE_API_VERSION = '2025-06-17';
 const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -143,7 +143,14 @@ const FOOD_VENUE_PROFILES = [
   { names: ['tatli & waffle'], queries: ['waffle', 'pastane', 'tatlıcı'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe', 'amenity:ice_cream', 'amenity:restaurant'] },
   { names: ['manti'], queries: ['mantı', 'ev yemekleri'] },
   { names: ['iskender'], queries: ['iskender kebap', 'bursa kebabı', 'kebap'] },
-  { names: ['cig kofte'], queries: ['çiğ köfte'] },
+  // Foursquare, "çiğ köfte" aramasında zaman zaman yalnız "köfte" içeren
+  // alakasız işletmeleri de döndürebiliyor. Sadece bu mutfağa ait isim/marka
+  // izi taşıyan sonuçlar önerilir; aksi halde kart hiç oluşturulmaz.
+  {
+    names: ['cig kofte'],
+    queries: ['çiğ köfte dürüm', 'çiğ köfte'],
+    requiredTerms: ['cig kofte', 'cigkofte', 'komagene', 'oses', 'cigkofteci'],
+  },
   { names: ['kumpir'], queries: ['kumpir'] },
   { names: ['kokorec'], queries: ['kokoreç', 'midye dolma'] },
   { names: ['balik ekmek'], queries: ['balık ekmek', 'balık restoranı'] },
@@ -177,6 +184,16 @@ const venueMatchesFoodProfile = (place, profile) => {
     .filter((word) => word.length >= 4 && !GENERIC_VENUE_WORDS.has(word));
   const searchableText = venueSearchText(place);
   return keywords.some((keyword) => searchableText.includes(keyword));
+};
+
+const venueMatchesFoursquareFoodProfile = (place, profile) => {
+  const requiredTerms = profile.requiredTerms || [];
+  if (!requiredTerms.length) return true;
+  const searchableText = normalizeFoodName([
+    place.name,
+    ...getFoursquareCategoryNames(place),
+  ].filter(Boolean).join(' '));
+  return requiredTerms.some((term) => searchableText.includes(normalizeFoodName(term)));
 };
 
 const venueVerificationScore = (place) => {
@@ -283,10 +300,10 @@ const hasReliableFoursquareAddress = (place, address) => {
   // Salt posta kodu, yalnızca ilçe adı veya boş konum bir mekan adresi değildir.
   if (!normalizedAddress || /^\d{4,6}$/.test(normalizedAddress.replace(/\s/g, ''))) return false;
 
-  // Kullanıcıya yönlendirme için en az bir sokak/bina bilgisi ve onu şehirde
-  // anlamlı kılan bir ilçe/şehir parçası gerekir. Böylece yalnız "Cadde X"
-  // veya "Beşiktaş" gibi belirsiz kayıtlar önerilmez.
-  const hasStreetDetail = /[\p{L}]/u.test(street) && street.length >= 4;
+  // Mahalle veya semt tek başına adres değildir. Sokak/cadde/bulvar ya da
+  // bina numarası izi zorunlu: böylece "Mecidiyeköy, 34394" gibi Maps'te
+  // bir işletmeye değil rastgele bir noktaya götüren kayıtlar elenir.
+  const hasStreetDetail = /(?:\bno\s*[:.]?\s*\d+\b|\b\d+\b|\bcad(?:desi)?\b|\bcd\.?\b|\bsok(?:ak)?\b|\bsk\.?\b|\bbulvar(?:i|ı)?\b|\bblv\.?\b|\bavenue\b|\bstreet\b)/iu.test(street);
   const hasAreaDetail = /[\p{L}]/u.test(locality) || /[\p{L}]/u.test(region);
   return hasStreetDetail && hasAreaDetail;
 };
@@ -311,6 +328,7 @@ const getVenueSearch = (room) => {
     query: profile.queries?.[0] || room.matchResult.name,
     venueType: 'restaurant',
     screenFormat: null,
+    profile,
   };
 };
 
@@ -375,7 +393,7 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
   const venueSearch = getVenueSearch(room);
-  const { query, venueType } = venueSearch;
+  const { query, venueType, profile } = venueSearch;
   const places = await searchFoursquarePlaces({ query, center, radiusMeters });
 
   const rejectionCounts = { missingIdentity: 0, missingCoordinates: 0, missingAddress: 0, unreliableAddress: 0, outsideGroupArea: 0 };
@@ -388,6 +406,10 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
       // bırakıyordu. Kimlik + açık adres + koordinat ise zorunlu kalır.
       if (!place.fsq_place_id || !place.name) {
         rejectionCounts.missingIdentity += 1;
+        return false;
+      }
+      if (venueType === 'restaurant' && !venueMatchesFoursquareFoodProfile(place, profile)) {
+        rejectionCounts.irrelevantCuisine = (rejectionCounts.irrelevantCuisine || 0) + 1;
         return false;
       }
       if (!coordinates) {

@@ -347,8 +347,8 @@ const Room = () => {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{currentRoom.name}</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.65rem', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, textTransform: 'capitalize', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentRoom.name}</h3>
         <div style={{ display: 'flex', gap: '.5rem' }}>
           <button
             type="button"
@@ -363,9 +363,9 @@ const Room = () => {
             type="button"
             onClick={requestRoomExit}
             className="btn"
-            style={{ background: 'rgba(255,255,255,.05)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,.14)', padding: '0.5rem .7rem', gap: '.35rem', fontSize: '.78rem' }}
+            style={{ flexShrink: 0, background: 'rgba(255,75,75,.12)', color: '#ff8b8b', border: '1px solid rgba(255,75,75,.72)', padding: '0.58rem .82rem', gap: '.4rem', fontSize: '.82rem', fontWeight: 800, boxShadow: '0 4px 14px rgba(255,75,75,.16)' }}
           >
-            <LogOut size={16} /> Çık
+            <LogOut size={17} /> Odadan Çık
           </button>
         </div>
       </div>
