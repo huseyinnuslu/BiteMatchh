@@ -1,47 +1,93 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import mongoose from 'mongoose';
+import { GridFSBucket } from 'mongodb';
 import User from '../models/User.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { getIo } from '../server.js';
 
 const router = express.Router();
 
-// Uploads klasörünü oluştur (varsa bir şey yapma)
-const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Benzersiz dosya ismi: userId-timestamp.ext
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, req.user._id.toString() + '-' + uniqueSuffix + ext);
-  }
-});
+// Render'ın yerel diski kalıcı değildir. Avatarları MongoDB GridFS'te tutarak
+// deploy/restart sonrasında da erişilebilir kalmalarını sağlıyoruz.
+const avatarBucket = () => new GridFSBucket(mongoose.connection.db, { bucketName: 'avatars' });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Sadece resim dosyaları yüklenebilir!'), false);
-  }
+  if (file.mimetype.startsWith('image/')) cb(null, true);
+  else cb(new Error('Sadece resim dosyaları yüklenebilir.'), false);
 };
 
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Maksimum 5MB
-  fileFilter: fileFilter
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter,
+});
+
+const deleteStoredAvatars = async (userId, exceptFileId = null) => {
+  const bucket = avatarBucket();
+  const files = await bucket.find({ 'metadata.userId': userId.toString() }).toArray();
+  await Promise.all(
+    files
+      .filter((file) => !exceptFileId || !file._id.equals(exceptFileId))
+      .map((file) => bucket.delete(file._id)),
+  );
+};
+
+const emitAvatarUpdated = (user, avatarUrl, version) => {
+  (user.friends || []).forEach((friendId) => {
+    getIo()?.to(`user:${friendId.toString()}`).emit('profile_avatar_updated', {
+      userId: user._id.toString(), avatarUrl, version,
+    });
+  });
+};
+
+const writeAvatar = (file, userId) => new Promise((resolve, reject) => {
+  const uploadStream = avatarBucket().openUploadStream(`${userId}-${Date.now()}`, {
+    contentType: file.mimetype,
+    metadata: { userId: userId.toString() },
+  });
+
+  uploadStream.once('finish', () => resolve(uploadStream.id));
+  uploadStream.once('error', reject);
+  uploadStream.end(file.buffer);
+});
+
+// @route   GET /api/upload/avatar/:userId
+// @desc    MongoDB'de kalıcı saklanan profil fotoğrafını yayınla
+// @access  Public (profil fotoğrafları uygulamada herkese açıktır)
+router.get('/avatar/:userId', async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.userId)) {
+      res.status(400);
+      throw new Error('Geçersiz kullanıcı');
+    }
+
+    const bucket = avatarBucket();
+    const [file] = await bucket
+      .find({ 'metadata.userId': req.params.userId })
+      .sort({ uploadDate: -1 })
+      .limit(1)
+      .toArray();
+
+    if (!file) {
+      res.status(404);
+      throw new Error('Profil fotoğrafı bulunamadı');
+    }
+
+    // Aynı URL yeniden açıldığında dahi güncel fotoğrafı doğrular; yükleme
+    // sonrasında eklenen ?v= sürümü ise açık ekranları anında yeniler.
+    res.set({
+      'Content-Type': file.contentType || 'image/jpeg',
+      'Cache-Control': 'no-store, max-age=0',
+    });
+    bucket.openDownloadStream(file._id).on('error', next).pipe(res);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // @route   POST /api/upload/avatar
-// @desc    Kullanıcı profil fotoğrafı (avatar) yükle
+// @desc    Kullanıcı profil fotoğrafı yükle
 // @access  Private
 router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) => {
   try {
@@ -56,19 +102,15 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
       throw new Error('Kullanıcı bulunamadı');
     }
 
-    // Dosya yolunu frontend'in erişebileceği URL formatına çevir
-    // req.file.filename örn: 669a1b...-1234.png
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    
-    // Veritabanını güncelle
+    // Yeni yükleme başarıyla tamamlanmadan eski fotoğraf silinmez.
+    const newFileId = await writeAvatar(req.file, user._id);
+    await deleteStoredAvatars(user._id, newFileId);
+
+    const avatarUrl = `/api/upload/avatar/${user._id}`;
+    const version = Date.now();
     user.profilePic = avatarUrl;
     await user.save();
-    const version = Date.now();
-    (user.friends || []).forEach((friendId) => {
-      getIo()?.to(`user:${friendId.toString()}`).emit('profile_avatar_updated', {
-        userId: user._id.toString(), avatarUrl, version,
-      });
-    });
+    emitAvatarUpdated(user, avatarUrl, version);
 
     res.json({
       message: 'Profil fotoğrafı başarıyla güncellendi',
@@ -91,20 +133,11 @@ router.delete('/avatar', protect, async (req, res, next) => {
       throw new Error('Kullanıcı bulunamadı');
     }
 
-    if (user.profilePic) {
-      const filePath = path.join(process.cwd(), user.profilePic);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      user.profilePic = '';
-      await user.save();
-      const version = Date.now();
-      (user.friends || []).forEach((friendId) => {
-        getIo()?.to(`user:${friendId.toString()}`).emit('profile_avatar_updated', {
-          userId: user._id.toString(), avatarUrl: '', version,
-        });
-      });
-    }
+    await deleteStoredAvatars(user._id);
+    user.profilePic = '';
+    await user.save();
+    const version = Date.now();
+    emitAvatarUpdated(user, '', version);
 
     res.json({ message: 'Profil fotoğrafı kaldırıldı' });
   } catch (error) {
