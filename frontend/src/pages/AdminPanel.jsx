@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp, MessageCircle, Images } from 'lucide-react';
+import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp, MessageCircle, Images, Pencil, Heart } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -34,6 +34,10 @@ const AdminPanel = () => {
   const [catalog, setCatalog] = useState(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogCategory, setCatalogCategory] = useState('mekan');
+  const [catalogSort, setCatalogSort] = useState('default');
+  const [editingCard, setEditingCard] = useState(null);
+  const [catalogDraft, setCatalogDraft] = useState({});
+  const [savingCatalogCard, setSavingCatalogCard] = useState(false);
 
   // Bulk Delete States
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -77,6 +81,20 @@ const AdminPanel = () => {
     try { const { data } = await api.get('/admin/catalog'); setCatalog(data); }
     catch { toast.error('Kart kataloğu yüklenemedi'); }
     finally { setCatalogLoading(false); }
+  };
+  const startCatalogEdit = (card) => {
+    setEditingCard(card.sourceName);
+    setCatalogDraft({ name: card.name, imageUrl: card.imageUrl, description: card.description, budget: card.budget, platform: card.platform, imdbScore: card.imdbScore ?? '', duration: card.duration, mapsQuery: card.mapsQuery, venueConcept: card.venueConcept, visualLabel: card.visualLabel });
+  };
+  const saveCatalogCard = async (card) => {
+    setSavingCatalogCard(true);
+    try {
+      await api.put(`/admin/catalog/${catalogCategory}/${encodeURIComponent(card.sourceName)}`, catalogDraft);
+      await fetchCatalog();
+      setEditingCard(null);
+      toast.success('Kart güncellendi. Yeni odalarda bu içerik kullanılacak.');
+    } catch (error) { toast.error(error.response?.data?.message || 'Kart güncellenemedi'); }
+    finally { setSavingCatalogCard(false); }
   };
 
   useEffect(() => {
@@ -738,23 +756,32 @@ const AdminPanel = () => {
             </div>
 
             {catalogLoading && !catalog ? <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Kartlar hazırlanıyor...</div> : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
-                {(catalog?.[catalogCategory] || []).map((card) => (
-                  <article key={`${catalogCategory}-${card.name}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)' }}>
-                    <CatalogImage src={card.imageUrl} alt={card.name} />
-                    <div style={{ padding: '.85rem' }}>
-                      <h4 style={{ margin: 0, color: 'white', fontSize: '.98rem' }}>{card.name}</h4>
-                      <div style={{ minHeight: 22, marginTop: '.4rem', display: 'flex', gap: '.35rem', flexWrap: 'wrap' }}>
-                        {card.budget && <span style={{ color: '#fef3c7', background: 'rgba(245,158,11,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>{card.budget}</span>}
-                        {card.platform && <span style={{ color: '#bae6fd', background: 'rgba(14,165,233,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>{card.platform}</span>}
-                        {card.imdbScore && <span style={{ color: '#fde68a', background: 'rgba(250,204,21,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>★ {card.imdbScore}</span>}
-                        {card.duration && <span style={{ color: 'var(--text-muted)', fontSize: '.7rem', padding: '.18rem 0' }}>{card.duration}</span>}
+              <>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.8rem' }}>
+                  <select value={catalogSort} onChange={(event) => setCatalogSort(event.target.value)} style={{ background: '#172238', color: 'white', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.5rem .65rem', fontSize: '.78rem' }}>
+                    <option value="default">Varsayılan sıralama</option><option value="likes">En çok beğenilenler</option><option value="rate">En yüksek beğeni oranı</option><option value="least">En az etkileşim alanlar</option>
+                  </select>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+                  {[...(catalog?.[catalogCategory] || [])].sort((a, b) => catalogSort === 'likes' ? b.likes - a.likes : catalogSort === 'rate' ? (b.likeRate ?? -1) - (a.likeRate ?? -1) : catalogSort === 'least' ? a.swipes - b.swipes : 0).map((card) => (
+                    <article key={`${catalogCategory}-${card.sourceName}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)', background: '#18243a' }}>
+                      <CatalogImage src={card.imageUrl} alt={card.name} />
+                      <div style={{ padding: '.9rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.7rem', alignItems: 'flex-start' }}>
+                          <div><h4 style={{ margin: 0, color: 'white', fontSize: '1rem', lineHeight: 1.2 }}>{card.name}</h4><span style={{ color: 'var(--text-muted)', fontSize: '.68rem' }}>{catalogCategory === 'mekan' ? 'Yemek kartı' : catalogCategory === 'film' ? 'Film / dizi kartı' : 'Aktivite kartı'}</span></div>
+                          <button type="button" onClick={() => editingCard === card.sourceName ? setEditingCard(null) : startCatalogEdit(card)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.42rem', color: 'white', background: 'rgba(255,255,255,.06)', cursor: 'pointer' }} title="Kartı düzenle"><Pencil size={14} /></button>
+                        </div>
+                        <p style={{ margin: '.6rem 0', color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.45, minHeight: 44 }}>{card.description}</p>
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: '.6rem', display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '.72rem' }}><span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={12} fill="#ff6b6b" color="#ff6b6b" /> {card.likes} beğeni</span><span>{card.swipes} oy{card.likeRate !== null ? ` · %${card.likeRate}` : ''}</span></div>
+                        {editingCard === card.sourceName && <div style={{ display: 'grid', gap: '.5rem', marginTop: '.8rem', paddingTop: '.8rem', borderTop: '1px solid rgba(255,255,255,.1)' }}>
+                          {[['name', 'Kart adı'], ['imageUrl', 'Görsel URL'], ['description', 'Açıklama'], ['mapsQuery', 'Harita araması'], ['budget', 'Bütçe'], ['platform', 'Platform'], ['imdbScore', 'IMDb puanı'], ['duration', 'Süre']].map(([field, label]) => <label key={field} style={{ color: 'var(--text-muted)', fontSize: '.7rem' }}>{label}<input value={catalogDraft[field] ?? ''} onChange={(event) => setCatalogDraft(prev => ({ ...prev, [field]: event.target.value }))} style={{ width: '100%', boxSizing: 'border-box', marginTop: '.25rem', padding: '.5rem', borderRadius: 7, color: 'white', background: '#101a2d', border: '1px solid rgba(255,255,255,.16)' }} /></label>)}
+                          <div style={{ display: 'flex', gap: '.5rem' }}><button onClick={() => saveCatalogCard(card)} disabled={savingCatalogCard} style={{ flex: 1, border: 0, borderRadius: 7, padding: '.55rem', background: 'var(--primary)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>{savingCatalogCard ? 'Kaydediliyor...' : 'Kaydet'}</button><button onClick={() => setEditingCard(null)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 7, padding: '.55rem .75rem', background: 'transparent', color: 'white', cursor: 'pointer' }}>Vazgeç</button></div>
+                        </div>}
                       </div>
-                      <p style={{ margin: '.5rem 0 0', color: 'var(--text-muted)', fontSize: '.75rem', lineHeight: 1.45 }}>{card.description}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                    </article>
+                  ))}
+                </div>
+              </>
             )}
           </section>
         )}

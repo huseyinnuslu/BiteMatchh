@@ -1,6 +1,7 @@
 import Room from '../models/Room.js';
 import Swipe from '../models/Swipe.js';
 import { mockOptions, selectDiverseOptions } from '../data/mockOptions.js';
+import { getEffectiveCatalog } from '../services/catalogService.js';
 import { finishRoomCalculation } from '../utils/roomHelper.js';
 import { sendPushToUser } from '../utils/webPush.js';
 import Notification from '../models/Notification.js';
@@ -30,8 +31,8 @@ const sanitizeStreamingRoom = (room, userId) => {
   return safeRoom;
 };
 
-const selectFilmOptionsForPlatforms = (platforms) => {
-  const pool = mockOptions.film.filter((option) => platforms.includes(option.platform));
+const selectFilmOptionsForPlatforms = (catalog, platforms) => {
+  const pool = catalog.film.filter((option) => platforms.includes(option.platform));
   return selectDiverseOptions(pool, Math.min(pool.length, Math.floor(Math.random() * 6) + 10));
 };
 
@@ -46,22 +47,20 @@ const haversineKm = (from, to) => {
 // Oda oluşturulduktan sonra kartlar oda belgesine kopyalanır. Görsel havuzu
 // düzeltildiğinde eski/açık odaların da yeni doğru görseli alabilmesi için,
 // yalnızca API cevabındaki kart görselini güncel katalogla eşitliyoruz.
-const currentCardImages = new Map(
-  [...mockOptions.mekan, ...mockOptions.film, ...mockOptions.aktivite]
-    .map((item) => [item.name, item.imageUrl])
-);
-
-const hydrateCurrentCardImage = (card) => {
-  const imageUrl = currentCardImages.get(card?.name);
+const hydrateRoomCardImages = async (room) => {
+  const catalog = await getEffectiveCatalog();
+  const currentCardImages = new Map([...catalog.mekan, ...catalog.film, ...catalog.aktivite].map((item) => [item.name, item.imageUrl]));
+  const hydrateCurrentCardImage = (card) => {
+    const imageUrl = currentCardImages.get(card?.name);
   return imageUrl ? { ...card, imageUrl } : card;
 };
-
-const hydrateRoomCardImages = (room) => ({
+  return {
   ...room,
   options: (room.options || []).map(hydrateCurrentCardImage),
   matchResult: room.matchResult ? hydrateCurrentCardImage(room.matchResult) : room.matchResult,
   topOptions: (room.topOptions || []).map(hydrateCurrentCardImage),
-});
+  };
+};
 
 const personalizeRestaurantDistances = async (room, userId) => {
   if (!['restaurant', 'cinema'].includes(room.category) || !room.parentRoom) return room;
@@ -102,10 +101,11 @@ export const createRoom = async (req, res, next) => {
       return res.status(400).json({ message: 'Evde izleme için en az bir platform seçmelisin.' });
     }
 
-    if (cleanCategory && cleanCategory !== 'custom' && mockOptions[cleanCategory] && roomOptions.length === 0) {
+    const effectiveCatalog = await getEffectiveCatalog();
+    if (cleanCategory && cleanCategory !== 'custom' && effectiveCatalog[cleanCategory] && roomOptions.length === 0) {
       let sourcePool = cleanCategory === 'film' && normalizedWatchMode === 'streaming'
-        ? mockOptions.film.filter((option) => selectedPlatforms.includes(option.platform))
-        : mockOptions[cleanCategory];
+        ? effectiveCatalog.film.filter((option) => selectedPlatforms.includes(option.platform))
+        : effectiveCatalog[cleanCategory];
 
       if (activePriceRange.length > 0 && sourcePool.some(item => item.budget)) {
         const filteredPool = sourcePool.filter(item => {
@@ -220,7 +220,7 @@ export const getRoomById = async (req, res, next) => {
           status: 'finished',
         }));
 
-        const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(updatedRoom), req.user._id);
+        const personalizedRoom = await personalizeRestaurantDistances(await hydrateRoomCardImages(updatedRoom), req.user._id);
         return res.json({
           ...sanitizeStreamingRoom(personalizedRoom, req.user._id),
           userSwipes: userSwipes.map(s => s.optionId.toString()),
@@ -250,7 +250,7 @@ export const getRoomById = async (req, res, next) => {
           : 'voting',
     }));
 
-    const personalizedRoom = await personalizeRestaurantDistances(hydrateRoomCardImages(room.toObject()), req.user._id);
+    const personalizedRoom = await personalizeRestaurantDistances(await hydrateRoomCardImages(room.toObject()), req.user._id);
     res.json({
       ...sanitizeStreamingRoom(personalizedRoom, req.user._id),
       userSwipes: userSwipes.map(s => s.optionId.toString()),
@@ -366,7 +366,8 @@ export const startRoom = async (req, res, next) => {
           .filter((selection) => String(selection.user) === String(participant))
           .some((selection) => selection.platforms.includes(platform)))
       );
-      const filmOptions = selectFilmOptionsForPlatforms(commonPlatforms);
+      const effectiveCatalog = await getEffectiveCatalog();
+      const filmOptions = selectFilmOptionsForPlatforms(effectiveCatalog, commonPlatforms);
       if (filmOptions.length < 2) {
         return res.status(400).json({ message: 'Grubun ortak platformlarında yeterli film veya dizi bulunamadı. Platform seçimlerini güncelleyin.' });
       }

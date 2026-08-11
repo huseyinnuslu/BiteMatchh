@@ -5,7 +5,8 @@ import Message from '../models/Message.js';
 import Swipe from '../models/Swipe.js';
 import SupportRequest from '../models/SupportRequest.js';
 import Notification from '../models/Notification.js';
-import { mockOptions } from '../data/mockOptions.js';
+import CatalogOverride from '../models/CatalogOverride.js';
+import { getCatalogAnalytics, getEffectiveCatalog } from '../services/catalogService.js';
 import { getIo } from '../server.js';
 import https from 'https';
 import http  from 'http';
@@ -13,11 +14,16 @@ import http  from 'http';
 // @desc    Statik keşif kataloğunu admin önizlemesi için döndür
 // @route   GET /api/admin/catalog
 // @access  Admin
-export const getCatalog = (_req, res) => {
-  const categories = ['mekan', 'film', 'aktivite'];
-  const catalog = Object.fromEntries(categories.map((category) => [
-    category,
-    (mockOptions[category] || []).map((item) => ({
+export const getCatalog = async (_req, res, next) => {
+  try {
+    const [catalog, analytics] = await Promise.all([getEffectiveCatalog(), getCatalogAnalytics()]);
+    const analyticsMap = new Map(analytics.map((item) => [`${item._id.category}:${item._id.name}`, item]));
+    const response = Object.fromEntries(['mekan', 'film', 'aktivite'].map((category) => [
+      category,
+      (catalog[category] || []).map((item) => {
+        const stats = analyticsMap.get(`${category}:${item.name}`) || { likes: 0, swipes: 0 };
+        return {
+          sourceName: item.sourceName,
       name: item.name,
       imageUrl: item.imageUrl || '',
       description: item.description || '',
@@ -27,10 +33,35 @@ export const getCatalog = (_req, res) => {
       duration: item.duration || '',
       venueConcept: item.venueConcept || '',
       visualLabel: item.visualLabel || '',
-    })),
-  ]));
+          mapsQuery: item.mapsQuery || '',
+          likes: stats.likes,
+          swipes: stats.swipes,
+          likeRate: stats.swipes ? Math.round((stats.likes / stats.swipes) * 100) : null,
+        };
+      }),
+    ]));
+    res.json(response);
+  } catch (error) { next(error); }
+};
 
-  res.json(catalog);
+export const updateCatalogCard = async (req, res, next) => {
+  try {
+    const { category, sourceName } = req.params;
+    if (!['mekan', 'film', 'aktivite'].includes(category)) return res.status(400).json({ message: 'Geçersiz kart kategorisi.' });
+    const catalog = await getEffectiveCatalog();
+    const exists = (catalog[category] || []).some((item) => item.sourceName === sourceName);
+    if (!exists) return res.status(404).json({ message: 'Kart bulunamadı.' });
+
+    const allowed = ['name', 'imageUrl', 'description', 'budget', 'platform', 'imdbScore', 'duration', 'venueConcept', 'visualLabel', 'mapsQuery'];
+    const changes = Object.fromEntries(allowed.filter((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key)).map((key) => [key, typeof req.body[key] === 'string' ? req.body[key].trim() : req.body[key]]));
+    if (changes.name !== undefined && !changes.name) return res.status(400).json({ message: 'Kart adı boş bırakılamaz.' });
+    if (changes.description !== undefined && !changes.description) return res.status(400).json({ message: 'Kart açıklaması boş bırakılamaz.' });
+
+    await CatalogOverride.findOneAndUpdate({ category, sourceName }, { $set: { changes } }, { upsert: true, new: true, setDefaultsOnInsert: true });
+    const updatedCatalog = await getEffectiveCatalog();
+    const card = updatedCatalog[category].find((item) => item.sourceName === sourceName);
+    res.json(card);
+  } catch (error) { next(error); }
 };
 
 // @desc    Tüm kullanıcıları listele
