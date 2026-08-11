@@ -257,7 +257,7 @@ const WaitingRoom = () => {
             <div style={{ color: 'white', fontWeight: 800, fontSize: '.92rem' }}>Streaming erişimin</div>
             <p style={{ margin: '.35rem 0 .75rem', color: 'var(--text-muted)', fontSize: '.77rem', lineHeight: 1.45 }}>Sadece ikinizin de erişebildiği platformlardaki film ve diziler gelir. Diğer katılımcılar seçimini göremez.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem', marginBottom: '.75rem' }}>
-              {(currentRoom.streamingPlatforms || []).map((platform) => {
+              {['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'].map((platform) => {
                 const selected = platforms.includes(platform);
                 return <button key={platform} type="button" onClick={() => setPlatforms(prev => selected ? prev.filter(item => item !== platform) : [...prev, platform])} style={{ padding: '.48rem .62rem', borderRadius: 20, border: `1px solid ${selected ? 'var(--primary)' : 'rgba(255,255,255,.16)'}`, background: selected ? 'rgba(255,75,75,.17)' : 'transparent', color: selected ? 'white' : 'var(--text-muted)', cursor: 'pointer', fontSize: '.75rem', fontWeight: 700 }}>{platform}</button>;
               })}

@@ -134,7 +134,10 @@ export const createRoom = async (req, res, next) => {
       options: roomOptions,
       category: cleanCategory,
       watchMode: normalizedWatchMode,
-      streamingPlatforms: cleanCategory === 'film' && normalizedWatchMode === 'streaming' ? selectedPlatforms : [],
+      // Bu liste kullanıcının sahip oldukları değil, bu beta akışında
+      // seçilebilecek platform kataloğudur. Her katılımcının gerçek erişimi
+      // platformSelections içinde oda bazında ayrı tutulur.
+      streamingPlatforms: cleanCategory === 'film' && normalizedWatchMode === 'streaming' ? STREAMING_PLATFORMS : [],
       platformSelections: cleanCategory === 'film' && normalizedWatchMode === 'streaming'
         ? [{ user: req.user._id, platforms: selectedPlatforms, submittedAt: new Date() }]
         : [],
@@ -358,7 +361,7 @@ export const startRoom = async (req, res, next) => {
       if (completedParticipantIds.size < room.participants.length) {
         return res.status(400).json({ message: 'Film kartlarını hazırlamak için herkes erişebildiği platformları seçmeli.' });
       }
-      const commonPlatforms = room.streamingPlatforms.filter((platform) =>
+      const commonPlatforms = STREAMING_PLATFORMS.filter((platform) =>
         room.participants.every((participant) => selections
           .filter((selection) => String(selection.user) === String(participant))
           .some((selection) => selection.platforms.includes(platform)))
@@ -399,10 +402,14 @@ export const updateStreamingPlatforms = async (req, res, next) => {
       return res.status(400).json({ message: 'Bu odada platform tercihi değiştirilemez.' });
     }
     const platforms = [...new Set((Array.isArray(req.body?.platforms) ? req.body.platforms : [])
-      .filter((platform) => room.streamingPlatforms.includes(platform) && STREAMING_PLATFORMS.includes(platform)))];
+      .filter((platform) => STREAMING_PLATFORMS.includes(platform)))];
     if (!platforms.length) return res.status(400).json({ message: 'En az bir erişebildiğin platformu seçmelisin.' });
     room.platformSelections = (room.platformSelections || []).filter((selection) => String(selection.user) !== String(req.user._id));
     room.platformSelections.push({ user: req.user._id, platforms, submittedAt: new Date() });
+    // Eski sürümle oluşturulan odalarda yalnız kurucunun ilk seçimi bu alana
+    // yazılmış olabilir. Bu alanı katalogla eşitleyerek o odalarda da yeni
+    // platform eklemeyi mümkün kılıyoruz.
+    room.streamingPlatforms = STREAMING_PLATFORMS;
     await room.save();
     getIo()?.to(room._id.toString()).emit('streaming_platforms_updated', { roomId: room._id.toString() });
     res.json(sanitizeStreamingRoom(room, req.user._id));
