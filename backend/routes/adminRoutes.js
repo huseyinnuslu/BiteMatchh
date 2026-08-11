@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, deleteUser, bulkDeleteUsers, updateUserRole, getAllRooms, deleteRoom, bulkDeleteRooms, getStats, importEvents, getSupportRequests, updateSupportRequest, replyToSupportRequest } from '../controllers/adminController.js';
+import { getAllUsers, deleteUser, bulkDeleteUsers, updateUserRole, getAllRooms, deleteRoom, bulkDeleteRooms, getStats, importEvents, getSupportRequests, updateSupportRequest, replyToSupportRequest, getCatalog } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(protect, adminOnly);
 
 router.get('/stats', getStats);
+router.get('/catalog', getCatalog);
 router.get('/users', getAllUsers);
 router.delete('/users/bulk', bulkDeleteUsers);
 router.delete('/users/:id', deleteUser);

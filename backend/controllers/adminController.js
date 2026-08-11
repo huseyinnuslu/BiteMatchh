@@ -5,9 +5,33 @@ import Message from '../models/Message.js';
 import Swipe from '../models/Swipe.js';
 import SupportRequest from '../models/SupportRequest.js';
 import Notification from '../models/Notification.js';
+import { mockOptions } from '../data/mockOptions.js';
 import { getIo } from '../server.js';
 import https from 'https';
 import http  from 'http';
+
+// @desc    Statik keşif kataloğunu admin önizlemesi için döndür
+// @route   GET /api/admin/catalog
+// @access  Admin
+export const getCatalog = (_req, res) => {
+  const categories = ['mekan', 'film', 'aktivite'];
+  const catalog = Object.fromEntries(categories.map((category) => [
+    category,
+    (mockOptions[category] || []).map((item) => ({
+      name: item.name,
+      imageUrl: item.imageUrl || '',
+      description: item.description || '',
+      budget: item.budget || '',
+      platform: item.platform || '',
+      imdbScore: item.imdbScore ?? null,
+      duration: item.duration || '',
+      venueConcept: item.venueConcept || '',
+      visualLabel: item.visualLabel || '',
+    })),
+  ]));
+
+  res.json(catalog);
+};
 
 // @desc    Tüm kullanıcıları listele
 // @route   GET /api/admin/users

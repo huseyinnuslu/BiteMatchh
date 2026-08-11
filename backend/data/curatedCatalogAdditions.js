@@ -98,7 +98,7 @@ export const curatedCatalogAdditions = {
       description: 'Domates, biber ve yumurtayla hazırlanan sıcak menemen; uzun hafta sonu sohbetleri için güçlü bir başlangıç.',
     },
     {
-      name: 'Meze & Rakı-Balık',
+      name: 'Meze & Balık',
       mapsQuery: 'meze balık restoranı',
       imageUrl: 'https://i.kocatepegazetesi.com/c/80/740x417/s/dosya/haber/kultur-ve-turizm-bakanligi-nin_1726733766_xQcDwH.jpeg',
       budget: '₺₺₺', discoveryGroup: 'meze-seafood', venueConcept: 'Meyhane & balıkçı',

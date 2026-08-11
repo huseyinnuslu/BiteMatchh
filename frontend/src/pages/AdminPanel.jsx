@@ -3,9 +3,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp, MessageCircle } from 'lucide-react';
+import { Shield, Users, Home, BarChart3, Trash2, Save, X, AlertOctagon, Activity, CheckCircle2, TrendingUp, MessageCircle, Images } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import ConfirmModal from '../components/ConfirmModal';
+
+const CatalogImage = ({ src, alt }) => {
+  const [failed, setFailed] = useState(!src);
+
+  return (
+    <div style={{ height: 140, background: 'rgba(255,255,255,.04)', position: 'relative', display: 'grid', placeItems: 'center' }}>
+      {!failed && <img src={src} alt={alt} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+      {failed && <span style={{ color: 'var(--text-muted)', fontSize: '.75rem' }}>{src ? 'Görsel yüklenemedi' : 'Görsel tanımlı değil'}</span>}
+    </div>
+  );
+};
 
 // ---- Admin Panel ----
 const AdminPanel = () => {
@@ -20,6 +31,9 @@ const AdminPanel = () => {
   const [supportRequests, setSupportRequests] = useState([]);
   const [supportReplyDrafts, setSupportReplyDrafts] = useState({});
   const [replyingToSupport, setReplyingToSupport] = useState(null);
+  const [catalog, setCatalog] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogCategory, setCatalogCategory] = useState('mekan');
 
   // Bulk Delete States
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -57,6 +71,12 @@ const AdminPanel = () => {
   const fetchSupportRequests = async () => {
     try { const { data } = await api.get('/admin/support'); setSupportRequests(data); }
     catch { toast.error('Destek talepleri yüklenemedi'); }
+  };
+  const fetchCatalog = async () => {
+    setCatalogLoading(true);
+    try { const { data } = await api.get('/admin/catalog'); setCatalog(data); }
+    catch { toast.error('Kart kataloğu yüklenemedi'); }
+    finally { setCatalogLoading(false); }
   };
 
   useEffect(() => {
@@ -330,6 +350,7 @@ const AdminPanel = () => {
           <button style={tabStyle('users')} onClick={() => setActiveTab('users')}><Users size={15} /> Kullanıcılar ({users.length})</button>
           <button style={tabStyle('rooms')} onClick={() => setActiveTab('rooms')}><Home size={15} /> Odalar ({rooms.length})</button>
           <button style={tabStyle('events')} onClick={() => setActiveTab('events')}>📅 Etkinlikler</button>
+          <button style={tabStyle('catalog')} onClick={() => { setActiveTab('catalog'); if (!catalog) fetchCatalog(); }}><Images size={15} /> Kart Kataloğu</button>
           <button style={tabStyle('support')} onClick={() => { setActiveTab('support'); fetchSupportRequests(); }}><MessageCircle size={15} /> Destek ({supportRequests.filter(item => item.status === 'open').length})</button>
         </div>
 
@@ -699,6 +720,43 @@ const AdminPanel = () => {
               </article>
             ))}
           </div>
+        )}
+
+        {activeTab === 'catalog' && (
+          <section>
+            <div className="glass-card" style={{ padding: '1.15rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: 'white', display: 'flex', alignItems: 'center', gap: '.5rem' }}><Images size={19} color="var(--primary)" /> Kart Kataloğu</h3>
+                  <p style={{ margin: '.4rem 0 0', color: 'var(--text-muted)', fontSize: '.82rem', lineHeight: 1.45 }}>Oda kurmadan tüm statik kartları ve gerçek görsel kaynaklarını kontrol et. Görsel yüklenmezse kartın üzerinde açıkça görürsün.</p>
+                </div>
+                <button type="button" onClick={fetchCatalog} disabled={catalogLoading} style={{ border: '1px solid rgba(255,255,255,.14)', borderRadius: 8, padding: '.5rem .7rem', background: 'rgba(255,255,255,.05)', color: 'white', fontSize: '.76rem', fontWeight: 700, cursor: catalogLoading ? 'wait' : 'pointer' }}>{catalogLoading ? 'Yükleniyor...' : 'Yenile'}</button>
+              </div>
+              <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                {[['mekan', 'Ne Yiyelim'], ['film', 'Ne İzleyelim'], ['aktivite', 'Ne Yapalım']].map(([key, label]) => <button key={key} type="button" onClick={() => setCatalogCategory(key)} style={{ border: `1px solid ${catalogCategory === key ? 'var(--primary)' : 'rgba(255,255,255,.14)'}`, borderRadius: 20, padding: '.45rem .75rem', background: catalogCategory === key ? 'rgba(255,75,75,.15)' : 'transparent', color: catalogCategory === key ? 'white' : 'var(--text-muted)', fontSize: '.78rem', cursor: 'pointer', fontWeight: 800 }}>{label} ({catalog?.[key]?.length || 0})</button>)}
+              </div>
+            </div>
+
+            {catalogLoading && !catalog ? <div className="glass-card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Kartlar hazırlanıyor...</div> : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                {(catalog?.[catalogCategory] || []).map((card) => (
+                  <article key={`${catalogCategory}-${card.name}`} className="glass-card" style={{ overflow: 'hidden', padding: 0, border: '1px solid rgba(255,255,255,.1)' }}>
+                    <CatalogImage src={card.imageUrl} alt={card.name} />
+                    <div style={{ padding: '.85rem' }}>
+                      <h4 style={{ margin: 0, color: 'white', fontSize: '.98rem' }}>{card.name}</h4>
+                      <div style={{ minHeight: 22, marginTop: '.4rem', display: 'flex', gap: '.35rem', flexWrap: 'wrap' }}>
+                        {card.budget && <span style={{ color: '#fef3c7', background: 'rgba(245,158,11,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>{card.budget}</span>}
+                        {card.platform && <span style={{ color: '#bae6fd', background: 'rgba(14,165,233,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>{card.platform}</span>}
+                        {card.imdbScore && <span style={{ color: '#fde68a', background: 'rgba(250,204,21,.12)', borderRadius: 99, padding: '.18rem .45rem', fontSize: '.68rem', fontWeight: 700 }}>★ {card.imdbScore}</span>}
+                        {card.duration && <span style={{ color: 'var(--text-muted)', fontSize: '.7rem', padding: '.18rem 0' }}>{card.duration}</span>}
+                      </div>
+                      <p style={{ margin: '.5rem 0 0', color: 'var(--text-muted)', fontSize: '.75rem', lineHeight: 1.45 }}>{card.description}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {/* ===== EVENTS TAB ===== */}
