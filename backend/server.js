@@ -23,10 +23,16 @@ import placeRoutes from './routes/placeRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { initSocket } from './socket/socketManager.js';
 import { startEventCron } from './services/eventFetcherService.js';
+import { synchronizeRefreshedFoodImages } from './services/catalogImageMigrationService.js';
 import { isEmailConfigured } from './controllers/authController.js';
 
 dotenv.config();
-connectDB().then(() => startEventCron());
+connectDB().then(async () => {
+  // Eski admin katalog override'ları yeni, doğrulanmış yemek görsellerini
+  // gölgeleyemesin. Bu işlem yalnızca hedef kartların imageUrl alanını günceller.
+  await synchronizeRefreshedFoodImages();
+  startEventCron();
+});
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
