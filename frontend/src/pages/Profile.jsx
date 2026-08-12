@@ -106,6 +106,14 @@ const Profile = () => {
     try {
       const { data } = await api.get('/users/profile');
       setProfile(data);
+      // Navbar oturum bilgisini localStorage'tan okur. Profil sayfasının
+      // güncel API yanıtını buraya da yazarak avatarın harf rozeti olarak
+      // kalmasını ve kullanıcı adı/fotoğraf tutarsızlığını önleriz.
+      updateUser({
+        name: data.name,
+        username: data.username,
+        profilePic: data.profilePic || '',
+      });
     } catch {
       toast.error('Profil yüklenemedi');
     } finally {
