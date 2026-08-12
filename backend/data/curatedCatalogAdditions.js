@@ -23,14 +23,16 @@ export const curatedCatalogAdditions = {
     {
       name: 'İskender & Bursa Kebabı',
       mapsQuery: 'iskender kebap bursa kebabı',
-      imageUrl: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=1200&q=85',
+      // Bursa usulü İskender: döner, pide, domates sosu ve yoğurt görünür.
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/43/Iskender_Kebap_Bursa_Iskender.JPG',
       budget: '₺₺', discoveryGroup: 'turkish-grill', venueConcept: 'Kebapçı',
       description: 'Tereyağı, domates sosu ve yoğurtla servis edilen sıcak, doyurucu Bursa klasiği.',
     },
     {
       name: 'Çiğ Köfte & Dürüm',
       mapsQuery: 'çiğ köfte dürüm',
-      imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=1200&q=85',
+      // Çiğ köfte dürüm: lavaş, yeşillik ve çiğ köfte dolgusu.
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/LH/o1sm-listing.jpg',
       budget: '₺', discoveryGroup: 'turkish-street-food', venueConcept: 'Sokak lezzetleri',
       description: 'Bol yeşillik, nar ekşisi ve lavaşla hızlı, bütçe dostu bir sokak lezzeti.',
     },
@@ -44,7 +46,8 @@ export const curatedCatalogAdditions = {
     {
       name: 'Kokoreç & Midye',
       mapsQuery: 'kokoreç midye dolma',
-      imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=1200&q=85',
+      // Aynı karede hem kokoreç hem limonlu midye dolma bulunur.
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/LH/ir2x-listing.jpg',
       budget: '₺', discoveryGroup: 'turkish-street-food', venueConcept: 'Gece lezzetleri',
       description: 'Geceye uzayan planlar için baharatlı kokoreç veya limonlu midye dolma.',
     },
@@ -58,14 +61,16 @@ export const curatedCatalogAdditions = {
     {
       name: 'Baklava & Katmer',
       mapsQuery: 'baklava katmer tatlıcı',
-      imageUrl: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=1200&q=85',
+      // Antep katmeri: çıtır katlar ve bol Antep fıstığı görünür.
+      imageUrl: 'https://milligazetecomtr.teimg.com/crop/1280x720/milligazete-com-tr/sites/2024/07/05/gaziantep-mutfaginin-essiz-lezzeti-ile-damak-catlatin-evde-katmer-yapimi.jpg',
       budget: '₺₺', discoveryGroup: 'turkish-dessert', venueConcept: 'Tatlıcı',
       description: 'Antep fıstığı, ince yufka ve kaymakla tatlı bir buluşmayı özel hale getirin.',
     },
     {
       name: 'Simit & Çay',
       mapsQuery: 'simit çay kafe',
-      imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=1200&q=85',
+      // Susamlı simitler ve ince belli çay bardakları birlikte.
+      imageUrl: 'https://visitizmiryonetim.izmir.bel.tr/CKYuklenen/207032021_020423009_2_27022021_124508852_1_PZqpYq142h.jpg',
       budget: '₺', discoveryGroup: 'tea-break', venueConcept: 'Kafe',
       description: 'Kısa sohbetler ve düşük bütçeli planlar için Türkiye’nin en zamansız ikilisi.',
     },
@@ -86,7 +91,8 @@ export const curatedCatalogAdditions = {
     {
       name: 'Gözleme & Ayran',
       mapsQuery: 'gözleme',
-      imageUrl: 'https://turkishfoodie.com/wp-content/uploads/2019/09/Gozleme-1068x551.jpg',
+      // Sac gözlemesi ve köpüklü ayran aynı kadrajda.
+      imageUrl: 'https://www.gutekueche.at/storage/media/recipe/157531/conv/goezleme-default.jpg',
       budget: '₺', discoveryGroup: 'anatolian-flatbread', venueConcept: 'Anadolu mutfağı',
       description: 'Peynirli, ıspanaklı veya kıymalı gözlemeyi soğuk ayranla tamamlayan sade ve paylaşması kolay bir mola.',
     },
@@ -107,14 +113,16 @@ export const curatedCatalogAdditions = {
     {
       name: 'Çorba & Esnaf Lokantası',
       mapsQuery: 'çorbacı esnaf lokantası',
-      imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=1200&q=85',
+      // Mercimek çorbası: limonlu, kırmızı yağlı klasik servis.
+      imageUrl: 'https://cdn.tasteatlas.com/Images/Dishes/51beed5e91d749d9a8c47fd05e3d7ea8.jpg?mw=1300',
       budget: '₺', discoveryGroup: 'soup-home-style', venueConcept: 'Esnaf lokantası',
       description: 'Mercimek, kelle paça veya günün ev yemeğiyle hızlı, sıcak ve bütçe dostu bir öğün.',
     },
     {
       name: 'Tavuk Döner & Pilav',
       mapsQuery: 'tavuk döner pilav',
-      imageUrl: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=1200&q=85',
+      // Pilav üstü tavuk dönerin gerçek tabak servisi.
+      imageUrl: 'https://images.deliveryhero.io/image/global-menu-service/YS_TR/vendor/lwbu/product/a2bbb336-53e6-4201-bca8-83ef6bef9947.jpg?height=900&width=900',
       budget: '₺', discoveryGroup: 'chicken-street-food', venueConcept: 'Hızlı servis',
       description: 'Tavuk döner, pilav ve ayranla kısa sürede doyurucu bir öğle veya akşam seçeneği.',
     },
@@ -128,7 +136,8 @@ export const curatedCatalogAdditions = {
     {
       name: 'Cheesecake & Kahve',
       mapsQuery: 'cheesecake kahve kafe',
-      imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=1200&q=85',
+      // Kahveyle birlikte servis edilmiş gerçek cheesecake.
+      imageUrl: 'https://tblg.k-img.com/restaurant/images/Rvw/335059/640x640_rect_4c5ffc8d9e44693fcb36537ceeee01ad.jpg',
       budget: '₺₺', discoveryGroup: 'coffee-dessert', venueConcept: 'Tatlı kafe',
       description: 'Kahve yanında paylaşılacak bir dilim cheesecake; kısa buluşmalar için tatlı ve pratik bir tercih.',
     },
