@@ -6,6 +6,7 @@ import { mockOptions } from '../data/mockOptions.js';
 // yalnızca görsel alanını günceller; adminin isim, açıklama ve diğer tüm
 // düzenlemeleri aynen korunur.
 const REFRESHED_FOOD_CARD_NAMES = new Set([
+  'Mantı & Ev Yemekleri',
   'Mangal & Izgara',
   'Tatlı & Waffle',
   'Köfte',

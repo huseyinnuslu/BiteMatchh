@@ -16,7 +16,8 @@ export const curatedCatalogAdditions = {
     {
       name: 'Mantı & Ev Yemekleri',
       mapsQuery: 'mantı ev yemekleri',
-      imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=1200&q=85',
+      // Yoğurt, biberli tereyağı ve el yapımı mantı ile gerçek servis.
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/LH/yxir-listing.jpg',
       budget: '₺₺', discoveryGroup: 'home-style', venueConcept: 'Ev yemekleri',
       description: 'El açması mantı, sulu yemek ve samimi esnaf lokantalarıyla klasik bir öğle ya da akşam seçeneği.',
     },
