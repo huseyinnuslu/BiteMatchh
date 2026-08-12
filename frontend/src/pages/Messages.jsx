@@ -372,7 +372,9 @@ const Messages = () => {
   const openChat = useCallback((u) => {
     setActiveUser(u);
     setMobileView('chat');
-    if (window.innerWidth <= 768) window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Mobil sohbet kendi sabit alanında kayar. Sayfanın kendisini kaydırmak,
+    // iOS'ta üst başlığın ekrandan kaçmasına neden oluyordu.
+    if (window.innerWidth <= 768) window.scrollTo({ top: 0, behavior: 'auto' });
     setShowMenu(false);
     setTimeout(() => inputRef.current?.focus(), 120);
     // Yoksa listeye ekle
@@ -531,14 +533,17 @@ const Messages = () => {
         />
       )}
 
-      <div style={{
+      <div className="messages-shell" style={{
         display: 'flex',
         width: isMobile ? '100vw' : '94vw',
         maxWidth: isMobile ? 'none' : '1440px',
         position: 'relative',
         left: '50%',
         transform: 'translateX(-50%)',
-        height: isMobile ? 'calc(100vh - 72px)' : 'calc(100vh - 120px)',
+        // Mobile: navbar (~72px) + alt navigasyon (~80px) dışındaki gerçek
+        // görünür alan. `dvh`, Safari adres çubuğu değiştiğinde de doğru kalır.
+        height: isMobile ? 'calc(100dvh - 152px)' : 'calc(100vh - 120px)',
+        minHeight: 0,
         borderRadius: isMobile ? 0 : 18,
         overflow: 'hidden',
         border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
@@ -552,6 +557,7 @@ const Messages = () => {
           minWidth: isMobile ? '100%' : '280px',
           maxWidth: isMobile ? 'none' : '380px',
           flexShrink: 0,
+          minHeight: 0,
           borderRight: '1px solid rgba(255,255,255,0.06)',
           display: isMobile && mobileView === 'chat' ? 'none' : 'flex',
           flexDirection: 'column',
@@ -710,6 +716,7 @@ const Messages = () => {
           display: isMobile && mobileView === 'list' ? 'none' : 'flex',
           flexDirection: 'column',
           minWidth: 0,
+          minHeight: 0,
           background: '#0d1424',
         }}>
           {!activeUser ? (
@@ -832,7 +839,7 @@ const Messages = () => {
 
               {/* ── Mesajlar ── */}
               <div ref={messagesScrollRef} style={{
-                flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '16px 20px',
+                flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', padding: isMobile ? '12px 10px' : '16px 20px',
                 display: 'flex', flexDirection: 'column', gap: 4,
                 scrollbarWidth: 'thin',
               }}>

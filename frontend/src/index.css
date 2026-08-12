@@ -364,6 +364,13 @@ h1, h2, h3, h4, h5, h6 {
     overflow-wrap: normal !important;
     white-space: nowrap;
   }
+
+  /* Sohbette yalnız mesaj gövdesi kayar; Safari sayfayı chat'in içine
+     sürükleyip üst başlığı kaybetmez. */
+  .messages-shell {
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
 }
 
 @media (max-width: 440px) {
