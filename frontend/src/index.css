@@ -255,6 +255,69 @@ h1, h2, h3, h4, h5, h6 {
 
   /* Tablo overflow scroll */
   table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Arkadaş profili: dar ekranlarda butonlar ve istatistikler taşmadan okunur. */
+  .user-profile-page {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+    padding-bottom: 7rem !important;
+  }
+
+  .user-profile-hero {
+    padding: 1.25rem !important;
+  }
+
+  .user-profile-header {
+    align-items: stretch !important;
+    gap: 1.1rem !important;
+  }
+
+  .user-profile-identity {
+    gap: 1rem !important;
+  }
+
+  .user-profile-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-profile-actions .btn {
+    min-width: 0;
+    width: 100%;
+    padding: 0.7rem 0.65rem !important;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .user-profile-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .user-profile-category-row {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 440px) {
+  .user-profile-header {
+    flex-direction: column;
+  }
+
+  .user-profile-identity {
+    align-items: flex-start !important;
+  }
+
+  .user-profile-identity h2 {
+    font-size: 1.35rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .user-profile-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* iOS güvenli alan desteği (bottom nav için) */

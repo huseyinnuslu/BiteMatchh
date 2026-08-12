@@ -96,7 +96,7 @@ const UserProfile = () => {
   const categoryEntries = profile.stats?.categoryBreakdown ? Object.entries(profile.stats.categoryBreakdown).sort((a, b) => b[1] - a[1]) : [];
 
   return (
-    <div className="animate-slide-up" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '1rem', paddingBottom: '4rem' }}>
+    <div className="animate-slide-up user-profile-page" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '1rem', paddingBottom: '4rem' }}>
       <button
         onClick={() => navigate(-1)}
         style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', marginBottom: '1.5rem', transition: 'all 0.2s' }}
@@ -104,10 +104,11 @@ const UserProfile = () => {
         <ArrowLeft size={20} />
       </button>
 
-      <div className="glass-card" style={{ padding: '2rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Avatar src={profile.profilePic} username={profile.name || profile.username} size={80} />
-          <div style={{ flex: 1 }}>
+      <div className="glass-card user-profile-hero" style={{ padding: '2rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
+        <div className="user-profile-header" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <div className="user-profile-identity" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <Avatar src={profile.profilePic} username={profile.name || profile.username} size={88} />
+            <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ margin: '0 0 0.3rem 0', fontSize: '1.6rem' }}>{profile.name}</h2>
             <p style={{ margin: 0, color: 'var(--primary)', fontWeight: 600, fontSize: '0.95rem' }}>@{profile.username}</p>
             {profile.gamification?.currentRank && (
@@ -128,8 +129,9 @@ const UserProfile = () => {
                 <Users size={13} /> {profile.friendCount} arkadaş
               </span>
             </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="user-profile-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
             {profile.isFriend ? (
               <>
                 <button
@@ -162,7 +164,7 @@ const UserProfile = () => {
             <BarChart2 size={18} />
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>İstatistikler</h3>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div className="user-profile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem' }}>{profile.stats.totalSwipes}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Oylama</div>
@@ -178,8 +180,8 @@ const UserProfile = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {categoryEntries.slice(0, 5).map(([cat, percentage]) => (
                   <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
-                      <span style={{ textTransform: 'capitalize' }}>
+                    <div className="user-profile-category-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
+                      <span style={{ textTransform: 'capitalize', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {CATEGORY_ICONS[cat] || '✨'} {cat}
                       </span>
                       <span style={{ fontWeight: 600, color: 'var(--primary)' }}>%{percentage}</span>
