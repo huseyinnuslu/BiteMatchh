@@ -27,7 +27,9 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const { user, updateUser } = useContext(AuthContext);
+  const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const isMessagesRoute = location.pathname === '/messages';
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -126,7 +128,7 @@ function App() {
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', position: 'relative' }}>
       <Navbar />
-      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? '6rem' : '3rem', width: '100%', boxSizing: 'border-box' }}>
+      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? (isMessagesRoute ? 0 : '6rem') : '3rem', width: '100%', boxSizing: 'border-box' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -169,7 +171,7 @@ function App() {
           />
         </Routes>
       </div>
-      <Footer />
+      {!isMessagesRoute && <Footer />}
       <ToastContainer position="top-right" theme="dark" autoClose={3000} />
     </div>
   );

@@ -567,11 +567,13 @@ const Messages = () => {
         maxWidth: isMobile ? 'none' : '1440px',
         // Mobilde açık DM, kendi tam ekran görünümüdür. Böylece footer veya
         // alt navigasyon hiçbir zaman mesaj girişinin arasına giremez.
-        position: isMobileChat ? 'fixed' : 'relative',
-        top: isMobileChat ? 0 : undefined,
-        left: isMobileChat ? 0 : '50%',
-        right: isMobileChat ? 0 : undefined,
-        transform: isMobileChat ? 'none' : 'translateX(-50%)',
+        // Mesajlar mobilde baştan sona kendi viewport'unda çalışır. Bu,
+        // klavye odağı sırasında ana uygulama sayfasının kaymasını engeller.
+        position: isMobile ? 'fixed' : 'relative',
+        top: isMobile ? (isMobileChat ? 0 : 72) : undefined,
+        left: isMobile ? 0 : '50%',
+        right: isMobile ? 0 : undefined,
+        transform: isMobile ? 'none' : 'translateX(-50%)',
         // iOS klavye açıkken VisualViewport tam olarak klavyenin üstündeki
         // alanı verir. Minimum yükseklik kullanmıyoruz; aksi halde composer
         // klavyenin üstünde değil sayfanın ortasında kalabiliyor.
@@ -583,7 +585,7 @@ const Messages = () => {
         overflow: 'hidden',
         border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
         background: '#0d1424',
-        zIndex: isMobileChat ? 90 : 'auto',
+        zIndex: isMobile ? 90 : 'auto',
         paddingTop: isMobileChat ? 'env(safe-area-inset-top)' : 0,
         boxShadow: isMobile ? 'none' : '0 8px 40px rgba(0,0,0,0.5)',
       }}>
