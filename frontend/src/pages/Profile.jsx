@@ -129,7 +129,7 @@ const Profile = () => {
       if (!detail?.userId) return;
 
       const profilePic = detail.avatarUrl
-        ? `${detail.avatarUrl}?v=${detail.version || Date.now()}`
+        ? (detail.avatarUrl.includes('?') ? detail.avatarUrl : `${detail.avatarUrl}?v=${detail.version || Date.now()}`)
         : '';
 
       setProfile((prev) => {
@@ -268,7 +268,9 @@ const Profile = () => {
       toast.success(data.message);
       // Aynı dosya adına denk gelse bile tarayıcının eski resmi önbellekten
       // göstermemesi için sunucunun gönderdiği sürümü URL'ye ekliyoruz.
-      const freshAvatarUrl = `${data.avatarUrl}?v=${data.version || Date.now()}`;
+      const freshAvatarUrl = data.avatarUrl.includes('?')
+        ? data.avatarUrl
+        : `${data.avatarUrl}?v=${data.version || Date.now()}`;
       setProfile(prev => ({ ...prev, profilePic: freshAvatarUrl }));
       updateUser({ profilePic: freshAvatarUrl });
     } catch (err) {

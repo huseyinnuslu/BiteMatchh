@@ -97,7 +97,10 @@ function App() {
     socket.on('room_invitation', handleRoomInvitation);
     const handleAvatarUpdated = (payload) => {
       if (payload?.userId === user._id) {
-        updateUser({ profilePic: payload.avatarUrl ? `${payload.avatarUrl}?v=${payload.version || Date.now()}` : '' });
+        const profilePic = payload.avatarUrl
+          ? (payload.avatarUrl.includes('?') ? payload.avatarUrl : `${payload.avatarUrl}?v=${payload.version || Date.now()}`)
+          : '';
+        updateUser({ profilePic });
       }
       window.dispatchEvent(new CustomEvent('bitematch_avatar_updated', { detail: payload }));
     };

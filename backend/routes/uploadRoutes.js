@@ -76,9 +76,15 @@ router.get('/avatar/:userId', async (req, res, next) => {
 
     // Aynı URL yeniden açıldığında dahi güncel fotoğrafı doğrular; yükleme
     // sonrasında eklenen ?v= sürümü ise açık ekranları anında yeniler.
+    // Sürümlü URL (`?v=...`) yeni fotoğraf yüklendiğinde değişir. Böylece
+    // tarayıcı aynı fotoğrafı her ekranda yeniden indirmez; yeni fotoğraf da
+    // eski önbelleğin yerine yanlışlıkla gösterilmez.
+    const hasVersion = typeof req.query.v === 'string' && req.query.v.length > 0;
     res.set({
       'Content-Type': file.contentType || 'image/jpeg',
-      'Cache-Control': 'no-store, max-age=0',
+      'Cache-Control': hasVersion
+        ? 'public, max-age=31536000, immutable'
+        : 'public, max-age=300, stale-while-revalidate=86400',
     });
     bucket.openDownloadStream(file._id).on('error', next).pipe(res);
   } catch (error) {
@@ -106,8 +112,10 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
     const newFileId = await writeAvatar(req.file, user._id);
     await deleteStoredAvatars(user._id, newFileId);
 
-    const avatarUrl = `/api/upload/avatar/${user._id}`;
     const version = Date.now();
+    // Kalıcı kayıtta da sürüm tutuyoruz; sayfa yenilendiğinde bile tarayıcı
+    // doğru görseli önbellekten anında kullanabilir.
+    const avatarUrl = `/api/upload/avatar/${user._id}?v=${version}`;
     user.profilePic = avatarUrl;
     await user.save();
     emitAvatarUpdated(user, avatarUrl, version);
