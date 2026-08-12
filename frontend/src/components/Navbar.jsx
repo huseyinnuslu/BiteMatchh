@@ -117,7 +117,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav onClickCapture={guardRoomNavigation} style={{
+      <nav className="main-navbar" onClickCapture={guardRoomNavigation} style={{
         padding: isMobile ? '0.75rem 0' : '1rem 0',
         borderBottom: '1px solid var(--border)',
         background: 'rgba(15, 23, 42, 0.85)',

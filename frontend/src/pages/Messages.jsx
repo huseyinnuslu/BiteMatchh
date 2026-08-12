@@ -402,11 +402,9 @@ const Messages = () => {
   const openChat = useCallback((u) => {
     setActiveUser(u);
     setMobileView('chat');
-    // Mobil sohbet kendi sabit alanında kayar. Sayfanın kendisini kaydırmak,
-    // iOS'ta üst başlığın ekrandan kaçmasına neden oluyordu.
-    if (window.innerWidth <= 768) window.scrollTo({ top: 0, behavior: 'auto' });
     setShowMenu(false);
-    setTimeout(() => inputRef.current?.focus(), 120);
+    // Bir konuşmayı açmak, klavyeyi otomatik açmamalı. iOS bu durumda tüm
+    // dokümanı input'a kaydırıp footer'ı araya sokabiliyor.
     // Yoksa listeye ekle
     setConversations(prev =>
       prev.find(c => c.user?._id?.toString() === u._id?.toString())
@@ -567,17 +565,18 @@ const Messages = () => {
         display: 'flex',
         width: isMobile ? '100vw' : '94vw',
         maxWidth: isMobile ? 'none' : '1440px',
-        // Sohbet açıldığında sayfanın normal akışında kalırsa Safari input'u
-        // görünür yapmak için bütün dokümanı kaydırır. Fixed katman bunu önler.
+        // Mobilde açık DM, kendi tam ekran görünümüdür. Böylece footer veya
+        // alt navigasyon hiçbir zaman mesaj girişinin arasına giremez.
         position: isMobileChat ? 'fixed' : 'relative',
-        top: isMobileChat ? 72 : undefined,
+        top: isMobileChat ? 0 : undefined,
         left: isMobileChat ? 0 : '50%',
         right: isMobileChat ? 0 : undefined,
         transform: isMobileChat ? 'none' : 'translateX(-50%)',
-        // Mobile: navbar (~72px) + alt navigasyon (~80px) dışındaki gerçek
-        // görünür alan. `dvh`, Safari adres çubuğu değiştiğinde de doğru kalır.
+        // iOS klavye açıkken VisualViewport tam olarak klavyenin üstündeki
+        // alanı verir. Minimum yükseklik kullanmıyoruz; aksi halde composer
+        // klavyenin üstünde değil sayfanın ortasında kalabiliyor.
         height: isMobileChat
-          ? `${Math.max(280, visibleViewportHeight - 72)}px`
+          ? `${visibleViewportHeight}px`
           : isMobile ? 'calc(100dvh - 152px)' : 'calc(100vh - 120px)',
         minHeight: 0,
         borderRadius: isMobile ? 0 : 18,
@@ -585,6 +584,7 @@ const Messages = () => {
         border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
         background: '#0d1424',
         zIndex: isMobileChat ? 90 : 'auto',
+        paddingTop: isMobileChat ? 'env(safe-area-inset-top)' : 0,
         boxShadow: isMobile ? 'none' : '0 8px 40px rgba(0,0,0,0.5)',
       }}>
 
