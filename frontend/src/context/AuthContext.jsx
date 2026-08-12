@@ -1,24 +1,24 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState } from 'react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  // Oturum bilgisini ilk render'dan SONRA değil, React ağacını kurarken okuyoruz.
+  // Böylece navbar ve arkadaş avatarları önce harf rozetiyle çizilip birkaç saniye
+  // sonra fotoğrafa dönmez.
+  const [user, setUser] = useState(() => {
     const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      try {
-        setUser(JSON.parse(userInfo));
-      } catch (e) {
-        console.error('Local storage error', e);
-      }
+    if (!userInfo) return null;
+    try {
+      return JSON.parse(userInfo);
+    } catch (e) {
+      console.error('Local storage error', e);
+      return null;
     }
-    setLoading(false);
-  }, []);
+  });
+  const [loading] = useState(false);
 
   // ── Giriş ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {

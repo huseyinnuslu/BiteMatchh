@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
+import sharp from 'sharp';
 import User from '../models/User.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { getIo } from '../server.js';
@@ -44,12 +45,24 @@ const emitAvatarUpdated = (user, avatarUrl, version) => {
 const writeAvatar = (file, userId) => new Promise((resolve, reject) => {
   const uploadStream = avatarBucket().openUploadStream(`${userId}-${Date.now()}`, {
     contentType: file.mimetype,
-    metadata: { userId: userId.toString() },
+    metadata: { userId: userId.toString(), avatarOptimized: true },
   });
 
   uploadStream.once('finish', () => resolve(uploadStream.id));
   uploadStream.once('error', reject);
   uploadStream.end(file.buffer);
+});
+
+// Avatar, ekranda en fazla küçük bir daire olarak gösterilir. Telefonda 4-5 MB
+// kameradan çıkmış bir fotoğrafı her menüde indirmek yerine, yükleme anında
+// kare ve yüksek kaliteli ama hafif bir WebP sürümü oluşturuyoruz.
+const optimizeAvatar = async (file) => ({
+  buffer: await sharp(file.buffer)
+    .rotate()
+    .resize(512, 512, { fit: 'cover', position: 'attention', withoutEnlargement: true })
+    .webp({ quality: 86, effort: 4 })
+    .toBuffer(),
+  mimetype: 'image/webp',
 });
 
 // @route   GET /api/upload/avatar/:userId
@@ -109,7 +122,8 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res, next) 
     }
 
     // Yeni yükleme başarıyla tamamlanmadan eski fotoğraf silinmez.
-    const newFileId = await writeAvatar(req.file, user._id);
+    const optimizedAvatar = await optimizeAvatar(req.file);
+    const newFileId = await writeAvatar(optimizedAvatar, user._id);
     await deleteStoredAvatars(user._id, newFileId);
 
     const version = Date.now();

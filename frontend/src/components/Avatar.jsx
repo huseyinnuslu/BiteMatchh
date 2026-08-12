@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const Avatar = ({ src, username = '?', size = 40, online = false }) => {
   const isImage = Boolean(src);
@@ -11,6 +11,28 @@ const Avatar = ({ src, username = '?', size = 40, online = false }) => {
     const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://bitematchh.onrender.com';
     return `${baseUrl}${url}`;
   };
+
+  const imageUrl = useMemo(() => (isImage ? getImageUrl(src) : ''), [src, isImage]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+    if (!imageUrl) return undefined;
+
+    // Aynı avatarın sayfadaki diğer kullanımlarını tarayıcı önbelleğine mümkün
+    // olan en erken anda alır. Navbar, mesajlar ve arkadaş listesi aynı dosyayı
+    // ikinci kez beklemez.
+    const preload = new Image();
+    preload.src = imageUrl;
+    preload.onload = () => setIsLoaded(true);
+    preload.onerror = () => setHasError(true);
+    return () => {
+      preload.onload = null;
+      preload.onerror = null;
+    };
+  }, [imageUrl]);
 
   const avatarStyle = {
     width: size,
@@ -31,25 +53,25 @@ const Avatar = ({ src, username = '?', size = 40, online = false }) => {
   return (
     <div style={{ position: 'relative', flexShrink: 0, width: size, height: size }}>
       <div style={avatarStyle}>
-        {isImage ? (
+        {/* Fotoğraf ağdan gelirken boş/koyu bir daire bırakmıyoruz: rozet anında
+            görünür, görsel hazır olduğunda kısa ve titreşimsiz biçimde üstüne gelir. */}
+        <span style={{ display: isLoaded && !hasError ? 'none' : 'flex' }}>
+          {initial}
+        </span>
+        {isImage && !hasError ? (
           <img 
-            src={getImageUrl(src)} 
+            src={imageUrl}
             alt={username} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', imageRendering: 'auto' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', imageRendering: 'auto', position: 'absolute', inset: 0, opacity: isLoaded ? 1 : 0, transition: 'opacity 120ms ease-out' }}
             // Avatarlar küçük ancak profilin kimlik öğesi. Mobil tarayıcının
             // bunları görünür olduktan sonra ertelemesini istemiyoruz.
             loading="eager"
             fetchPriority="high"
             decoding="sync"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-            }}
+            onLoad={() => setIsLoaded(true)}
+            onError={() => setHasError(true)}
           />
         ) : null}
-        <span style={{ display: isImage ? 'none' : 'flex' }}>
-          {initial}
-        </span>
       </div>
       {online && (
         <span style={{
