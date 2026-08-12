@@ -102,6 +102,10 @@ function App() {
       window.dispatchEvent(new CustomEvent('bitematch_avatar_updated', { detail: payload }));
     };
     socket.on('profile_avatar_updated', handleAvatarUpdated);
+    const handleFriendshipUpdated = (payload) => {
+      window.dispatchEvent(new CustomEvent('bitematch_friendship_updated', { detail: payload }));
+    };
+    socket.on('friendship_updated', handleFriendshipUpdated);
 
     // Her bağlanmada (ilk + reconnect) user_online emit et
     socket.on('connect', emitOnline);
@@ -112,6 +116,7 @@ function App() {
       socket.off('new_notification', handleNewNotification);
       socket.off('room_invitation', handleRoomInvitation);
       socket.off('profile_avatar_updated', handleAvatarUpdated);
+      socket.off('friendship_updated', handleFriendshipUpdated);
     };
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────

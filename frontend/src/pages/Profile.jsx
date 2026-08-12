@@ -11,7 +11,6 @@ import {
 import api from '../api';
 import Avatar from '../components/Avatar';
 import ConfirmModal from '../components/ConfirmModal';
-import { getSocket } from '../socket/socketClient';
 
 // ── Kategori emoji haritası ──────────────────────────────────────────────────
 const CATEGORY_ICONS = {
@@ -144,6 +143,14 @@ const Profile = () => {
     return () => window.removeEventListener('bitematch_avatar_updated', handleAvatarUpdated);
   }, []);
 
+  // İstek kabulü/otomatik kabul sonrasında arkadaş listesi her iki tarafta da
+  // görünür; kullanıcının sayfayı yenilemesi gerekmez.
+  useEffect(() => {
+    const handleFriendshipUpdated = () => loadProfile();
+    window.addEventListener('bitematch_friendship_updated', handleFriendshipUpdated);
+    return () => window.removeEventListener('bitematch_friendship_updated', handleFriendshipUpdated);
+  }, []);
+
   // ── Gizlilik Ayarı Toggle ────────────────────────────────────────────────
   const handleTogglePrivacy = async () => {
     const newValue = !profile.isStatsPublic;
@@ -222,6 +229,26 @@ const Profile = () => {
       return toast.error('Dosya boyutu en fazla 5MB olabilir.');
     }
 
+    // Küçük ekran görüntülerini avatar olarak kabul etmek, yuvarlak avatarın
+    // bulanık görünmesine neden olur. Orijinali sıkıştırmadan koruyoruz;
+    // yalnızca yeterli çözünürlüğe sahip bir fotoğraf istiyoruz.
+    const imageUrl = URL.createObjectURL(file);
+    try {
+      const dimensions = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        image.onerror = reject;
+        image.src = imageUrl;
+      });
+      if (Math.min(dimensions.width, dimensions.height) < 240) {
+        return toast.error('Net bir profil fotoğrafı için en az 240 × 240 piksel bir görsel seçin.');
+      }
+    } catch {
+      return toast.error('Görsel okunamadı. Lütfen başka bir fotoğraf seçin.');
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+    }
+
     const formData = new FormData();
     formData.append('avatar', file);
 
@@ -268,11 +295,6 @@ const Profile = () => {
       setSearchResults(prev =>
         prev.map(u => u._id === friendId ? { ...u, isPending: true } : u)
       );
-      
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('friend_request_notify', { toUserId: friendId, fromUsername: user.username });
-      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'İstek gönderilemedi');
     } finally { setActionId(null); }
@@ -738,15 +760,7 @@ const Profile = () => {
                     className="glass-card"
                     style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem', borderColor: 'rgba(255,75,75,0.2)' }}
                   >
-                    {/* Avatar */}
-                    <div style={{
-                      width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-                      background: 'linear-gradient(135deg,var(--primary),var(--secondary))',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.2rem', fontWeight: 700, color: 'white',
-                    }}>
-                      {req.username?.[0]?.toUpperCase()}
-                    </div>
+                    <Avatar src={req.profilePic} username={req.username} size={50} />
 
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600 }}>@{req.username}</div>

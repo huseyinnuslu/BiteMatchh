@@ -7,6 +7,7 @@ import ConfirmModal from './ConfirmModal';
 import { getSocket } from '../socket/socketClient';
 import api from '../api';
 import { toast } from 'react-toastify';
+import Avatar from './Avatar';
 
 // ---- Navbar ----
 const Navbar = () => {
@@ -168,7 +169,7 @@ const Navbar = () => {
                 borderColor: location.pathname === '/profile' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
                 color: location.pathname === '/profile' ? 'var(--primary)' : 'white'
               }}>
-                <UserCircle size={14} /> Profil
+                <Avatar src={user.profilePic} username={user.username} size={22} /> Profil
               </Link>
 
               {/* Bildirim Çanı (Desktop) */}

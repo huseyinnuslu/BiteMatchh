@@ -10,7 +10,6 @@ import {
 import api from '../api';
 import Avatar from '../components/Avatar';
 import ConfirmModal from '../components/ConfirmModal';
-import { getSocket } from '../socket/socketClient';
 
 const CATEGORY_ICONS = {
   yemek: '🍔', restoran: '🍽️', film: '🎬', dizi: '📺',
@@ -51,10 +50,6 @@ const UserProfile = () => {
       await api.post(`/users/friends/${id}`);
       toast.success('Arkadaşlık isteği gönderildi! 🤝');
       setProfile(prev => ({ ...prev, isPending: true }));
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('friend_request_notify', { toUserId: id, fromUsername: currentUser.username });
-      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'İstek gönderilemedi');
     } finally { setActionId(null); }

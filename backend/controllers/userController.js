@@ -445,13 +445,27 @@ export const sendFriendRequest = async (req, res, next) => {
           $addToSet: { friends: fromId },
         }),
       ]);
+      getIo()?.to(`user:${toId}`).emit('friendship_updated', { userId: fromId, action: 'accepted' });
+      getIo()?.to(`user:${fromId}`).emit('friendship_updated', { userId: toId, action: 'accepted' });
       return res.json({ message: 'Karşılıklı istek vardı — arkadaş olundu! 🎉', autoAccepted: true });
     }
 
-    // Normal akış: B'nin pending listesine A'yı ekle
-    await User.findByIdAndUpdate(toId, {
-      $addToSet: { pendingFriendRequests: fromId },
-    });
+    // Normal akış: İstek ekleme ve "zaten gönderildi" kontrolü tek atomik
+    // işlemde yapılır. Böylece çift tıklama / ağ tekrarı iki bildirim üretemez.
+    const updatedTarget = await User.findOneAndUpdate(
+      {
+        _id: toId,
+        friends: { $ne: fromId },
+        pendingFriendRequests: { $ne: fromId },
+      },
+      { $addToSet: { pendingFriendRequests: fromId } },
+      { new: true },
+    );
+
+    if (!updatedTarget) {
+      res.status(400);
+      throw new Error('Arkadaşlık isteği zaten gönderildi');
+    }
 
     const notification = await Notification.create({
       user: toId,
@@ -512,6 +526,10 @@ export const acceptFriendRequest = async (req, res, next) => {
         $addToSet: { friends: toId },
       }),
     ]);
+
+    // İki tarafın açık profil/arkadaş ekranları sayfa yenilemeden güncellensin.
+    getIo()?.to(`user:${toId}`).emit('friendship_updated', { userId: fromId, action: 'accepted' });
+    getIo()?.to(`user:${fromId}`).emit('friendship_updated', { userId: toId, action: 'accepted' });
 
     const score = await calculateCompatibility(toId, fromId);
 

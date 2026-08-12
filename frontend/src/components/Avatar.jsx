@@ -35,7 +35,8 @@ const Avatar = ({ src, username = '?', size = 40, online = false }) => {
           <img 
             src={getImageUrl(src)} 
             alt={username} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', imageRendering: 'auto' }}
+            decoding="async"
             onError={(e) => {
               e.target.style.display = 'none';
               if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
