@@ -32,6 +32,16 @@ html, body {
   overflow-x: hidden;
   max-width: 100%;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+html {
+  background: var(--background);
+}
+
+#root {
+  min-height: 100vh;
+  background: var(--background);
 }
 
 /* Typography */

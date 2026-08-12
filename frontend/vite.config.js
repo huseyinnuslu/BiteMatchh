@@ -18,8 +18,9 @@ export default defineConfig({
         name: 'BiteMatch - Grup Karar Motoru',
         short_name: 'BiteMatch',
         description: 'Arkadaş grubunuzla Tinder mantığıyla asenkron ve kolayca ortak karar verin!',
-        theme_color: '#6366f1',
-        background_color: '#0f0f1b',
+        // iOS/PWA taşma alanları BiteMatch koyu zeminiyle aynı görünmeli.
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
