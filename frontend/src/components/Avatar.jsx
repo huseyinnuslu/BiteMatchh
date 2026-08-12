@@ -36,7 +36,11 @@ const Avatar = ({ src, username = '?', size = 40, online = false }) => {
             src={getImageUrl(src)} 
             alt={username} 
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', imageRendering: 'auto' }}
-            decoding="async"
+            // Avatarlar küçük ancak profilin kimlik öğesi. Mobil tarayıcının
+            // bunları görünür olduktan sonra ertelemesini istemiyoruz.
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
             onError={(e) => {
               e.target.style.display = 'none';
               if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';

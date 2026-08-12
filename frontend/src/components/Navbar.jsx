@@ -352,7 +352,7 @@ const Navbar = () => {
 
       {/* Mobil Alt Navigasyon Barı (Mobile Bottom Navigation Bar) */}
       {isMobile && user && user._id && (
-        <div onClickCapture={guardRoomNavigation} style={{
+        <div className="mobile-bottom-nav" onClickCapture={guardRoomNavigation} style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: 'rgba(15, 23, 42, 0.96)',
           backdropFilter: 'blur(20px)',

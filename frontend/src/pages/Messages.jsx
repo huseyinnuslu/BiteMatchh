@@ -223,6 +223,11 @@ const Messages = () => {
   const [showNewDM, setShowNewDM]       = useState(false);
   const [mobileView, setMobileView]     = useState('list');
   const [isMobile, setIsMobile]         = useState(window.innerWidth <= 768);
+  // iOS klavyesi açıldığında `100vh` ve hatta `100dvh` her sürümde
+  // görünür alanı güncellemeyebiliyor. VisualViewport gerçek kullanılabilir
+  // yüksekliği verir; sohbeti bununla boyutlandırıyoruz.
+  const getViewportHeight = () => Math.round(window.visualViewport?.height || window.innerHeight);
+  const [visibleViewportHeight, setVisibleViewportHeight] = useState(getViewportHeight);
 
   // Engelleme onay modalı state'leri
   const [showConfirmBlock, setShowConfirmBlock] = useState(false);
@@ -235,6 +240,31 @@ const Messages = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const updateViewport = () => setVisibleViewportHeight(getViewportHeight());
+    const visualViewport = window.visualViewport;
+    window.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('scroll', updateViewport);
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
+
+  // Açık mobil sohbette alt navigasyon/future sayfayı input ile klavyenin
+  // arasına sokmamalı. Sohbet kendi sabit katmanında kalır.
+  const isMobileChat = isMobile && mobileView === 'chat';
+  useEffect(() => {
+    document.documentElement.classList.toggle('messages-chat-open', isMobileChat);
+    document.body.classList.toggle('messages-chat-open', isMobileChat);
+    return () => {
+      document.documentElement.classList.remove('messages-chat-open');
+      document.body.classList.remove('messages-chat-open');
+    };
+  }, [isMobileChat]);
 
   const bottomRef = useRef(null);
   const messagesScrollRef = useRef(null);
@@ -537,17 +567,24 @@ const Messages = () => {
         display: 'flex',
         width: isMobile ? '100vw' : '94vw',
         maxWidth: isMobile ? 'none' : '1440px',
-        position: 'relative',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        // Sohbet açıldığında sayfanın normal akışında kalırsa Safari input'u
+        // görünür yapmak için bütün dokümanı kaydırır. Fixed katman bunu önler.
+        position: isMobileChat ? 'fixed' : 'relative',
+        top: isMobileChat ? 72 : undefined,
+        left: isMobileChat ? 0 : '50%',
+        right: isMobileChat ? 0 : undefined,
+        transform: isMobileChat ? 'none' : 'translateX(-50%)',
         // Mobile: navbar (~72px) + alt navigasyon (~80px) dışındaki gerçek
         // görünür alan. `dvh`, Safari adres çubuğu değiştiğinde de doğru kalır.
-        height: isMobile ? 'calc(100dvh - 152px)' : 'calc(100vh - 120px)',
+        height: isMobileChat
+          ? `${Math.max(280, visibleViewportHeight - 72)}px`
+          : isMobile ? 'calc(100dvh - 152px)' : 'calc(100vh - 120px)',
         minHeight: 0,
         borderRadius: isMobile ? 0 : 18,
         overflow: 'hidden',
         border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
         background: '#0d1424',
+        zIndex: isMobileChat ? 90 : 'auto',
         boxShadow: isMobile ? 'none' : '0 8px 40px rgba(0,0,0,0.5)',
       }}>
 

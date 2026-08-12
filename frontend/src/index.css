@@ -371,6 +371,16 @@ h1, h2, h3, h4, h5, h6 {
     min-height: 0;
     overscroll-behavior: contain;
   }
+
+  /* Aktif DM ekranında input klavye ile birlikte kalır. Alt menü görünür
+     alanı kaplamaz ve arka plandaki footer sayfayı uzatmaz. */
+  .messages-chat-open {
+    overflow: hidden !important;
+  }
+
+  .messages-chat-open .mobile-bottom-nav {
+    display: none !important;
+  }
 }
 
 @media (max-width: 440px) {
