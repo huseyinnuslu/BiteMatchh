@@ -355,7 +355,7 @@ const AdminPanel = () => {
     <>
       {renderModal()}
 
-      <div className="animate-slide-up" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      <div className="animate-slide-up admin-page" style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -503,8 +503,8 @@ const AdminPanel = () => {
                 {Object.keys(pendingRoles).length > 0 && `${Object.keys(pendingRoles).length} kaydedilmemiş değişiklik`}
               </span>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="admin-table-scroll" style={{ overflowX: 'auto' }}>
+              <table className="admin-data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <th style={{ padding: '0.85rem 1.2rem', textAlign: 'left', width: '40px' }}>
@@ -657,8 +657,8 @@ const AdminPanel = () => {
                 )}
               </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="admin-table-scroll" style={{ overflowX: 'auto' }}>
+              <table className="admin-data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <th style={{ padding: '0.85rem 1.2rem', textAlign: 'left', width: '40px' }}>

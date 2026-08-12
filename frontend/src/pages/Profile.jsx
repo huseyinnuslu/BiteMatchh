@@ -400,13 +400,13 @@ const Profile = () => {
   const canChangeUsername = !nextUsernameChangeAt || nextUsernameChangeAt <= new Date();
 
   return (
-    <div style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
+    <div className="profile-page" style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
 
       {/* ── Hero Profil Kartı ───────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card"
+        className="glass-card profile-hero"
         style={{ marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}
       >
         <div style={{
@@ -416,9 +416,9 @@ const Profile = () => {
           pointerEvents: 'none',
         }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="profile-hero-content" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           {/* Avatar Yükleme Alanı */}
-          <div style={{ position: 'relative' }}>
+          <div className="profile-hero-avatar" style={{ position: 'relative' }}>
             <Avatar src={profile.profilePic} username={profile.username} size={80} />
             
             <label style={{
@@ -464,7 +464,7 @@ const Profile = () => {
             )}
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div className="profile-hero-details" style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ margin: 0, fontSize: '1.6rem' }}>{profile.name || profile.username}</h2>
             <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0.6rem' }}>@{profile.username}</p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -488,6 +488,7 @@ const Profile = () => {
           <button
             type="button"
             onClick={() => navigate('/settings')}
+            className="profile-settings-button"
             style={{
               alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
               border: '1px solid rgba(255,255,255,0.14)', borderRadius: '10px', padding: '0.55rem 0.75rem',
@@ -500,6 +501,7 @@ const Profile = () => {
           <button
             type="button"
             onClick={() => setShowRanks(true)}
+            className="profile-rank-button"
             aria-label="Rütbeler ve XP ilerlemesini görüntüle"
             style={{
               background: 'linear-gradient(145deg, rgba(255,75,75,.14), rgba(139,92,246,.14))', border: '1px solid rgba(196,181,253,.36)',
@@ -566,7 +568,7 @@ const Profile = () => {
       </div>
 
       {/* ── Sekmeler ────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px', flexWrap: 'wrap' }}>
+      <div className="profile-tabs" style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px', flexWrap: 'wrap' }}>
         <Tab id="stats"   label="İstatistikler" icon={BarChart2}   active={activeTab === 'stats'}   onClick={setActiveTab} />
         <Tab id="friends" label="Arkadaşlar"    icon={Users}       active={activeTab === 'friends'} onClick={setActiveTab} />
         <Tab id="pending" label="İstekler"      icon={Clock}       active={activeTab === 'pending'} onClick={setActiveTab} badge={pendingCount} />
