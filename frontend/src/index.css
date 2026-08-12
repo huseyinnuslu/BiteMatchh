@@ -382,6 +382,20 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 
+  /* Mesaj listesinde yalnız iç liste kayar. Ana sayfa ve sticky navbar
+     sabit kalır; iOS yan kaydırmayı document'e aktaramaz. */
+  .messages-mobile-open {
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  .messages-mobile-open .app-container {
+    height: 100dvh;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
   .messages-chat-open .main-navbar,
   .messages-chat-open footer {
     display: none !important;

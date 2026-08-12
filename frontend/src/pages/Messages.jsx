@@ -258,13 +258,17 @@ const Messages = () => {
   // arasına sokmamalı. Sohbet kendi sabit katmanında kalır.
   const isMobileChat = isMobile && mobileView === 'chat';
   useEffect(() => {
+    document.documentElement.classList.toggle('messages-mobile-open', isMobile);
+    document.body.classList.toggle('messages-mobile-open', isMobile);
     document.documentElement.classList.toggle('messages-chat-open', isMobileChat);
     document.body.classList.toggle('messages-chat-open', isMobileChat);
     return () => {
+      document.documentElement.classList.remove('messages-mobile-open');
+      document.body.classList.remove('messages-mobile-open');
       document.documentElement.classList.remove('messages-chat-open');
       document.body.classList.remove('messages-chat-open');
     };
-  }, [isMobileChat]);
+  }, [isMobile, isMobileChat]);
 
   const bottomRef = useRef(null);
   const messagesScrollRef = useRef(null);
