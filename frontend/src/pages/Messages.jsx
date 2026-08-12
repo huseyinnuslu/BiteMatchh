@@ -389,6 +389,18 @@ const Messages = () => {
     }
   }, [messages]);
 
+  // iOS Safari bazen input focus'unda document'i kendi başına aşağı kaydırır.
+  // Bu üç aşamalı geri alma, klavyenin ardından gerçekleşen asenkron kaydırmayı
+  // da yakalar; sohbetin sabit katmanı yerinde kalır.
+  const stabilizeMobileChatViewport = useCallback(() => {
+    if (window.innerWidth > 768) return;
+    const resetDocumentScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    resetDocumentScroll();
+    requestAnimationFrame(resetDocumentScroll);
+    window.setTimeout(resetDocumentScroll, 80);
+    window.setTimeout(resetDocumentScroll, 260);
+  }, []);
+
   /* ─── Menü dışına tıkla → kapat ── */
   useEffect(() => {
     const handler = (e) => {
@@ -1080,7 +1092,10 @@ const Messages = () => {
                       transition: 'border-color 0.2s', lineHeight: 1.5,
                       maxHeight: 120, overflowY: 'auto', resize: 'none',
                     }}
-                    onFocus={e  => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; }}
+                    onFocus={e  => {
+                      e.target.style.borderColor = 'rgba(99,102,241,0.5)';
+                      stabilizeMobileChatViewport();
+                    }}
                     onBlur={e   => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
                   />
                   <button

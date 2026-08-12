@@ -126,7 +126,7 @@ function App() {
   }, [user?._id]);
   // ──────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', position: 'relative' }}>
+    <div className={`app-container${isMessagesRoute ? ' messages-route' : ''}`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', position: 'relative' }}>
       <Navbar />
       <div className="container" style={{ flex: 1, paddingBottom: isMobile ? (isMessagesRoute ? 0 : '6rem') : '3rem', width: '100%', boxSizing: 'border-box' }}>
         <Routes>
