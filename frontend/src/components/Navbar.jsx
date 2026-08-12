@@ -11,7 +11,7 @@ import Avatar from './Avatar';
 
 // ---- Navbar ----
 const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, updateUser } = useContext(AuthContext);
   const { currentRoom, resetRoom } = useContext(RoomContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,6 +51,23 @@ const Navbar = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Navbar profil sayfasının açılmasını beklemez. Oturumdaki eski/eksik
+  // avatar bilgisini uygulama açılır açılmaz güncel profil yanıtıyla eşitler.
+  useEffect(() => {
+    if (!user?._id) return;
+    let cancelled = false;
+    api.get('/users/profile')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const profilePic = data.profilePic || '';
+        if (profilePic !== (user.profilePic || '') || data.username !== user.username || data.name !== user.name) {
+          updateUser({ name: data.name, username: data.username, profilePic });
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?._id]);
 
   // Fetch notifications
   useEffect(() => {

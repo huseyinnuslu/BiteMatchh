@@ -65,8 +65,8 @@ export const mockOptions = {
     {
       name: 'Lahmacun & Pide',
       mapsQuery: 'lahmacun pide restoranı',
-      // Unsplash başlığı: “Delicious looking turkish lahmacun ready to be served”.
-      imageUrl: 'https://unsplash.com/photos/CAmLnpQXcIY/download?force=true&w=1200',
+      // Lahmacun, maydanoz ve limonla servis edilmiş gerçek tabak görseli.
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/products/10625375.jpg?width=1200',
       budget: '₺',
       description: 'Çıtır ince hamurda kıymalı lahmacun veya fırın pidesi. Rulo yapıp maydanozla ye!'
     },
@@ -136,14 +136,16 @@ export const mockOptions = {
     {
       name: 'Köfte',
       mapsQuery: 'köfte restoranı',
-      imageUrl: 'https://unsplash.com/photos/5oKQi6bug2A/download?force=true&w=1200',
+      // Izgara köfte, pilav ve köz biberli gerçek tabak servisi.
+      imageUrl: 'https://images.deliveryhero.io/image/fd-tr/products/9098839.jpg?width=1200',
       budget: '₺',
       description: 'Izgarada çıtırdayan köfte, kavurma patates ve cacık. Türk mutfağının vazgeçilmezi.'
     },
     {
       name: 'Kıymalı Pide',
       mapsQuery: 'kıymalı pide restoranı',
-      imageUrl: 'https://unsplash.com/photos/ASu5R2cd25E/download?force=true&w=1200',
+      // Kıymalı pide: taş fırın çıkışı, kıymalı ve biberli pide dilimleri.
+      imageUrl: 'https://cdn.yemek.com/uploads/2024/02/kiymali-pide-yemekcom.jpg',
       budget: '₺',
       discoveryGroup: 'turkish-bakery',
       venueConcept: 'Fırın & esnaf lokantası',
@@ -225,7 +227,8 @@ export const mockOptions = {
     {
       name: 'Tatlı & Waffle',
       mapsQuery: 'waffle tatlıcı',
-      imageUrl: 'https://images.unsplash.com/photo-1662751421284-9faa7d4f8302?w=1200&q=85',
+      // Meyve, çikolata ve dondurmalı gerçek waffle sunumu.
+      imageUrl: 'https://images.getbento.com/accounts/80b31b9b6ec2af35b51d446eb935c82a/media/images/1766439853842.png?auto=compress%2Cformat&cs=origin&fit=max&h=1000&w=1000',
       budget: '₺',
       discoveryGroup: 'cafe-dessert',
       venueConcept: 'Tatlıcı',

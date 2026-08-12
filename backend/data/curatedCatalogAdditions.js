@@ -144,7 +144,8 @@ export const curatedCatalogAdditions = {
     {
       name: 'Mangal & Izgara',
       mapsQuery: 'mangal ızgara restoranı',
-      imageUrl: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=1200&q=85',
+      // Kömür ateşinde et, tavuk şiş, sebze ve soslarla hazırlanmış mangal sofrası.
+      imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=85',
       budget: '₺₺₺', discoveryGroup: 'open-fire-grill', venueConcept: 'Izgara restoranı',
       description: 'Köz ateşinde et, tavuk ve sebzelerle kalabalık arkadaş gruplarına uygun, uzun sofralık bir plan.',
     },
