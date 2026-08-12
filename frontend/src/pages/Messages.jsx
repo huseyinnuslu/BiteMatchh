@@ -1071,7 +1071,7 @@ const Messages = () => {
                 </div>
               ) : (
                 <div style={{
-                  display: 'flex', gap: 10, padding: isMobile ? '8px 12px' : '12px 18px',
+                  display: 'flex', gap: isMobile ? 8 : 10, padding: isMobile ? '6px 10px calc(6px + env(safe-area-inset-bottom))' : '12px 18px',
                   borderTop: '1px solid rgba(255,255,255,0.06)',
                   background: '#0b1120', flexShrink: 0, alignItems: 'flex-end',
                 }}>
@@ -1087,10 +1087,10 @@ const Messages = () => {
                       flex: 1,
                       background: 'rgba(255,255,255,0.05)',
                       border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 14, padding: '11px 16px',
+                      borderRadius: isMobile ? 12 : 14, padding: isMobile ? '8px 14px' : '11px 16px',
                       color: '#fff', fontSize: '0.88rem', outline: 'none',
                       transition: 'border-color 0.2s', lineHeight: 1.5,
-                      maxHeight: 120, overflowY: 'auto', resize: 'none',
+                      height: isMobile ? 44 : 'auto', maxHeight: 120, overflowY: 'auto', resize: 'none',
                     }}
                     onFocus={e  => {
                       e.target.style.borderColor = 'rgba(99,102,241,0.5)';
@@ -1102,7 +1102,7 @@ const Messages = () => {
                     onClick={sendMsg}
                     disabled={!input.trim()}
                     style={{
-                      width: 44, height: 44, borderRadius: 14, border: 'none', flexShrink: 0,
+                      width: 44, height: 44, borderRadius: isMobile ? 12 : 14, border: 'none', flexShrink: 0,
                       background: input.trim()
                         ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
                         : 'rgba(255,255,255,0.06)',
