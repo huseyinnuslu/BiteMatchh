@@ -324,7 +324,7 @@ const MatchHistory = () => {
                         onClick={() => window.open(winner.ticketUrl, '_blank', 'noopener,noreferrer')}
                         style={{
                           flex: 1, minWidth: '120px', padding: '0.55rem 1rem',
-                          borderRadius: '8px', border: 'none',
+                          borderRadius: '8px',
                           background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
                           color: 'white', fontSize: '0.8rem', fontWeight: 800,
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
@@ -345,7 +345,7 @@ const MatchHistory = () => {
                         }}
                         style={{
                           flex: 1, minWidth: '120px', padding: '0.55rem 1rem',
-                          borderRadius: '8px', border: 'none',
+                          borderRadius: '8px',
                           background: 'rgba(66, 133, 244, 0.15)',
                           border: '1px solid rgba(66, 133, 244, 0.3)',
                           color: '#8ab4f8', fontSize: '0.8rem', fontWeight: 800,

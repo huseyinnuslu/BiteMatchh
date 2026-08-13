@@ -1002,7 +1002,7 @@ const Messages = () => {
                                     <button
                                       onClick={() => window.open(msg.sharedEvent.ticketUrl, '_blank', 'noopener,noreferrer')}
                                       style={{
-                                        flex: 1, padding: '0.45rem', borderRadius: '8px', border: 'none',
+                                        flex: 1, padding: '0.45rem', borderRadius: '8px',
                                         background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
                                         color: 'white', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
@@ -1019,7 +1019,7 @@ const Messages = () => {
                                         window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank', 'noopener,noreferrer');
                                       }}
                                       style={{
-                                        flex: 1, padding: '0.45rem', borderRadius: '8px', border: 'none',
+                                        flex: 1, padding: '0.45rem', borderRadius: '8px',
                                         background: 'rgba(255, 255, 255, 0.08)', color: 'white', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
                                         border: '1px solid rgba(255, 255, 255, 0.1)',

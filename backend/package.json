@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "fetch-events": "node ../scripts/fetchLiveEvents.js",
-    "test": "node --test tests/catalogSelection.test.js",
+    "test": "node --test tests/*.test.js",
+    "test:quality": "npm run test && npm run audit:images",
     "audit:images": "node scripts/auditCatalogImages.js"
   },
   "keywords": [],
