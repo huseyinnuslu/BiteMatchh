@@ -50,6 +50,28 @@ export const markAsRead = async (req, res, next) => {
   }
 };
 
+// @desc    Tek bir bildirimi sil
+// @route   DELETE /api/notifications/:id
+// @access  Private
+export const deleteNotification = async (req, res, next) => {
+  try {
+    // Bildirim mutlaka oturumdaki kullanıcıya ait olmalı; başka bir kullanıcının
+    // bildirimi tahmin edilen bir id ile silinemez.
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: 'Bildirim bulunamadı.' });
+    }
+
+    res.json({ message: 'Bildirim silindi.', id: notification._id });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Bildirimin hedefini güvenli şekilde aç
 // @route   POST /api/notifications/:id/open
 // @access  Private

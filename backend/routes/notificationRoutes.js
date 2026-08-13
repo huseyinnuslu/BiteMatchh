@@ -2,7 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import User from '../models/User.js';
 import { sendPushToUser } from '../utils/webPush.js';
-import { getNotifications, markAllAsRead, markAsRead, openNotification } from '../controllers/notificationController.js';
+import { getNotifications, markAllAsRead, markAsRead, deleteNotification, openNotification } from '../controllers/notificationController.js';
 
 const router = express.Router();
 
@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/', protect, getNotifications);
 router.put('/read-all', protect, markAllAsRead);
 router.put('/:id/read', protect, markAsRead);
+router.delete('/:id', protect, deleteNotification);
 router.post('/:id/open', protect, openNotification);
 
 // ---- Web Push Bildirimleri ----

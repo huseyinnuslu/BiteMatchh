@@ -1,13 +1,111 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { RoomContext } from '../context/RoomContext';
-import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History, Bell } from 'lucide-react';
+import { Flame, LogOut, LayoutDashboard, Shield, UserCircle, MessageSquare, History, Bell, X, Trash2 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { getSocket } from '../socket/socketClient';
 import api from '../api';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';
+
+const NotificationItem = ({ notification, onOpen, onDelete, mobile = false }) => {
+  const [deleteRevealed, setDeleteRevealed] = useState(false);
+  const touchStart = useRef(null);
+
+  const handleTouchStart = (event) => {
+    if (!mobile) return;
+    touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (event) => {
+    if (!mobile || !touchStart.current) return;
+    const deltaX = event.changedTouches[0].clientX - touchStart.current.x;
+    const deltaY = event.changedTouches[0].clientY - touchStart.current.y;
+    touchStart.current = null;
+
+    // Sadece belirgin yatay sola kaydırmayı silme hareketi sayıyoruz;
+    // bildirim listesinin normal dikey kaydırmasını engellemez.
+    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < -56) {
+      setDeleteRevealed(true);
+    } else if (deltaX > 24) {
+      setDeleteRevealed(false);
+    }
+  };
+
+  const openNotification = () => {
+    if (deleteRevealed) {
+      setDeleteRevealed(false);
+      return;
+    }
+    onOpen(notification);
+  };
+
+  const removeNotification = (event) => {
+    event.stopPropagation();
+    onDelete(notification);
+  };
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,0.055)' }}>
+      {mobile && (
+        <button
+          type="button"
+          onClick={removeNotification}
+          aria-label="Bildirimi sil"
+          style={{
+            position: 'absolute', inset: 0, left: 'auto', width: '82px', border: 0,
+            background: '#dc3f4c', color: 'white', cursor: 'pointer', display: 'flex',
+            flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.18rem',
+            fontSize: '0.66rem', fontWeight: 700,
+          }}
+        >
+          <Trash2 size={17} /> Sil
+        </button>
+      )}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={openNotification}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openNotification();
+          }
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          position: 'relative', zIndex: 1, cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+          padding: mobile ? '0.65rem 0.9rem' : '0.75rem 0.8rem 0.75rem 1rem',
+          background: notification.isRead ? 'rgba(15, 23, 42, 0.97)' : 'rgba(255, 107, 107, 0.075)',
+          borderLeft: notification.isRead ? '3px solid transparent' : '3px solid var(--primary)',
+          transform: mobile && deleteRevealed ? 'translateX(-82px)' : 'translateX(0)',
+          transition: 'transform 0.2s ease, background 0.2s ease', touchAction: 'pan-y',
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: mobile ? '0.8rem' : '0.85rem', color: 'white', marginBottom: '0.2rem', lineHeight: 1.35 }}>{notification.message}</div>
+          <div style={{ fontSize: mobile ? '0.65rem' : '0.7rem', color: 'var(--text-muted)' }}>{new Date(notification.createdAt).toLocaleDateString('tr-TR')}</div>
+        </div>
+        {!mobile && (
+          <button
+            type="button"
+            onClick={removeNotification}
+            aria-label="Bildirimi sil"
+            title="Bildirimi sil"
+            style={{
+              flexShrink: 0, border: 0, background: 'transparent', color: 'var(--text-muted)', padding: '0.18rem',
+              cursor: 'pointer', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ---- Navbar ----
 const Navbar = () => {
@@ -130,6 +228,17 @@ const Navbar = () => {
     }
   };
 
+  const handleDeleteNotification = async (notif) => {
+    if (!notif?._id) return;
+    try {
+      await api.delete(`/notifications/${notif._id}`);
+      setNotifications(prev => prev.filter(n => n._id !== notif._id));
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Bildirim silinemedi. Lütfen tekrar deneyin.');
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
@@ -229,19 +338,7 @@ const Navbar = () => {
                         <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Hiç bildiriminiz yok.</div>
                       ) : (
                         notifications.map(n => (
-                          <Link 
-                            key={n._id} to={n.link || '#'}
-                            onClick={(event) => { event.preventDefault(); handleNotificationClick(n); }}
-                            style={{ 
-                              display: 'block', padding: '0.75rem 1rem', textDecoration: 'none',
-                              background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',
-                              borderLeft: n.isRead ? '3px solid transparent' : '3px solid var(--primary)',
-                              transition: 'background 0.2s'
-                            }}
-                          >
-                            <div style={{ fontSize: '0.85rem', color: 'white', marginBottom: '0.2rem' }}>{n.message}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(n.createdAt).toLocaleDateString('tr-TR')}</div>
-                          </Link>
+                          <NotificationItem key={n._id} notification={n} onOpen={handleNotificationClick} onDelete={handleDeleteNotification} />
                         ))
                       )}
                     </div>
@@ -321,18 +418,7 @@ const Navbar = () => {
                         <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Hiç bildiriminiz yok.</div>
                       ) : (
                         notifications.slice(0, 10).map(n => (
-                          <Link
-                            key={n._id} to={n.link || '#'}
-                            onClick={(event) => { event.preventDefault(); handleNotificationClick(n); }}
-                            style={{
-                              display: 'block', padding: '0.6rem 0.9rem', textDecoration: 'none',
-                              background: n.isRead ? 'transparent' : 'rgba(255, 107, 107, 0.05)',
-                              borderLeft: n.isRead ? '3px solid transparent' : '3px solid var(--primary)',
-                            }}
-                          >
-                            <div style={{ fontSize: '0.8rem', color: 'white', marginBottom: '0.15rem' }}>{n.message}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{new Date(n.createdAt).toLocaleDateString('tr-TR')}</div>
-                          </Link>
+                          <NotificationItem key={n._id} notification={n} onOpen={handleNotificationClick} onDelete={handleDeleteNotification} mobile />
                         ))
                       )}
                     </div>
