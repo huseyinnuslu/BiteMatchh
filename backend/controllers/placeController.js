@@ -7,7 +7,7 @@ const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 6;
+const RESTAURANT_RECOMMENDATION_VERSION = 7;
 const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
 const FOURSQUARE_API_VERSION = '2025-06-17';
 const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -155,7 +155,15 @@ const FOOD_VENUE_PROFILES = [
   { names: ['kumpir'], queries: ['kumpir'] },
   { names: ['kokorec'], queries: ['kokoreç', 'midye dolma'] },
   { names: ['balik ekmek'], queries: ['balık ekmek', 'balık restoranı'] },
-  { names: ['baklava'], queries: ['baklava', 'katmer', 'tatlıcı'], types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe'] },
+  {
+    names: ['baklava'],
+    queries: ['baklava', 'katmer', 'tatlıcı'],
+    types: ['shop:confectionery', 'shop:bakery', 'amenity:cafe'],
+    // Foursquare'da “baklava” araması, bazen sadece genel “Turkish Restaurant”
+    // kategorisindeki köfteci/kebapçıları da döndürebiliyor. Tatlı işletmesi
+    // olduğuna dair isim veya kategori izi zorunludur.
+    requiredTerms: ['baklava', 'katmer', 'tatli', 'tatlici', 'pastane', 'dessert', 'patisserie', 'confectionery', 'bakery', 'sweet shop'],
+  },
   { names: ['simit'], queries: ['simit', 'çay'], types: ['shop:bakery', 'amenity:cafe'] },
   { names: ['kore mutfagi'], queries: ['kore restoranı', 'korean restaurant', 'bibimbap'] },
   { names: ['dondurma'], queries: ['dondurma', 'gelato'], types: ['amenity:ice_cream', 'amenity:cafe', 'shop:confectionery'] },
