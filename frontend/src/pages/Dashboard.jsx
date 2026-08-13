@@ -56,17 +56,6 @@ const Dashboard = () => {
   const scrollStart = useRef(0);
   const didDrag     = useRef(false); // drag mi yoksa click mi?
 
-  const handleEventWheel = (event) => {
-    const rail = scrollRef.current;
-    if (!rail || rail.scrollWidth <= rail.clientWidth) return;
-    // Masaüstünde dikey fare tekerleği, yalnızca imleç etkinlik şeridindeyken
-    // doğal şekilde yatay kart akışına dönüşür. Sayfanın genel scroll'u etkilenmez.
-    const horizontalDelta = event.deltaX || event.deltaY;
-    if (!horizontalDelta) return;
-    event.preventDefault();
-    rail.scrollBy({ left: horizontalDelta, behavior: 'smooth' });
-  };
-
   const { createRoom, loading, getMyRooms, deleteRoom } = useContext(RoomContext);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -512,7 +501,6 @@ const Dashboard = () => {
               }}
               onMouseUp={()    => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
               onMouseLeave={()  => { isDragging.current = false; scrollRef.current.style.cursor = 'grab'; }}
-              onWheel={handleEventWheel}
             >
               {filteredEvents.length === 0 && !eventsLoading ? (
               <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem 0.25rem' }}>
