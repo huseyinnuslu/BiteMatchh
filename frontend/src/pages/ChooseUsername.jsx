@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._]{3,15}$/;
@@ -7,6 +7,7 @@ const USERNAME_PATTERN = /^[a-zA-Z0-9._]{3,15}$/;
 const ChooseUsername = () => {
   const { user, completeUsernameOnboarding } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,7 +32,13 @@ const ChooseUsername = () => {
     setSubmitting(true);
     const result = await completeUsernameOnboarding(candidate);
     setSubmitting(false);
-    if (result.success) navigate('/dashboard', { replace: true });
+    if (result.success) {
+      const savedDestination = sessionStorage.getItem('bitematch_post_onboarding_path');
+      const destination = location.state?.from || savedDestination || '/dashboard';
+      sessionStorage.removeItem('bitematch_post_onboarding_path');
+      // Sadece uygulama içindeki rotalara dönüşe izin veriyoruz.
+      navigate(typeof destination === 'string' && destination.startsWith('/') ? destination : '/dashboard', { replace: true });
+    }
   };
 
   if (!user) return null;

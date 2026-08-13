@@ -23,7 +23,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={user.usernameOnboardingRequired ? "/choose-username" : "/dashboard"} replace />;
   }
 
   return children;

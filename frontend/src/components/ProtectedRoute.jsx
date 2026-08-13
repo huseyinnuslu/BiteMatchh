@@ -29,7 +29,8 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (user.usernameOnboardingRequired && location.pathname !== '/choose-username') {
-    return <Navigate to="/choose-username" replace />;
+    const destination = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/choose-username" state={{ from: destination }} replace />;
   }
 
   return children;

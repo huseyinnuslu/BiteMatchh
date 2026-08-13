@@ -20,7 +20,10 @@ const Register = () => {
   const { register, googleLogin } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const fromLocation = location.state?.from;
+  const from = fromLocation
+    ? `${fromLocation.pathname || '/dashboard'}${fromLocation.search || ''}${fromLocation.hash || ''}`
+    : '/dashboard';
 
   const validateUsername = (val) => {
     if (!val) return 'Kullanıcı adı boş bırakılamaz';
@@ -85,7 +88,14 @@ const Register = () => {
         });
         const userInfo = await userInfoRes.json();
         const result = await googleLogin(tokenResponse.access_token, userInfo);
-        if (result.success) navigate(result.requiresUsernameSetup ? '/choose-username' : from, { replace: true });
+        if (result.success) {
+          if (result.requiresUsernameSetup) {
+            sessionStorage.setItem('bitematch_post_onboarding_path', from);
+            navigate('/choose-username', { state: { from }, replace: true });
+          } else {
+            navigate(from, { replace: true });
+          }
+        }
       } catch {
         // hata AuthContext'te toast ile gösterilir
       } finally {
@@ -227,7 +237,7 @@ const Register = () => {
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)' }}>
           Zaten hesabın var mı?{' '}
-          <Link to="/login" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Giriş Yap</Link>
+          <Link to="/login" state={{ from: fromLocation }} style={{ color: 'var(--primary)', textDecoration: 'none' }}>Giriş Yap</Link>
         </p>
       </div>
     </div>
