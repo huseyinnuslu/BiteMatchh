@@ -126,7 +126,10 @@ const Room = () => {
       setChatMatchItem(null);
       setChatOpen(false);
       if (room) {
-        if (!room.participants.some((p) => (p._id || p) === user._id)) {
+        // API aynı kullanıcıyı bazen ObjectId, bazen string olarak döndürür.
+        // Referans eşitliği yerine değer eşitliği kullanılmazsa ikinci cihazda
+        // kullanıcı odada olmasına rağmen tekrar katılma isteği atılıyordu.
+        if (!room.participants.some((p) => String(p._id || p) === String(user._id))) {
           await joinRoom(id);
           if (disposed) return;
         }
