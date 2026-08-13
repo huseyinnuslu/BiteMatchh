@@ -31,6 +31,7 @@ const roomSchema = mongoose.Schema(
       mapsQuery: String,
       latitude: Number,
       longitude: Number,
+      maxGroupDistanceKm: Number,
       imageIsRepresentative: Boolean,
       imageAttribution: String,
       imageSourceUrl: String,

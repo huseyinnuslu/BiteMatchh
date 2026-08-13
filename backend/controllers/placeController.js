@@ -520,15 +520,25 @@ const recommendationForStorage = (venue) => ({
   verificationScore: venue.verificationScore,
 });
 
-const personalizeStoredRecommendations = (recommendations, requesterLocation) =>
+// Öneriler ortak kalır; uzaklık rozetleri ise her istekte o anki tüm grup
+// konumlarından yeniden hesaplanır. Böylece A kullanıcısının mesafesi B'nin
+// ekranında "grubun en uzağı" olarak görünemez.
+const personalizeStoredRecommendations = (recommendations, requesterLocation, groupLocations = []) =>
   recommendations.map((venue) => {
     const plainVenue = venue.toObject ? venue.toObject() : venue;
+    const hasVenueCoordinates = Number.isFinite(plainVenue.latitude) && Number.isFinite(plainVenue.longitude);
+    const memberDistances = hasVenueCoordinates
+      ? groupLocations.map((location) => haversineKm(location, plainVenue))
+      : [];
     return {
       ...plainVenue,
       id: plainVenue.venueId,
-      distanceFromYouKm: requesterLocation
+      distanceFromYouKm: requesterLocation && hasVenueCoordinates
         ? Number(haversineKm(requesterLocation, plainVenue).toFixed(1))
         : null,
+      maxGroupDistanceKm: memberDistances.length
+        ? Number(Math.max(...memberDistances).toFixed(1))
+        : (Number.isFinite(plainVenue.maxGroupDistanceKm) ? plainVenue.maxGroupDistanceKm : null),
     };
   });
 
@@ -652,7 +662,7 @@ export const getRestaurantRecommendations = async (req, res, next) => {
     }
     const latestRoom = await Room.findById(room._id).select('participants restaurantQuickVotes restaurantDecisionStatus restaurantDecisionResult');
     const requesterLocation = locations.find((item) => item.user.toString() === req.user._id.toString());
-    const recommendations = personalizeStoredRecommendations(storedRecommendations, requesterLocation);
+    const recommendations = personalizeStoredRecommendations(storedRecommendations, requesterLocation, locations);
 
     res.json({
       cuisine: room.matchResult.name,
@@ -880,6 +890,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         mapsQuery: `${venue.name} ${venue.address}`,
         latitude: venue.latitude,
         longitude: venue.longitude,
+        maxGroupDistanceKm: venue.maxGroupDistanceKm,
       })),
     });
 

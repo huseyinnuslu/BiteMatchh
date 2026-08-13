@@ -113,11 +113,12 @@ const hydrateRoomCardImages = async (room) => {
 
 const personalizeRestaurantDistances = async (room, userId) => {
   if (!['restaurant', 'cinema'].includes(room.category) || !room.parentRoom) return room;
-  const location = await LocationShare.findOne({
+  const locations = await LocationShare.find({
     room: room.parentRoom,
-    user: userId,
+    user: { $in: room.participants || [] },
     expiresAt: { $gt: new Date() },
   }).lean();
+  const location = locations.find((item) => item.user.toString() === userId.toString());
   if (!location) return room;
 
   return {
@@ -126,6 +127,9 @@ const personalizeRestaurantDistances = async (room, userId) => {
       ...option,
       distanceFromYouKm: Number.isFinite(option.latitude) && Number.isFinite(option.longitude)
         ? Number(haversineKm(location, option).toFixed(1))
+        : null,
+      maxGroupDistanceKm: Number.isFinite(option.latitude) && Number.isFinite(option.longitude) && locations.length
+        ? Number(Math.max(...locations.map((memberLocation) => haversineKm(memberLocation, option))).toFixed(1))
         : null,
     })),
   };

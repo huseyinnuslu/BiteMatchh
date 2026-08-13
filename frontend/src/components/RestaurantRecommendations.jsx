@@ -277,7 +277,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
               </div>
               <div style={{ display: 'flex', gap: '.45rem', flexWrap: 'wrap', marginTop: '.75rem' }}>
                 {currentPlace.distanceFromYouKm !== null && <span style={{ fontSize: '.75rem', color: '#bbf7d0', background: 'rgba(34,197,94,.12)', padding: '.25rem .5rem', borderRadius: 99 }}><Route size={12} style={{ verticalAlign: 'middle' }} /> Sana {currentPlace.distanceFromYouKm} km</span>}
-                <span style={{ fontSize: '.75rem', color: '#c4b5fd', background: 'rgba(99,102,241,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>Grubun en uzağı {currentPlace.maxGroupDistanceKm} km</span>
+                {Number.isFinite(currentPlace.maxGroupDistanceKm) && <span style={{ fontSize: '.75rem', color: '#c4b5fd', background: 'rgba(99,102,241,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>Grubun en uzağı {currentPlace.maxGroupDistanceKm} km</span>}
                 {isCinema && currentPlace.screenFormat && <span style={{ fontSize: '.75rem', color: '#fef3c7', background: 'rgba(245,158,11,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>{currentPlace.screenFormat}</span>}
               </div>
             </article>
