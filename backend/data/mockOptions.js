@@ -181,8 +181,8 @@ export const mockOptions = {
     {
       name: 'Wok & Noodle',
       mapsQuery: 'wok noodle restoranı',
-      // Önceki görsel "Cajun dirty rice" idi. Bu fotoğraf doğrudan stir-fry noodle gösterir.
-      imageUrl: 'https://unsplash.com/photos/cVqU6I87fjQ/download?force=true&w=1200',
+      // Tavuk, sebze, susam ve erişte içeren gerçek wok noodle tabağı.
+      imageUrl: 'https://static.sushiwok.ru/img//bb0f8e704c99d81022f83db8d9555066/1024x1024',
       budget: '₺₺',
       discoveryGroup: 'asian-noodle',
       venueConcept: 'Hızlı Asya mutfağı',

@@ -52,13 +52,13 @@ const hydrateRoomCardImages = async (room) => {
   const currentCardImages = new Map([...catalog.mekan, ...catalog.film, ...catalog.aktivite].map((item) => [item.name, item.imageUrl]));
   const hydrateCurrentCardImage = (card) => {
     const imageUrl = currentCardImages.get(card?.name);
-  return imageUrl ? { ...card, imageUrl } : card;
-};
+    return imageUrl ? { ...card, imageUrl } : card;
+  };
   return {
-  ...room,
-  options: (room.options || []).map(hydrateCurrentCardImage),
-  matchResult: room.matchResult ? hydrateCurrentCardImage(room.matchResult) : room.matchResult,
-  topOptions: (room.topOptions || []).map(hydrateCurrentCardImage),
+    ...room,
+    options: (room.options || []).map(hydrateCurrentCardImage),
+    matchResult: room.matchResult ? hydrateCurrentCardImage(room.matchResult) : room.matchResult,
+    topOptions: (room.topOptions || []).map(hydrateCurrentCardImage),
   };
 };
 

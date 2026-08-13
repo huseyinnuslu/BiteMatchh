@@ -9,6 +9,7 @@ const REFRESHED_FOOD_CARD_NAMES = new Set([
   'Mantı & Ev Yemekleri',
   'Mangal & Izgara',
   'Tatlı & Waffle',
+  'Wok & Noodle',
   'Köfte',
   'Lahmacun & Pide',
   'Kıymalı Pide',
