@@ -29,10 +29,14 @@ html, body {
   background-color: var(--background);
   color: var(--text-main);
   min-height: 100vh;
+  height: auto;
   overflow-x: hidden;
+  overflow-y: auto;
   max-width: 100%;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  /* Sayfanın dikey akışı fare tekerleği, trackpad ve klavye ile her
+     tarayıcıda doğal çalışmalı; scroll yalnızca mesaj ekranında izole edilir. */
+  overscroll-behavior-y: auto;
 }
 
 html {
