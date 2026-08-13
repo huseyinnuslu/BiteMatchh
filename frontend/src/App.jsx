@@ -20,6 +20,7 @@ import Terms from './pages/Terms';
 import Settings from './pages/Settings';
 import EmailChange from './pages/EmailChange';
 import Support from './pages/Support';
+import ChooseUsername from './pages/ChooseUsername';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { ToastContainer, toast } from 'react-toastify';
@@ -30,6 +31,7 @@ function App() {
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const isMessagesRoute = location.pathname === '/messages';
+  const isUsernameOnboardingRoute = location.pathname === '/choose-username';
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -127,14 +129,15 @@ function App() {
   // ──────────────────────────────────────────────────────────────────────────────
   return (
     <div className={`app-container${isMessagesRoute ? ' messages-route' : ''}`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', position: 'relative' }}>
-      <Navbar />
-      <div className="container" style={{ flex: 1, paddingBottom: isMobile ? (isMessagesRoute ? 0 : '6rem') : '3rem', width: '100%', boxSizing: 'border-box' }}>
+      {!isUsernameOnboardingRoute && <Navbar />}
+      <div className="container" style={{ flex: 1, paddingBottom: isUsernameOnboardingRoute ? 0 : (isMobile ? (isMessagesRoute ? 0 : '6rem') : '3rem'), width: '100%', boxSizing: 'border-box' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/choose-username" element={<ProtectedRoute><ChooseUsername /></ProtectedRoute>} />
           <Route 
             path="/dashboard" 
             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
@@ -171,7 +174,7 @@ function App() {
           />
         </Routes>
       </div>
-      {!isMessagesRoute && <Footer />}
+      {!isMessagesRoute && !isUsernameOnboardingRoute && <Footer />}
       <ToastContainer position="top-right" theme="dark" autoClose={3000} />
     </div>
   );

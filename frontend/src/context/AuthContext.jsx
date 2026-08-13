@@ -97,10 +97,28 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post('/auth/google-login', { accessToken, userInfo });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success(`Hoş geldin, ${data.name || data.username}! 🎉`);
-      return { success: true };
+      if (data.usernameOnboardingRequired) {
+        toast.info('Devam etmek için kullanıcı adını seç.');
+      } else {
+        toast.success(`Hoş geldin, ${data.name || data.username}! 🎉`);
+      }
+      return { success: true, requiresUsernameSetup: Boolean(data.usernameOnboardingRequired) };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Google girişi başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const completeUsernameOnboarding = async (username) => {
+    try {
+      const { data } = await api.post('/auth/complete-username', { username });
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success(`@${data.username} hazır. BiteMatch'e hoş geldin! 🎉`);
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Kullanıcı adı kaydedilemedi';
       toast.error(msg);
       return { success: false, message: msg };
     }
@@ -146,6 +164,7 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         resetPassword,
         googleLogin,
+        completeUsernameOnboarding,
         updateUser,
       }}
     >

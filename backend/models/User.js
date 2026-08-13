@@ -20,6 +20,13 @@ const userSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Google ile ilk kez kayıt olan kullanıcı, uygulamayı kullanmadan önce
+    // kendi kullanıcı adını belirlemelidir. Geçici sistem adı asla kullanıcıya
+    // ait bir kullanıcı adı olarak kabul edilmez.
+    usernameOnboardingRequired: {
+      type: Boolean,
+      default: false,
+    },
     welcomeEmailSentAt: {
       type: Date,
       default: null,

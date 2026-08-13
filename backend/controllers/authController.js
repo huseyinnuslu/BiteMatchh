@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { resolve4 } from 'node:dns/promises';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
@@ -630,6 +630,64 @@ export const updateUserProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Google ile ilk kayıttan sonra kullanıcı adı belirle
+// @route   POST /api/auth/complete-username
+// @access  Private
+export const completeUsernameOnboarding = async (req, res, next) => {
+  try {
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+    const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
+
+    if (!usernameRegex.test(username)) {
+      res.status(400);
+      throw new Error('Kullanıcı adı 3-15 karakter olmalı; yalnızca harf, rakam, alt çizgi ve nokta içerebilir.');
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error('Kullanıcı bulunamadı');
+    }
+
+    if (!user.usernameOnboardingRequired) {
+      res.status(409);
+      throw new Error('Kullanıcı adın zaten oluşturulmuş. Değişiklik için profil ayarlarını kullan.');
+    }
+
+    const existingUsername = await User.findOne({
+      _id: { $ne: user._id },
+      $expr: { $eq: [{ $toLower: '$username' }, username.toLowerCase()] },
+    }).select('_id').lean();
+
+    if (existingUsername) {
+      res.status(409);
+      throw new Error('Bu kullanıcı adı zaten alınmış. Lütfen başka bir ad deneyin.');
+    }
+
+    user.username = username;
+    user.usernameOnboardingRequired = false;
+    // İlk seçim, 7 günlük kullanıcı adı değiştirme sınırını başlatmaz.
+    user.usernameChangedAt = null;
+    await user.save();
+
+    // Hoş geldin e-postası seçilmiş kullanıcı adıyla gönderilir.
+    void sendWelcomeEmailIfNeeded(user);
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      profilePic: user.profilePic,
+      usernameOnboardingRequired: false,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const requestEmailChange = async (req, res, next) => {
   try {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
@@ -932,7 +990,9 @@ export const googleLogin = async (req, res, next) => {
     if (user) {
       // İlk kayıt denemesinde e-posta gönderilemediyse, Google ile sonraki girişte tekrar dener.
       // Bu işlem giriş ekranını asla bekletmez.
-      void sendWelcomeEmailIfNeeded(user);
+      if (!user.usernameOnboardingRequired) {
+        void sendWelcomeEmailIfNeeded(user);
+      }
 
       // ── Mevcut kullanıcı: direkt JWT ver
       return res.json({
@@ -941,23 +1001,18 @@ export const googleLogin = async (req, res, next) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        usernameOnboardingRequired: Boolean(user.usernameOnboardingRequired),
         token: generateToken(user._id),
       });
     }
 
-    // ── Yeni kullanıcı: Google bilgileriyle kayıt oluştur
-    let baseUsername = (name || email.split('@')[0])
-      .toLowerCase()
-      .replace(/[^a-z0-9._]/g, '_')
-      .slice(0, 12);
-
-    // Benzersizlik kontrolü – çakışırsa sonuna sayı ekle
-    let username = baseUsername;
-    let suffix = 1;
-    while (await User.findOne({ username })) {
-      username = `${baseUsername}${suffix}`;
-      suffix++;
-    }
+    // ── Yeni kullanıcı: sistem için geçici, görünmeyen benzersiz ad üret.
+    // Google adını dönüştürmüyoruz; Türkçe karakterlerin "_" olması sorunu
+    // böylece tamamen ortadan kalkıyor. Kullanıcı devam etmeden kendi adını seçer.
+    let username;
+    do {
+      username = `google_${randomBytes(4).toString('hex')}`;
+    } while (await User.exists({ username }));
 
     // Google ile kayıt olan kullanıcılar için rastgele güçlü şifre
     // (kullanıcı bu şifreyi bilmez; giriş sadece Google ile yapılır)
@@ -970,10 +1025,8 @@ export const googleLogin = async (req, res, next) => {
       email,
       password: randomPassword,
       role: 'Host',
+      usernameOnboardingRequired: true,
     });
-
-    // E-posta teslimatı Google girişini bekletmemeli.
-    void sendWelcomeEmailIfNeeded(user);
 
     res.status(201).json({
       _id: user._id,
@@ -981,6 +1034,7 @@ export const googleLogin = async (req, res, next) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      usernameOnboardingRequired: true,
       token: generateToken(user._id),
     });
   } catch (error) {

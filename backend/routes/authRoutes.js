@@ -4,6 +4,7 @@ import {
   loginUser,
   guestLogin,
   updateUserProfile,
+  completeUsernameOnboarding,
   forgotPassword,
   resetPassword,
   googleLogin,
@@ -24,6 +25,7 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
+router.post('/complete-username', protect, completeUsernameOnboarding);
 router.post('/email-change/request', protect, requestEmailChange);
 router.post('/email-change/confirm', protect, confirmEmailChange);
 router.post('/account/delete/request', protect, requestAccountDeletion);

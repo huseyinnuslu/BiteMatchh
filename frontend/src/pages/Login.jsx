@@ -36,7 +36,7 @@ const Login = () => {
 
         // Backend'e email ve name gönder (idToken yerine access_token flow)
         const result = await googleLogin(tokenResponse.access_token, userInfo);
-        if (result.success) navigate(from, { replace: true });
+        if (result.success) navigate(result.requiresUsernameSetup ? '/choose-username' : from, { replace: true });
       } catch {
         // hata AuthContext'te toast ile gösterilir
       } finally {

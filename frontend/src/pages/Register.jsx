@@ -85,7 +85,7 @@ const Register = () => {
         });
         const userInfo = await userInfoRes.json();
         const result = await googleLogin(tokenResponse.access_token, userInfo);
-        if (result.success) navigate(from, { replace: true });
+        if (result.success) navigate(result.requiresUsernameSetup ? '/choose-username' : from, { replace: true });
       } catch {
         // hata AuthContext'te toast ile gösterilir
       } finally {
