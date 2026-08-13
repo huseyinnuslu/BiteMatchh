@@ -8,6 +8,20 @@ import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
+import { preloadImages } from '../utils/imageCache';
+
+const LIVE_EVENTS_CACHE_KEY = 'bitematch-live-events-v1';
+const LIVE_EVENTS_CACHE_TTL_MS = 10 * 60 * 1000;
+
+const getCachedLiveEvents = () => {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(LIVE_EVENTS_CACHE_KEY) || 'null');
+    if (!cached || !Array.isArray(cached.events) || Date.now() - cached.savedAt > LIVE_EVENTS_CACHE_TTL_MS) return [];
+    return cached.events;
+  } catch {
+    return [];
+  }
+};
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
@@ -118,16 +132,31 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const rooms = await getMyRooms();
-      setMyRooms(rooms);
-      try {
-        const { data } = await api.get('/events/live');
-        setLiveEvents(data);
-      } catch {
-        setLiveEvents([]);
-      } finally {
+      // Aynı oturumda Keşfet'e dönüldüğünde kartlar ağ yanıtını beklemeden
+      // görünür; canlı veri arka planda yine yenilenir.
+      const cachedEvents = getCachedLiveEvents();
+      if (cachedEvents.length) {
+        setLiveEvents(cachedEvents);
         setEventsLoading(false);
+        preloadImages(cachedEvents.map((event) => event.imageUrl));
       }
+
+      // Oda listesi etkinlik isteğini bekletmesin. İki bağımsız kaynağı
+      // paralel getirir; böylece Yaklaşan Etkinlikler daha erken görünür.
+      const roomsRequest = getMyRooms().then(setMyRooms).catch(() => setMyRooms([]));
+      const eventsRequest = api.get('/events/live')
+        .then(({ data }) => {
+          const events = Array.isArray(data) ? data : [];
+          setLiveEvents(events);
+          sessionStorage.setItem(LIVE_EVENTS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), events }));
+          // İlk ekranda görünen kartların görsellerini DOM'a koymadan önce
+          // tarayıcı belleğine hazırlarız. Sonraki yatay kartlar da arka planda
+          // yüklendiğinden kartların görseli sonradan düşmez.
+          preloadImages(events.map((event) => event.imageUrl));
+        })
+        .catch(() => setLiveEvents([]))
+        .finally(() => setEventsLoading(false));
+      await Promise.allSettled([roomsRequest, eventsRequest]);
     };
     fetchAll();
   }, []);
@@ -536,12 +565,19 @@ const Dashboard = () => {
                   {/* Görsel arka plan */}
                   <div style={{
                     position: 'absolute', inset: 0,
-                    backgroundImage: ev.imageUrl
-                      ? `url(${ev.imageUrl})`
-                      : 'linear-gradient(135deg, #1e1b4b, #312e81)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'top center',
-                  }} />
+                    background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+                  }}>
+                    {ev.imageUrl && (
+                      <img
+                        src={ev.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        loading={i < 3 ? 'eager' : 'lazy'}
+                        fetchPriority={i < 3 ? 'high' : 'auto'}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
+                      />
+                    )}
+                  </div>
 
                   {/* Gradient overlay — altta okunabilir text için */}
                   <div style={{
