@@ -13,6 +13,7 @@ import RestaurantRecommendations from '../components/RestaurantRecommendations';
 import { connectSocket, getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
 import api from '../api';
+import { preloadImages } from '../utils/imageCache';
 
 const Room = () => {
   const { id } = useParams();
@@ -26,6 +27,13 @@ const Room = () => {
   useEffect(() => {
     roomRef.current = currentRoom;
   }, [currentRoom]);
+
+  // Oy başlamadan kart görsellerini arka planda hazırla. Kullanıcı kaydırınca
+  // kart zaten tarayıcı belleğinde olduğundan "Görsel hazırlanıyor" görmez.
+  useEffect(() => {
+    if (!currentRoom?.options?.length) return;
+    preloadImages(currentRoom.options.flatMap((option) => [option.imageUrl, option.fallbackImageUrl]));
+  }, [currentRoom?._id, currentRoom?.options]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);

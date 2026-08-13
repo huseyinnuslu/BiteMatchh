@@ -80,7 +80,12 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // ─── Statik Klasör (Uploads) ────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  // Dosya adı yüklendiğinde değiştiği için uzun önbellek güvenlidir; avatar
+  // endpoint'i ise sürümlü URL ile kendi önbellek başlığını döndürür.
+  maxAge: '7d',
+  immutable: true,
+}));
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 // Oda durumu ve bildirimler istemcide düzenli yenilendiği için 200 istek,

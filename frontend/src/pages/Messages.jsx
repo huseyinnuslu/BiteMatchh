@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import Avatar from '../components/Avatar';
+import { preloadImages } from '../utils/imageCache';
 
 /* ─── Yardımcılar ─────────────────────────────────────────────────────────── */
 
@@ -365,8 +366,8 @@ const Messages = () => {
   /* ─── Veri yükle ── */
   useEffect(() => {
     Promise.all([
-      api.get('/messages/conversations').then(({ data }) => setConversations(data)).catch(() => {}),
-      api.get('/users/friends').then(({ data }) => setFriends(data)).catch(() => {}),
+      api.get('/messages/conversations').then(({ data }) => { setConversations(data); preloadImages(data.map((item) => item.user?.profilePic)); }).catch(() => {}),
+      api.get('/users/friends').then(({ data }) => { setFriends(data); preloadImages(data.map((item) => item.profilePic)); }).catch(() => {}),
       api.get('/users/blocked').then(({ data }) => {
         setBlockedIds(new Set(data.map(b => b._id?.toString())));
         setBlockedUsers(data);

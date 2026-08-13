@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2, H
 import { toast } from 'react-toastify';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
+import { preloadImages, resolveAssetUrl } from '../utils/imageCache';
 
 const MatchHistory = () => {
   const { user } = useContext(AuthContext);
@@ -21,6 +22,7 @@ const MatchHistory = () => {
       try {
         const { data } = await api.get('/rooms/history');
         setMatches(data);
+        preloadImages(data.flatMap((room) => [room.matchResult?.imageUrl, room.matchResult?.fallbackImageUrl]));
       } catch (err) {
         console.error('Eşleşme geçmişi yüklenirken hata oluştu:', err);
       } finally {
@@ -230,8 +232,10 @@ const MatchHistory = () => {
                 }}>
                   {winner?.imageUrl ? (
                     <img 
-                      src={winner.imageUrl} 
+                      src={resolveAssetUrl(winner.imageUrl)}
                       alt={winner.name} 
+                      loading="eager"
+                      decoding="async"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (

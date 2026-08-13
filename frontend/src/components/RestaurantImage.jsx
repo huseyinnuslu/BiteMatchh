@@ -1,44 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getImageStatus, preloadImage, resolveAssetUrl } from '../utils/imageCache';
 
 const LOCAL_RESTAURANT_FALLBACK = '/restaurant-placeholder.svg';
 
-const RestaurantImage = ({ item, alt, containerStyle, imageStyle, badgeStyle }) => {
-  const [src, setSrc] = useState(item?.imageUrl || item?.fallbackImageUrl || '');
-  const [isRepresentative, setIsRepresentative] = useState(!!item?.imageIsRepresentative);
-  const [loaded, setLoaded] = useState(false);
+const RestaurantImage = ({ item, alt, containerStyle, imageStyle }) => {
+  const primaryUrl = useMemo(() => resolveAssetUrl(item?.imageUrl || item?.fallbackImageUrl || ''), [item?.imageUrl, item?.fallbackImageUrl]);
+  const fallbackUrl = useMemo(() => resolveAssetUrl(item?.fallbackImageUrl || LOCAL_RESTAURANT_FALLBACK), [item?.fallbackImageUrl]);
+  const localFallbackUrl = useMemo(() => resolveAssetUrl(LOCAL_RESTAURANT_FALLBACK), []);
+  const [src, setSrc] = useState(primaryUrl);
+  const [loaded, setLoaded] = useState(() => getImageStatus(primaryUrl) === 'loaded');
 
   useEffect(() => {
-    if (!src || loaded || src === LOCAL_RESTAURANT_FALLBACK) return undefined;
-    const timeout = window.setTimeout(() => {
-      setSrc(LOCAL_RESTAURANT_FALLBACK);
-      setIsRepresentative(true);
-    }, 8000);
-    return () => window.clearTimeout(timeout);
-  }, [src, loaded]);
+    setSrc(primaryUrl);
+    setLoaded(getImageStatus(primaryUrl) === 'loaded');
+  }, [primaryUrl]);
 
-  if (!src) return null;
-
-  const handleError = () => {
-    if (!isRepresentative && item?.fallbackImageUrl && src !== item.fallbackImageUrl) {
-      setSrc(item.fallbackImageUrl);
-      setIsRepresentative(true);
-      setLoaded(false);
-      return;
-    }
-    if (src !== LOCAL_RESTAURANT_FALLBACK) {
-      setSrc(LOCAL_RESTAURANT_FALLBACK);
-      setIsRepresentative(true);
-      setLoaded(false);
-      return;
-    }
+  const moveToFallback = () => {
+    if (src !== fallbackUrl) { setSrc(fallbackUrl); setLoaded(getImageStatus(fallbackUrl) === 'loaded'); return; }
+    if (src !== localFallbackUrl) { setSrc(localFallbackUrl); setLoaded(getImageStatus(localFallbackUrl) === 'loaded'); return; }
     setSrc('');
   };
 
-  return (
-    <div style={{ overflow: 'hidden', position: 'relative', ...containerStyle }}>
-      <img src={src} alt={alt} onLoad={() => setLoaded(true)} onError={handleError} style={{ width: '100%', height: '100%', objectFit: 'cover', ...imageStyle }} />
-    </div>
-  );
+  useEffect(() => {
+    if (!src) return undefined;
+    let active = true;
+    preloadImage(src).then((nextStatus) => {
+      if (!active) return;
+      if (nextStatus === 'loaded') setLoaded(true);
+      else moveToFallback();
+    });
+    return () => { active = false; };
+  // A source update must start a fresh preload; fallback handling deliberately uses latest src.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+
+  if (!src) return null;
+  return <div style={{ overflow: 'hidden', position: 'relative', background: 'var(--surface)', ...containerStyle }}><img src={src} alt={alt} loading="eager" fetchPriority="high" decoding="async" onLoad={() => setLoaded(true)} onError={moveToFallback} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: loaded ? 1 : 0, transition: 'opacity .14s ease', ...imageStyle }} /></div>;
 };
 
 export default RestaurantImage;
