@@ -203,7 +203,7 @@ export const curatedCatalogAdditions = {
       description: 'Elizabeth Bennet ve Bay Darcy’nin önyargılarla başlayan zamansız aşk hikâyesi.',
     },
     {
-      name: 'Arcane', imageUrl: 'https://images.unsplash.com/photo-1519608487953-e999c86e745b?w=1200&q=85',
+      name: 'Arcane', imageUrl: 'https://images.unsplash.com/photo-1596897818476-aaeb420b0fa9?w=1200&q=85&fm=jpg',
       imdbScore: 9.0, duration: '41 dk', platform: 'Netflix', discoveryGroup: 'animated-fantasy', visualLabel: 'Temsili fantastik şehir görseli',
       description: 'Piltover ve Zaun’un iki zıt dünyasında geçen, güçlü görsel diliyle öne çıkan animasyon dizisi.',
     },

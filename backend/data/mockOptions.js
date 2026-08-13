@@ -50,7 +50,7 @@ export const mockOptions = {
       name: 'Tantuni',
       mapsQuery: 'tantuni restoranı',
       // Unsplash'ta doğrudan “Turkish Street food. A meat durum called Tantuni” olarak etiketlenmiş fotoğraf.
-      imageUrl: 'https://unsplash.com/photos/0bEl03R6jVY/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1565560665129-4831aa15206c?w=1200&q=85&fm=jpg',
       budget: '₺',
       description: 'İnce kıyma, lavaş, domates, maydanoz ve bol sumak. Hızlı ve lezzetli sokak yemeği.'
     },
@@ -58,7 +58,7 @@ export const mockOptions = {
       name: 'Döner',
       mapsQuery: 'döner restoranı',
       // Dönerin dikey şişte pişmesini gösteren, başlıkla birebir eşleşen fotoğraf.
-      imageUrl: 'https://unsplash.com/photos/9Lsxip60s20/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1756362847925-71c792d6729c?w=1200&q=85&fm=jpg',
       budget: '₺',
       description: 'Çıtır ekmek, bol et, közlenmiş sebze. Türkiye\'nin en sevilen fast food klasiği.'
     },
@@ -94,14 +94,14 @@ export const mockOptions = {
     {
       name: 'Ramen & Asya Mutfağı',
       mapsQuery: 'ramen Asya mutfağı restoranı',
-      imageUrl: 'https://unsplash.com/photos/qom5MPOER-I/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=1200&q=85&fm=jpg',
       budget: '₺₺',
       description: 'Sıcak et suyunda el yapımı noodle, marine yumurta ve zengin umami lezzeti.'
     },
     {
       name: 'Serpme Kahvaltı',
       mapsQuery: 'serpme kahvaltı',
-      imageUrl: 'https://unsplash.com/photos/2zvJVYujXVk/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1768319920501-2d124ccfd8dc?w=1200&q=85&fm=jpg',
       budget: '₺₺',
       description: 'Bal, kaymak, peynir çeşitleri, zeytin, sıcak pişi ve demlik çay. Bol çeşitli serpme kahvaltı.'
     },
@@ -129,7 +129,7 @@ export const mockOptions = {
     {
       name: 'Makarna & İtalyan',
       mapsQuery: 'İtalyan makarna restoranı',
-      imageUrl: 'https://unsplash.com/photos/971_E-LvZuc/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1662197480393-2a82030b7b83?w=1200&q=85&fm=jpg',
       budget: '₺₺',
       description: 'El yapımı taze makarna, carbonara, risotto. Otantik İtalyan lezzeti şehirde.'
     },
@@ -154,7 +154,7 @@ export const mockOptions = {
     {
       name: 'Tavuk Kanat & Çıtır Tavuk',
       mapsQuery: 'tavuk kanat restoranı',
-      imageUrl: 'https://unsplash.com/photos/gE28aTnlqJA/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=1200&q=85&fm=jpg',
       budget: '₺₺',
       discoveryGroup: 'chicken',
       venueConcept: 'Casual dining',
@@ -485,7 +485,7 @@ export const mockOptions = {
       name: 'Seramik Atölyesi',
       mapsQuery: 'seramik atölyesi',
       // Unsplash başlığı: “Messy hands sculpting on a pottery wheel in motion”.
-      imageUrl: 'https://unsplash.com/photos/xEy9QNUCdRI/download?force=true&w=1200',
+      imageUrl: 'https://images.unsplash.com/photo-1468322638156-074863f9362e?w=1200&q=85&fm=jpg',
       budget: '₺₺',
       discoveryGroup: 'workshop',
       venueConcept: 'Yaratıcı atölye',
