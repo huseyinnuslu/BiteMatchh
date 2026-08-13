@@ -8,6 +8,9 @@ const locationShareSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
+    // Tarayıcının metre cinsinden ölçüm belirsizliği. IP/Wi-Fi tahminiyle
+    // kilometrelerce kaymış bir konumu gerçek restoran önerisine sokmayız.
+    accuracy: { type: Number, required: true },
     expiresAt: { type: Date, required: true },
   },
   { timestamps: true }

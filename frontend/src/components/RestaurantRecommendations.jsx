@@ -12,9 +12,11 @@ const getCurrentPosition = () => new Promise((resolve, reject) => {
     return;
   }
   navigator.geolocation.getCurrentPosition(resolve, reject, {
-    enableHighAccuracy: false,
+    // "Yaklaşık konum" restoran mesafesini kilometrelerce kaydırabilir.
+    // Yeni ve yüksek hassasiyetli GPS/Wi-Fi ölçümü isteriz.
+    enableHighAccuracy: true,
     timeout: 12000,
-    maximumAge: 5 * 60 * 1000,
+    maximumAge: 0,
   });
 });
 
@@ -158,6 +160,7 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
       const { data } = await api.post(`/places/rooms/${roomId}/location`, {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
       });
       setHasSharedLocation(true);
       setSharedCount(data.sharedCount || 0);
@@ -276,8 +279,8 @@ const RestaurantRecommendations = ({ roomId, cuisine, participantCount, venueKin
                 <a href={currentPlace.mapsUrl} target="_blank" rel="noreferrer" title="Haritada aç" style={{ alignSelf: 'center', color: '#93c5fd', padding: '.5rem' }}><Navigation size={20} /></a>
               </div>
               <div style={{ display: 'flex', gap: '.45rem', flexWrap: 'wrap', marginTop: '.75rem' }}>
-                {currentPlace.distanceFromYouKm !== null && <span style={{ fontSize: '.75rem', color: '#bbf7d0', background: 'rgba(34,197,94,.12)', padding: '.25rem .5rem', borderRadius: 99 }}><Route size={12} style={{ verticalAlign: 'middle' }} /> Sana {currentPlace.distanceFromYouKm} km</span>}
-                {Number.isFinite(currentPlace.maxGroupDistanceKm) && <span style={{ fontSize: '.75rem', color: '#c4b5fd', background: 'rgba(99,102,241,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>Grubun en uzağı {currentPlace.maxGroupDistanceKm} km</span>}
+                {currentPlace.distanceFromYouKm !== null && <span title="Konumlardan hesaplanan kuş uçuşu mesafe" style={{ fontSize: '.75rem', color: '#bbf7d0', background: 'rgba(34,197,94,.12)', padding: '.25rem .5rem', borderRadius: 99 }}><Route size={12} style={{ verticalAlign: 'middle' }} /> Sana {currentPlace.distanceFromYouKm} km</span>}
+                {Number.isFinite(currentPlace.maxGroupDistanceKm) && <span title="Aynı konum anlık görüntüsündeki en yüksek kuş uçuşu mesafe" style={{ fontSize: '.75rem', color: '#c4b5fd', background: 'rgba(99,102,241,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>Grubun en uzağı {currentPlace.maxGroupDistanceKm} km</span>}
                 {isCinema && currentPlace.screenFormat && <span style={{ fontSize: '.75rem', color: '#fef3c7', background: 'rgba(245,158,11,.14)', padding: '.25rem .5rem', borderRadius: 99 }}>{currentPlace.screenFormat}</span>}
               </div>
             </article>

@@ -7,7 +7,7 @@ const LOCATION_TTL_MS = 15 * 60 * 1000;
 const EARTH_RADIUS_KM = 6371;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 7;
+const RESTAURANT_RECOMMENDATION_VERSION = 8;
 const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
 const FOURSQUARE_API_VERSION = '2025-06-17';
 const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -528,25 +528,22 @@ const recommendationForStorage = (venue) => ({
   verificationScore: venue.verificationScore,
 });
 
-// Öneriler ortak kalır; uzaklık rozetleri ise her istekte o anki tüm grup
-// konumlarından yeniden hesaplanır. Böylece A kullanıcısının mesafesi B'nin
-// ekranında "grubun en uzağı" olarak görünemez.
+// Öneriler hazırlanırken kullanılan grup konumu tek bir anlık görüntüdür.
+// "Grubun en uzağı" aynı anlık görüntüden hesaplanıp önerinin üzerinde
+// saklanır; iki kullanıcının farklı anda yaptığı isteklerde değişmez.
 const personalizeStoredRecommendations = (recommendations, requesterLocation, groupLocations = []) =>
   recommendations.map((venue) => {
     const plainVenue = venue.toObject ? venue.toObject() : venue;
     const hasVenueCoordinates = Number.isFinite(plainVenue.latitude) && Number.isFinite(plainVenue.longitude);
-    const memberDistances = hasVenueCoordinates
-      ? groupLocations.map((location) => haversineKm(location, plainVenue))
-      : [];
     return {
       ...plainVenue,
       id: plainVenue.venueId,
       distanceFromYouKm: requesterLocation && hasVenueCoordinates
         ? Number(haversineKm(requesterLocation, plainVenue).toFixed(1))
         : null,
-      maxGroupDistanceKm: memberDistances.length
-        ? Number(Math.max(...memberDistances).toFixed(1))
-        : (Number.isFinite(plainVenue.maxGroupDistanceKm) ? plainVenue.maxGroupDistanceKm : null),
+      maxGroupDistanceKm: Number.isFinite(plainVenue.maxGroupDistanceKm)
+        ? plainVenue.maxGroupDistanceKm
+        : null,
     };
   });
 
@@ -631,15 +628,22 @@ export const shareRecommendationLocation = async (req, res, next) => {
     const room = await getEligibleRoom(req.params.id, req.user._id);
     const latitude = parseCoordinate(req.body.latitude, -90, 90);
     const longitude = parseCoordinate(req.body.longitude, -180, 180);
+    const accuracy = Number(req.body.accuracy);
     if (latitude === null || longitude === null) { res.status(400); throw new Error('Geçerli bir konum bilgisi gerekli'); }
+    if (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 500) {
+      res.status(422);
+      throw new Error('Konum yeterince hassas alınamadı. Daha doğru konum için GPS/Wi‑Fi açıkken tekrar dene.');
+    }
 
-    // Yaklaşık 11 metre hassasiyet öneri için yeterlidir; gereksiz hassas veriyi tutmayız.
+    // Yaklaşık 11 metre koordinat hassasiyeti öneri için yeterlidir; doğruluk
+    // bilgisiyle birlikte kısa süreli tutulur, böylece kilometrelerce kayan
+    // ağ/IP tahminleri restoran mesafelerine yansımaz.
     await LocationShare.findOneAndUpdate(
       { room: room._id, user: req.user._id },
-      { latitude: Number(latitude.toFixed(4)), longitude: Number(longitude.toFixed(4)), expiresAt: new Date(Date.now() + LOCATION_TTL_MS) },
+      { latitude: Number(latitude.toFixed(4)), longitude: Number(longitude.toFixed(4)), accuracy: Number(accuracy.toFixed(0)), expiresAt: new Date(Date.now() + LOCATION_TTL_MS) },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    const sharedCount = await LocationShare.countDocuments({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() } });
+    const sharedCount = await LocationShare.countDocuments({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: 500 } });
     const payload = { roomId: room._id.toString(), sharedCount, participantCount: room.participants.length };
     getIo()?.to(room._id.toString()).emit('recommendation_location_updated', payload);
     res.json({ ...payload, ready: sharedCount >= room.participants.length });
@@ -653,7 +657,7 @@ export const shareRecommendationLocation = async (req, res, next) => {
 export const getRestaurantRecommendations = async (req, res, next) => {
   try {
     const room = await getEligibleRoom(req.params.id, req.user._id);
-    const locations = await LocationShare.find({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() } }).lean();
+    const locations = await LocationShare.find({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: 500 } }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor', sharedCount: locations.length, participantCount: room.participants.length });
     }
@@ -699,6 +703,7 @@ export const submitRestaurantQuickVote = async (req, res, next) => {
       room: room._id,
       user: { $in: room.participants },
       expiresAt: { $gt: new Date() },
+      accuracy: { $lte: 500 },
     }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor' });
@@ -812,6 +817,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       room: room._id,
       user: { $in: room.participants },
       expiresAt: { $gt: new Date() },
+      accuracy: { $lte: 500 },
     }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({
