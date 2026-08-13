@@ -79,6 +79,10 @@ export const recordSwipe = async (req, res, next) => {
           status: 'finished',
           matchResult,
         });
+        await User.updateMany(
+          { _id: { $in: room.participants }, activeRoom: room._id },
+          { $set: { activeRoom: null } }
+        );
 
         getIo()?.to(roomId.toString()).emit('match_success', { itemId: optionId });
 

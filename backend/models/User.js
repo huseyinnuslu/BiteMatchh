@@ -60,6 +60,15 @@ const userSchema = mongoose.Schema(
       default: '',
     },
 
+    // Kullanıcının aynı anda yalnızca bir ana eşleşme odasında kalmasını sağlar.
+    // Bu alan, oda yaratma/katılma yarışlarında backend tarafındaki atomik kilittir.
+    activeRoom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room',
+      default: null,
+      index: true,
+    },
+
     // ── Takipçi ve Takip Edilenler ─────────────────────────────────────────
     followers: [
       {

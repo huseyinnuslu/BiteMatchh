@@ -7,9 +7,58 @@ import { sendPushToUser } from '../utils/webPush.js';
 import Notification from '../models/Notification.js';
 import { getIo } from '../server.js';
 import LocationShare from '../models/LocationShare.js';
+import User from '../models/User.js';
+import mongoose from 'mongoose';
 
 const EARTH_RADIUS_KM = 6371;
 const STREAMING_PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'];
+
+const ACTIVE_ROOM_STATUSES = ['waiting', 'voting'];
+
+const clearActiveRoom = (userIds, roomId) => User.updateMany(
+  { _id: { $in: userIds }, activeRoom: roomId },
+  { $set: { activeRoom: null } }
+);
+
+// Aynı hesabın iki cihazdan iki ayrı odaya girmesini UI'ye değil, atomik DB
+// güncellemesine bağlayarak engeller. Eski/biten oda kilitleri otomatik temizlenir.
+const claimActiveRoom = async (userId, roomId) => {
+  const user = await User.findById(userId).select('activeRoom').lean();
+  if (!user?.activeRoom) {
+    // Bu alan eklenmeden önce oluşturulmuş aktif odaları da ilk istekte yakalar.
+    const legacyActiveRoom = await Room.findOne({
+      participants: userId,
+      status: { $in: ACTIVE_ROOM_STATUSES },
+      _id: { $ne: roomId },
+    }).select('_id name').sort({ updatedAt: -1 }).lean();
+    if (legacyActiveRoom) {
+      await User.updateOne({ _id: userId, activeRoom: null }, { $set: { activeRoom: legacyActiveRoom._id } });
+      const error = new Error(`Şu anda “${legacyActiveRoom.name}” odasındasın. Yeni bir odaya katılmadan önce odadan çıkmalısın.`);
+      error.statusCode = 409;
+      throw error;
+    }
+  }
+  if (user?.activeRoom && String(user.activeRoom) !== String(roomId)) {
+    const lockedRoom = await Room.findById(user.activeRoom).select('status name').lean();
+    if (lockedRoom && ACTIVE_ROOM_STATUSES.includes(lockedRoom.status)) {
+      const error = new Error(`Şu anda “${lockedRoom.name}” odasındasın. Yeni bir odaya katılmadan önce odadan çıkmalısın.`);
+      error.statusCode = 409;
+      throw error;
+    }
+    await User.updateOne({ _id: userId, activeRoom: user.activeRoom }, { $set: { activeRoom: null } });
+  }
+
+  const claimed = await User.findOneAndUpdate(
+    { _id: userId, $or: [{ activeRoom: null }, { activeRoom: roomId }] },
+    { $set: { activeRoom: roomId } },
+    { new: true }
+  ).select('_id');
+  if (!claimed) {
+    const error = new Error('Bu hesap başka bir aktif odada. Önce o odadan çıkmalısın.');
+    error.statusCode = 409;
+    throw error;
+  }
+};
 
 const isStreamingFilmRoom = (room) => ['film', 'movie'].includes(room.category) && room.watchMode === 'streaming';
 const completedStreamingParticipantIds = (room) => new Set(
@@ -127,7 +176,12 @@ export const createRoom = async (req, res, next) => {
       roomOptions = selectDiverseOptions(sourcePool, count);
     }
 
-    const room = await Room.create({
+    const roomId = new mongoose.Types.ObjectId();
+    await claimActiveRoom(req.user._id, roomId);
+    let room;
+    try {
+      room = await Room.create({
+      _id: roomId,
       name,
       host: req.user._id,
       participants: [req.user._id],
@@ -144,10 +198,15 @@ export const createRoom = async (req, res, next) => {
       priceRange: activePriceRange,
       timeLimit: Number(timeLimit) || 0,
       status: 'waiting',
-    });
+      });
+    } catch (error) {
+      await clearActiveRoom([req.user._id], roomId);
+      throw error;
+    }
 
     res.status(201).json(sanitizeStreamingRoom(room, req.user._id));
   } catch (error) {
+    if (error.statusCode) res.status(error.statusCode);
     next(error);
   }
 };
@@ -257,6 +316,45 @@ export const getRoomById = async (req, res, next) => {
       participantStatuses,
     });
   } catch (error) {
+    if (error.statusCode) res.status(error.statusCode);
+    next(error);
+  }
+};
+
+// @desc    Aktif odadan ayrıl
+// @route   PUT /api/rooms/:id/leave
+// @access  Private
+export const leaveRoom = async (req, res, next) => {
+  try {
+    const room = await Room.findById(req.params.id).select('host participants status name');
+    if (!room) return res.status(404).json({ message: 'Oda bulunamadı.' });
+    if (!room.participants.some((participant) => String(participant) === String(req.user._id))) {
+      return res.status(403).json({ message: 'Bu odada değilsin.' });
+    }
+
+    if (String(room.host) === String(req.user._id)) {
+      // Kurucu ayrılırsa yarım kalmış grup oylaması güvenle kapanır; kimse
+      // sahipsiz bir bekleme/voting odasında kalmaz.
+      room.status = 'expired';
+      await room.save();
+      await clearActiveRoom(room.participants, room._id);
+      getIo()?.to(room._id.toString()).emit('room_expired', { roomId: room._id.toString() });
+      return res.json({ message: 'Odadan ayrıldın. Oda kapatıldı.', roomClosed: true });
+    }
+
+    room.participants = room.participants.filter((participant) => String(participant) !== String(req.user._id));
+    if (room.participants.length < 2 && ACTIVE_ROOM_STATUSES.includes(room.status)) {
+      room.status = 'expired';
+      await room.save();
+      await clearActiveRoom(room.participants, room._id);
+      getIo()?.to(room._id.toString()).emit('room_expired', { roomId: room._id.toString() });
+    } else {
+      await room.save();
+      getIo()?.to(room._id.toString()).emit('participant_left', { roomId: room._id.toString(), userId: req.user._id.toString() });
+    }
+    await clearActiveRoom([req.user._id], room._id);
+    res.json({ message: 'Odadan ayrıldın.', roomClosed: room.status === 'expired' });
+  } catch (error) {
     next(error);
   }
 };
@@ -283,11 +381,20 @@ export const joinRoom = async (req, res, next) => {
       throw new Error('Davet süresi doldu, odaya katılamazsınız.');
     }
 
-    const updatedRoom = await Room.findOneAndUpdate(
+    const isAlreadyParticipant = room.participants.some((participant) => String(participant) === String(req.user._id));
+    if (!isAlreadyParticipant) await claimActiveRoom(req.user._id, room._id);
+
+    let updatedRoom;
+    try {
+      updatedRoom = await Room.findOneAndUpdate(
       { _id: req.params.id },
       { $addToSet: { participants: req.user._id } }, // addToSet: zaten varsa eklemez
       { new: true }
-    ).populate('host', 'username').populate('participants', 'username');
+      ).populate('host', 'username').populate('participants', 'username');
+    } catch (error) {
+      if (!isAlreadyParticipant) await clearActiveRoom([req.user._id], room._id);
+      throw error;
+    }
 
     res.json(sanitizeStreamingRoom(updatedRoom, req.user._id));
   } catch (error) {
@@ -312,12 +419,14 @@ export const deleteRoom = async (req, res, next) => {
       await Promise.all([
         Room.deleteOne({ _id: room._id }),
         Swipe.deleteMany({ room: room._id }),
+        clearActiveRoom(room.participants, room._id),
       ]);
       res.json({ message: 'Oda başarıyla silindi' });
     } else if (room.participants.some(p => p.toString() === req.user._id.toString())) {
       // Katılımcı ise kendini katılımcılar listesinden çıkar (geçmişten silmek için)
       room.participants = room.participants.filter(p => p.toString() !== req.user._id.toString());
       await room.save();
+      await clearActiveRoom([req.user._id], room._id);
       res.json({ message: 'Oda geçmişinizden kaldırıldı' });
     } else {
       res.status(401);

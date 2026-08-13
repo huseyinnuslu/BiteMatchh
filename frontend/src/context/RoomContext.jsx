@@ -64,6 +64,19 @@ export const RoomProvider = ({ children }) => {
     }
   };
 
+  const leaveRoom = async (roomId) => {
+    try {
+      const { data } = await api.put(`/rooms/${roomId}/leave`);
+      setCurrentRoom(null);
+      setMatchResult(null);
+      return { success: true, ...data };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Odadan ayrılamadın';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
   const startRoom = async (roomId) => {
     try {
       const { data } = await api.put(`/rooms/${roomId}/start`);
@@ -108,7 +121,7 @@ export const RoomProvider = ({ children }) => {
   return (
     <RoomContext.Provider value={{ 
       currentRoom, setCurrentRoom, loading, matchResult, 
-      createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, startRoom, setMatchResult
+      createRoom, joinRoom, fetchRoomStatus, swipe, resetRoom, getMyRooms, deleteRoom, leaveRoom, startRoom, setMatchResult
     }}>
       {children}
     </RoomContext.Provider>

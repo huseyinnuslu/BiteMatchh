@@ -1,5 +1,6 @@
 import Room from '../models/Room.js';
 import Swipe from '../models/Swipe.js';
+import User from '../models/User.js';
 
 /**
  * Oylamayı bitirir, grup uyum yüzdesini ve en popüler 3 seçeneği hesaplar.
@@ -53,5 +54,9 @@ export const finishRoomCalculation = async (roomId) => {
   room.topOptions = topOptions;
   
   await room.save();
+  await User.updateMany(
+    { _id: { $in: room.participants }, activeRoom: room._id },
+    { $set: { activeRoom: null } }
+  );
   return room;
 };

@@ -1,4 +1,5 @@
 import Room from '../models/Room.js';
+import User from '../models/User.js';
 import LocationShare from '../models/LocationShare.js';
 import { getIo } from '../server.js';
 
@@ -881,6 +882,26 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         longitude: venue.longitude,
       })),
     });
+
+    // İkinci tur da gerçek bir aktif odadır. Ana tur bittiği anda oluşabilecek
+    // "başka cihazdan yeni oda" yarışını tüm katılımcılar için burada kapatırız.
+    const participantClaim = await User.updateMany(
+      {
+        _id: { $in: room.participants },
+        $or: [{ activeRoom: null }, { activeRoom: room._id }],
+      },
+      { $set: { activeRoom: candidateRoom._id } }
+    );
+    if (participantClaim.modifiedCount !== room.participants.length) {
+      await User.updateMany(
+        { activeRoom: candidateRoom._id },
+        { $set: { activeRoom: null } }
+      );
+      await Room.deleteOne({ _id: candidateRoom._id, status: 'voting' });
+      return res.status(409).json({
+        message: 'Katılımcılardan biri başka bir aktif odaya geçtiği için restoran oylaması başlatılamadı.',
+      });
+    }
 
     const claimedParent = await Room.findOneAndUpdate(
       { _id: room._id, restaurantRoom: null },

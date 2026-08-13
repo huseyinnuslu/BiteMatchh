@@ -18,7 +18,7 @@ const Room = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, resetRoom } =
+  const { currentRoom, setCurrentRoom, matchResult, fetchRoomStatus, swipe, joinRoom, leaveRoom, resetRoom } =
     useContext(RoomContext);
   const { user } = useContext(AuthContext);
 
@@ -336,9 +336,10 @@ const Room = () => {
   };
 
   const requestRoomExit = () => setExitDialogOpen(true);
-  const confirmRoomExit = () => {
+  const confirmRoomExit = async () => {
     setExitDialogOpen(false);
-    navigate('/dashboard');
+    const result = await leaveRoom(id);
+    if (result.success) navigate('/dashboard');
   };
   return (
     <div

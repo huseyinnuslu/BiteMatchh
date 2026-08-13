@@ -10,7 +10,7 @@ import api from '../api';
 import ConfirmModal from '../components/ConfirmModal';
 
 const WaitingRoom = () => {
-  const { currentRoom, startRoom, fetchRoomStatus, resetRoom } = useContext(RoomContext);
+  const { currentRoom, startRoom, fetchRoomStatus, leaveRoom, resetRoom } = useContext(RoomContext);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -305,7 +305,11 @@ const WaitingRoom = () => {
           confirmText="Odadan Ayrıl"
           confirmColor="#ef4444"
           onCancel={() => setExitDialogOpen(false)}
-          onConfirm={() => { setExitDialogOpen(false); resetRoom(); navigate('/dashboard'); }}
+          onConfirm={async () => {
+            setExitDialogOpen(false);
+            const result = await leaveRoom(currentRoom._id);
+            if (result.success) navigate('/dashboard');
+          }}
         />
       )}
     </div>
