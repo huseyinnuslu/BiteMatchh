@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { X, Send, MessageCircle, ChevronDown } from 'lucide-react';
 import { getSocket } from '../socket/socketClient';
+import api from '../api';
 
 const QUICK_REPLIES = [
   'Hangi saatte bulusuyoruz? 🕐',
@@ -18,6 +19,16 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
   const [input, setInput]       = useState('');
   const [minimized, setMinimized] = useState(false);
   const bottomRef = useRef(null);
+
+  // Bildirimden gelen oda katılımcısı geçmiş oda sohbetini de görür.
+  useEffect(() => {
+    if (!isOpen || !roomId) return;
+    let cancelled = false;
+    api.get(`/messages/room/${roomId}`)
+      .then(({ data }) => { if (!cancelled) setMessages(data); })
+      .catch(() => { if (!cancelled) setMessages([]); });
+    return () => { cancelled = true; };
+  }, [isOpen, roomId]);
 
   useEffect(() => {
     const socket = getSocket();

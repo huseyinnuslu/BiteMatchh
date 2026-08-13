@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import { protect } from '../middleware/authMiddleware.js';
 import Message from '../models/Message.js';
 import User    from '../models/User.js';
+import Room    from '../models/Room.js';
 import Notification from '../models/Notification.js';
 import { getIo } from '../server.js';
 
@@ -110,6 +111,29 @@ router.get('/dm/:userId', protect, async (req, res, next) => {
       .lean();
 
     // Arayüzde soldan sağa/doğal konuşma akışı için tekrar eskiden yeniye dön.
+    res.json(latestMessages.reverse());
+  } catch (e) { next(e); }
+});
+
+// ── GET /api/messages/room/:roomId ──────────────────────────────────────────
+// Bildirimden gelen oda katılımcısı, kaydedilmiş oda sohbetini açar. Oda
+// katılımcısı olmayan hiç kimse bu endpoint üzerinden mesajlara erişemez.
+router.get('/room/:roomId', protect, async (req, res, next) => {
+  try {
+    const roomId = req.params.roomId;
+    if (!mongoose.isValidObjectId(roomId)) {
+      res.status(400); throw new Error('Geçersiz oda ID');
+    }
+
+    const room = await Room.exists({ _id: roomId, participants: req.user._id });
+    if (!room) {
+      res.status(403); throw new Error('Bu odanın sohbetine erişim yetkiniz yok');
+    }
+
+    const latestMessages = await Message.find({ type: 'room', room: roomId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
     res.json(latestMessages.reverse());
   } catch (e) { next(e); }
 });

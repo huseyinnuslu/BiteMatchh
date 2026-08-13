@@ -130,9 +130,13 @@ const Room = () => {
       // 1. REST: oda durumunu al
       const room = await fetchRoomStatus(id);
       if (disposed) return;
+      // Bildirimden `?chat=1` ile gelindiyse bu oda, kullanıcı seçim ekranına
+      // dönmüş olsa bile önce oda sohbetini açmalıdır.
+      const shouldOpenRoomChat = chatNotificationRequestedRef.current || new URLSearchParams(location.search).get('chat') === '1';
       setSocketMatch(null);
-      setChatMatchItem(null);
-      setChatOpen(false);
+      setChatMatchItem(shouldOpenRoomChat ? (room?.matchResult || null) : null);
+      setMatchModalDismissed(shouldOpenRoomChat);
+      setChatOpen(shouldOpenRoomChat);
       if (room) {
         // API aynı kullanıcıyı bazen ObjectId, bazen string olarak döndürür.
         // Referans eşitliği yerine değer eşitliği kullanılmazsa ikinci cihazda
@@ -238,7 +242,7 @@ const Room = () => {
       }
       resetRoom();
     };
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openRestaurantMatchChat = useCallback((restaurant) => {
     setChatMatchItem(restaurant);
