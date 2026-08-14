@@ -357,6 +357,182 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: none;
 }
 
+/* Profil merkezi: her sekmede aynı bilgi hiyerarşisini koruyan, ürün odaklı
+   bir yüzey sistemi. JSX'teki mevcut işlemler ve veri bağları korunur. */
+.profile-page {
+  position: relative;
+  padding-bottom: 3.5rem !important;
+}
+
+.profile-page::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 -18vw auto;
+  height: 340px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 25%, rgba(124, 58, 237, 0.12), transparent 28%),
+    radial-gradient(circle at 90% 5%, rgba(255, 75, 75, 0.13), transparent 30%);
+}
+
+.profile-page .glass-card {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: linear-gradient(145deg, rgba(31, 45, 65, 0.94), rgba(24, 36, 53, 0.94));
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.16);
+}
+
+.profile-showcase {
+  border-radius: 22px !important;
+  box-shadow: 0 20px 55px rgba(2, 6, 23, 0.34) !important;
+}
+
+.profile-showcase::after {
+  content: 'BITEMATCH PROFİLİ';
+  position: absolute;
+  top: 20px;
+  left: 2rem;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+}
+
+.profile-showcase-main {
+  grid-template-columns: 104px minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    'avatar identity settings'
+    'rank rank rank' !important;
+  padding: 3.1rem 2.2rem 1.35rem !important;
+}
+
+.profile-showcase-avatar > div:first-child {
+  padding: 4px;
+  background: linear-gradient(140deg, #fb7185 0%, #a78bfa 55%, #38bdf8 100%);
+}
+
+.profile-showcase-details h2 {
+  font-size: clamp(1.7rem, 3vw, 2.15rem) !important;
+}
+
+.profile-showcase-details p {
+  color: #b7c5d9 !important;
+}
+
+.profile-showcase .profile-settings-button {
+  width: auto;
+  min-width: unset;
+  padding: 0.58rem 0.82rem !important;
+  gap: 0.42rem;
+  border-radius: 10px !important;
+}
+
+.profile-showcase-rank {
+  min-height: 86px;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(251, 191, 36, 0.18), transparent 28%),
+    linear-gradient(105deg, rgba(89, 57, 147, 0.46), rgba(114, 47, 75, 0.3)) !important;
+}
+
+.profile-showcase-rank > div:first-child {
+  color: #e9ddff !important;
+  letter-spacing: 0.08em;
+}
+
+.profile-showcase-rank > div:nth-child(2) {
+  font-size: 1.14rem !important;
+}
+
+.profile-username-card {
+  border-radius: 17px !important;
+  background: rgba(24, 36, 53, 0.68) !important;
+}
+
+.profile-username-card > div:first-child > div:first-child > div:first-child {
+  font-size: 0.72rem !important;
+  color: #cbd5e1 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.profile-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem !important;
+  padding: 0.35rem !important;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 15px !important;
+  background: rgba(15, 23, 42, 0.58) !important;
+  box-shadow: 0 8px 26px rgba(2, 6, 23, 0.12);
+}
+
+.profile-tabs > button {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+  border-radius: 11px !important;
+}
+
+.profile-tab-content > .glass-card,
+.profile-stats-content > .glass-card {
+  border-radius: 17px;
+}
+
+.profile-privacy-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-privacy-card::before {
+  content: '';
+  width: 4px;
+  align-self: stretch;
+  margin: -0.8rem 0 -0.8rem -1.2rem;
+  background: linear-gradient(var(--primary), #a78bfa);
+}
+
+.profile-stat-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 0.75rem !important;
+}
+
+.profile-stat-grid > .glass-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 128px;
+  display: grid;
+  place-content: center;
+  border-radius: 16px;
+  background: linear-gradient(150deg, rgba(38, 56, 80, 0.95), rgba(27, 40, 58, 0.95)) !important;
+}
+
+.profile-stat-grid > .glass-card::before {
+  content: '';
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  right: -32px;
+  top: -35px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.profile-stats-content > div:last-child:not(.profile-stat-grid) {
+  min-height: 190px;
+}
+
+.profile-list-card {
+  border-radius: 16px !important;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.profile-list-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(251, 113, 133, 0.38) !important;
+  background: linear-gradient(145deg, rgba(43, 58, 82, 0.98), rgba(28, 41, 59, 0.98)) !important;
+}
+
 /* ─── MOBİL RESPONSIVE DÜZELTMELER ──────────────────────────────────────── */
 @media (max-width: 768px) {
 
@@ -651,4 +827,86 @@ h1, h2, h3, h4, h5, h6 {
 html, body, #root {
   overflow-x: hidden;
   max-width: 100vw;
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1.15rem 1rem 7rem !important;
+  }
+
+  .profile-showcase-main {
+    grid-template-columns: 82px minmax(0, 1fr) 42px !important;
+    gap: 0.85rem !important;
+    padding: 2.65rem 1.1rem 1rem !important;
+  }
+
+  .profile-showcase::after {
+    top: 15px;
+    left: 1.1rem;
+    font-size: 0.6rem;
+  }
+
+  .profile-showcase-details h2 {
+    font-size: 1.55rem !important;
+  }
+
+  .profile-showcase-details > div > span {
+    padding: 0.3rem 0.44rem;
+    font-size: 0.69rem !important;
+  }
+
+  .profile-showcase .profile-settings-button {
+    width: 42px !important;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 !important;
+  }
+
+  .profile-showcase .profile-settings-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .profile-showcase-rank {
+    min-height: 78px;
+  }
+
+  .profile-username-card {
+    padding: 1rem !important;
+  }
+
+  .profile-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1rem !important;
+  }
+
+  .profile-tabs > button {
+    min-height: 46px;
+    font-size: 0.82rem !important;
+  }
+
+  .profile-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .profile-stat-grid > .glass-card {
+    min-height: 112px;
+    padding: 0.8rem 0.55rem !important;
+  }
+
+  .profile-stat-grid > .glass-card:last-child {
+    grid-column: span 2;
+  }
+
+  .profile-privacy-card::before {
+    margin-left: -1rem;
+    margin-top: -1rem;
+    margin-bottom: -1rem;
+  }
+
+  .profile-list-card {
+    padding: 0.9rem !important;
+  }
 }
