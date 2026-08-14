@@ -86,14 +86,24 @@ export const openNotification = async (req, res, next) => {
 
     let link = notification.link || '/dashboard';
     let inactive = false;
-    if (notification.type === 'room_invite') {
-      const roomId = String(link).match(/^\/room\/([a-f\d]{24})$/i)?.[1];
-      const room = roomId ? await Room.findById(roomId).select('status inviteExpiresAt') : null;
-      // Davet yalnızca bekleme salonu açıkken anlamlıdır. Bitmiş, silinmiş,
-      // oylamaya geçmiş ya da süresi dolmuş odada eski davet sonucu açılmaz.
-      const invitationIsActive = room?.status === 'waiting' &&
-        room.inviteExpiresAt && new Date(room.inviteExpiresAt) > new Date();
-      if (!invitationIsActive) {
+
+    // Eski sürümlerde bazı oda davetleri `system` veya `message` türünde de
+    // kaydedilmiş olabilir. Bu nedenle yalnızca bildirimin türüne değil, hedef
+    // bağlantının kendisine bakarız. Bitmiş/silinmiş oda asla eski eşleşme
+    // ekranına açılmaz.
+    const roomId = String(link).match(/^\/room\/([a-f\d]{24})(?:\?.*)?$/i)?.[1];
+    if (roomId) {
+      const room = await Room.findById(roomId).select('status inviteExpiresAt participants');
+      const isParticipant = room?.participants?.some((participantId) => String(participantId) === String(req.user._id));
+      const isLiveRoom = notification.type === 'room_invite'
+        ? room?.status === 'waiting'
+        : Boolean(room && isParticipant && ['waiting', 'voting'].includes(room.status));
+      const invitationIsActive = notification.type !== 'room_invite' || (
+        room?.status === 'waiting' &&
+        room.inviteExpiresAt && new Date(room.inviteExpiresAt) > new Date()
+      );
+
+      if (!isLiveRoom || !invitationIsActive) {
         link = '/dashboard';
         inactive = true;
       }
