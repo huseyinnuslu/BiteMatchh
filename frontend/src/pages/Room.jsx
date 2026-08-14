@@ -47,6 +47,8 @@ const Room = () => {
   const [restaurantRecommendationsEnabled, setRestaurantRecommendationsEnabled] = useState(false);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const pollingRef = useRef(null);
+  // Bir kart karar kaydedilirken ikinci bir buton/gesture tetiklemesini engeller.
+  const decisionInFlightRef = useRef(false);
   const chatNotificationRequestedRef = useRef(new URLSearchParams(location.search).get('chat') === '1');
   const autoOpenedChatForMatchRef = useRef(null);
   const socketMatchFired = useRef(false); // Tekrar tetiklenmeyi önle
@@ -276,9 +278,12 @@ const Room = () => {
 
   // ── Swipe işlemi ───────────────────────────────────────────────────────────
   const handleSwipe = async (decision) => {
-    if (currentIndex >= currentRoom.options.length) return;
+    if (decisionInFlightRef.current || currentIndex >= currentRoom.options.length) return;
 
     const option = currentRoom.options[currentIndex];
+    if (!option?._id) return;
+
+    decisionInFlightRef.current = true;
     setDirection(decision === 'like' ? 1 : -1);
 
     // Socket'a anlık bildir
@@ -292,13 +297,20 @@ const Room = () => {
       });
     }
 
-    // REST swipe kaydı (DB'ye yaz + server-side eşleşme kontrolü)
-    await swipe(id, option._id, decision);
+    try {
+      // REST swipe kaydı (DB'ye yaz + server-side eşleşme kontrolü)
+      await swipe(id, option._id, decision);
 
-    setTimeout(() => {
-      setCurrentIndex((prev) => prev + 1);
+      setTimeout(() => {
+        setCurrentIndex((prev) => prev + 1);
+        setDirection(0);
+        decisionInFlightRef.current = false;
+      }, 300);
+    } catch (error) {
       setDirection(0);
-    }, 300);
+      decisionInFlightRef.current = false;
+      toast.error(error?.response?.data?.message || 'Karar kaydedilemedi. Lütfen tekrar dene.');
+    }
   };
 
   const copyLink = () => {
@@ -492,13 +504,32 @@ const Room = () => {
               </div>
             </motion.div>
           ) : !optionsFinished ? (
-            <OptionCard
-              key="card"
-              currentIndex={currentIndex}
-              direction={direction}
-              option={currentRoom.options[currentIndex]}
-              category={currentRoom.category}
-            />
+            <motion.div
+              key={`swipe-card-${currentIndex}`}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.16}
+              dragSnapToOrigin
+              whileDrag={{ scale: 0.985 }}
+              onDragEnd={(_, info) => {
+                // Telefonlarda parmakla, webde de istenirse fareyle: sola geç, sağa beğen.
+                // Dikey sayfa kaydırması için yalnızca belirgin yatay hareketi karar sayıyoruz.
+                if (Math.abs(info.offset.x) < 110 || decisionInFlightRef.current) return;
+                handleSwipe(info.offset.x > 0 ? 'like' : 'dislike');
+              }}
+              style={{
+                position: 'absolute', width: '100%', height: '100%',
+                cursor: 'grab', touchAction: 'pan-y',
+              }}
+              whileTap={{ cursor: 'grabbing' }}
+            >
+              <OptionCard
+                currentIndex={currentIndex}
+                direction={direction}
+                option={currentRoom.options[currentIndex]}
+                category={currentRoom.category}
+              />
+            </motion.div>
           ) : (
             <motion.div key="waiting-others" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-center" style={{ flexDirection: 'column', textAlign: 'center', width: '100%' }}>
               <div className="pulse-primary" style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
