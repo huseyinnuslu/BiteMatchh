@@ -46,6 +46,10 @@ const Login = () => {
           } else {
             navigate(from, { replace: true });
           }
+        } else if (result.requiresRegistrationConsent) {
+          // İlk Google kaydı için sözleşme ve KVKK bilgilendirmesi kayıt
+          // ekranında alınır; mevcut Google kullanıcıları bu adıma düşmez.
+          navigate('/register', { state: { from: fromLocation }, replace: true });
         }
       } catch {
         // hata AuthContext'te toast ile gösterilir

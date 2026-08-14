@@ -36,9 +36,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Kayıt ──────────────────────────────────────────────────────────────────
-  const register = async (username, email, password, termsAccepted) => {
+  const register = async (username, email, password, termsAccepted, privacyNoticeAcknowledged) => {
     try {
-      const { data } = await api.post('/auth/register', { username, email, password, termsAccepted });
+      const { data } = await api.post('/auth/register', { username, email, password, termsAccepted, privacyNoticeAcknowledged });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       toast.success('Kayıt başarılı!');
@@ -92,9 +92,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Google OAuth2 ile Giriş / Kayıt ───────────────────────────────────────
-  const googleLogin = async (accessToken, userInfo, termsAccepted = false) => {
+  const googleLogin = async (accessToken, userInfo, termsAccepted = false, privacyNoticeAcknowledged = false) => {
     try {
-      const { data } = await api.post('/auth/google-login', { accessToken, userInfo, termsAccepted });
+      const { data } = await api.post('/auth/google-login', { accessToken, userInfo, termsAccepted, privacyNoticeAcknowledged });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       if (data.usernameOnboardingRequired) {
@@ -106,7 +106,11 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Google girişi başarısız';
       toast.error(msg);
-      return { success: false, message: msg };
+      return {
+        success: false,
+        message: msg,
+        requiresRegistrationConsent: error.response?.status === 400 && msg.includes('Yeni hesap oluşturmak için'),
+      };
     }
   };
 

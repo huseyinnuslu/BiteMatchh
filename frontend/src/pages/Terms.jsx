@@ -61,18 +61,23 @@ const Terms = () => {
           </ul>
         </section>
 
-        <section>
+        <section id="kvkk">
           <h2 style={{ fontSize: '1.2rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <FileText size={20} /> 4. KVKK ve Veri Gizliliği
           </h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında verileriniz şu amaçlarla işlenmektedir:
+            Bu metin, 6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında BiteMatch'i kullanırken hangi verilerin neden işlendiğini açıklamak içindir. Bu bilgilendirme, pazarlama amaçlı bir açık rıza değildir.
           </p>
           <ul style={{ color: 'var(--text-muted)', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong style={{ color: 'white' }}>Toplanan Veriler:</strong> E-posta adresiniz, şifreniz (kriptolanarak/şifrelenerek güvenli tutulur), IP adresiniz ve uygulama içi oda/mesaj etkinlikleriniz.</li>
-            <li><strong style={{ color: 'white' }}>İşlenme Amacı:</strong> Sistemde oturum açmanız, eşleşme odalarının düzgün çalışması, teknik hataların giderilmesi ve güvenliğinizin sağlanması.</li>
-            <li><strong style={{ color: 'white' }}>Veri Paylaşımı:</strong> Verileriniz hiçbir şekilde üçüncü şahıslara veya kurumlara satılmaz, reklam amacıyla paylaşılmaz. Sadece resmi makamların hukuki talepleri doğrultusunda yasal zorunluluklarla paylaşılabilir.</li>
+            <li><strong style={{ color: 'white' }}>İşlenen veriler:</strong> Kullanıcı adı, e-posta adresi, şifre özeti, profil fotoğrafı, arkadaşlık ve bildirim kayıtları, oda/eşleşme geçmişi, mesaj içerikleri, destek talepleri ve konum paylaşımını seçtiğinizde konum verisi.</li>
+            <li><strong style={{ color: 'white' }}>İşlenme amacı:</strong> Hesabınızı oluşturmak ve korumak, oda/eşleşme ve mesajlaşma özelliklerini sunmak, size ait geçmişi göstermek, destek taleplerini yanıtlamak, güvenliği sağlamak ve teknik sorunları gidermek.</li>
+            <li><strong style={{ color: 'white' }}>Hukuki sebepler:</strong> Başta sözleşmenin kurulması veya ifası ile BiteMatch'in güvenli ve işlevsel biçimde sunulmasına ilişkin meşru menfaat olmak üzere, ilgili KVKK koşullarına dayanılır. Zorunlu olmayan pazarlama izinleri ayrıca ve ayrı bir seçimle istenir.</li>
+            <li><strong style={{ color: 'white' }}>Hizmet sağlayıcılar:</strong> Uygulamanın çalışması için veriler; veritabanı altyapısında MongoDB Atlas, yayın/uygulama altyapısında Vercel ve Render, Google ile girişte Google, e-posta gönderiminde seçilen e-posta sağlayıcısı ile sınırlı olarak işlenebilir. Konum paylaşımını seçerseniz mekan önerisi üretmek amacıyla Foursquare Places'e arama sorgusu iletilebilir.</li>
+            <li><strong style={{ color: 'white' }}>Saklama ve silme:</strong> Hesabınız aktifken veriler, bu özellikleri sunmak için gerekli olduğu süre boyunca saklanır. Ayarlar üzerinden hesap silme işlemi başlatarak hesabınızla bağlantılı verilerin silinmesini talep edebilir; verilerinizi dışa aktarabilirsiniz.</li>
           </ul>
+          <div style={{ marginTop: '1.2rem', padding: '1rem', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.08)', borderRadius: '10px', color: 'var(--text-muted)' }}>
+            <strong style={{ color: '#fbbf24' }}>KVKK başvurusu ve haklarınız:</strong> KVKK'nın 11. maddesi kapsamındaki bilgi alma, düzeltme, silme/yok etme, itiraz ve diğer talepleriniz için uygulamadaki <strong style={{ color: 'white' }}>Ayarlar &gt; Destek</strong> alanını kullanabilirsiniz. Veri sorumlusunun kimliği ve resmi başvuru iletişim bilgileri, yayına geçmeden önce bu metne ayrıca eklenecektir.
+          </div>
         </section>
 
         <section>
@@ -86,7 +91,7 @@ const Terms = () => {
 
         <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px', textAlign: 'center' }}>
           <p style={{ color: 'var(--success)', margin: '0 0 1rem', fontWeight: 500 }}>
-            Platforma kayıt olarak tüm bu şartları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz.
+            Platforma kayıt olurken Kullanıcı Sözleşmesi kabulünüz ve KVKK Aydınlatma Metni'ni okuduğunuza ilişkin bilgilendirme onayınız ayrı ayrı kaydedilir.
           </p>
           <button 
             onClick={() => navigate(-1)} 

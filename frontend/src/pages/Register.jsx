@@ -12,6 +12,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyNoticeAcknowledged, setPrivacyNoticeAcknowledged] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [errors, setErrors] = useState({ username: '', email: '', password: '' });
@@ -58,7 +59,7 @@ const Register = () => {
   };
 
   const isFormValid =
-    username && email && password && termsAccepted &&
+    username && email && password && termsAccepted && privacyNoticeAcknowledged &&
     !validateUsername(username) && !validateEmail(email) && !validatePassword(password);
 
   const handleSubmit = async (e) => {
@@ -74,7 +75,7 @@ const Register = () => {
       return;
     }
 
-    const result = await register(username, email, password, termsAccepted);
+    const result = await register(username, email, password, termsAccepted, privacyNoticeAcknowledged);
     if (result.success) navigate(from, { replace: true });
   };
 
@@ -87,7 +88,7 @@ const Register = () => {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         });
         const userInfo = await userInfoRes.json();
-        const result = await googleLogin(tokenResponse.access_token, userInfo, termsAccepted);
+        const result = await googleLogin(tokenResponse.access_token, userInfo, termsAccepted, privacyNoticeAcknowledged);
         if (result.success) {
           if (result.requiresUsernameSetup) {
             sessionStorage.setItem('bitematch_post_onboarding_path', from);
@@ -129,7 +130,7 @@ const Register = () => {
         {GOOGLE_ENABLED && <button
           type="button"
           onClick={() => handleGoogleLogin()}
-          disabled={googleLoading || !termsAccepted}
+          disabled={googleLoading || !termsAccepted || !privacyNoticeAcknowledged}
           style={{
             width: '100%',
             display: 'flex',
@@ -143,12 +144,12 @@ const Register = () => {
             borderRadius: '8px',
             fontSize: '0.95rem',
             fontWeight: 600,
-            cursor: googleLoading || !termsAccepted ? 'not-allowed' : 'pointer',
-            opacity: googleLoading || !termsAccepted ? 0.7 : 1,
+            cursor: googleLoading || !termsAccepted || !privacyNoticeAcknowledged ? 'not-allowed' : 'pointer',
+            opacity: googleLoading || !termsAccepted || !privacyNoticeAcknowledged ? 0.7 : 1,
             transition: 'all 0.2s ease',
             marginBottom: '1.25rem',
           }}
-          onMouseEnter={(e) => { if (!googleLoading && termsAccepted) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
+          onMouseEnter={(e) => { if (!googleLoading && termsAccepted && privacyNoticeAcknowledged) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
@@ -160,9 +161,9 @@ const Register = () => {
           </svg>
           {googleLoading ? 'Devam ediliyor...' : 'Google ile Devam Et'}
         </button>}
-        {GOOGLE_ENABLED && !termsAccepted && (
+        {GOOGLE_ENABLED && (!termsAccepted || !privacyNoticeAcknowledged) && (
           <p style={{ margin: '-.7rem 0 1.15rem', color: 'var(--text-muted)', fontSize: '.76rem', textAlign: 'center', lineHeight: 1.45 }}>
-            Google ile devam etmeden önce aşağıdaki sözleşme ve KVKK onayını ver.
+            Google ile devam etmeden önce aşağıdaki sözleşme kabulünü ve KVKK bilgilendirmesini tamamla.
           </p>
         )}
 
@@ -208,7 +209,7 @@ const Register = () => {
             <ErrorMsg field="password" />
           </div>
 
-          {/* KVKK Bilgilendirmesi (Checkbox) */}
+          {/* Sözleşme kabulü ve KVKK bilgilendirmesi ayrı kaydedilir. */}
           <div style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }} onClick={() => setTermsAccepted(!termsAccepted)}>
             <div style={{
               minWidth: '20px', height: '20px', borderRadius: '4px',
@@ -220,7 +221,21 @@ const Register = () => {
               {termsAccepted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
             </div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni</Link>'ni okudum ve kabul ediyorum.
+              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }} onClick={() => setPrivacyNoticeAcknowledged(!privacyNoticeAcknowledged)}>
+            <div style={{
+              minWidth: '20px', height: '20px', borderRadius: '4px',
+              border: `2px solid ${privacyNoticeAcknowledged ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+              background: privacyNoticeAcknowledged ? 'var(--primary)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.1rem', transition: 'all 0.2s',
+            }}>
+              {privacyNoticeAcknowledged && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+              <Link to="/terms#kvkk" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında kişisel verilerimin işlenmesi hakkında bilgilendirildim.
             </div>
           </div>
 

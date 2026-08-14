@@ -402,7 +402,7 @@ const sendWelcomeEmailIfNeeded = async (user) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, username, email, password, role, termsAccepted } = req.body;
+    const { name, username, email, password, role, termsAccepted, privacyNoticeAcknowledged } = req.body;
 
     if (!username || !email || !password) {
       res.status(400);
@@ -411,7 +411,12 @@ export const registerUser = async (req, res, next) => {
 
     if (termsAccepted !== true) {
       res.status(400);
-      throw new Error('Kayıt olmak için Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni onayı zorunludur.');
+      throw new Error('Kayıt olmak için Kullanıcı Sözleşmesi kabulü zorunludur.');
+    }
+
+    if (privacyNoticeAcknowledged !== true) {
+      res.status(400);
+      throw new Error('Kayıt olmak için KVKK Aydınlatma Metni hakkında bilgilendirildiğini onaylamalısın.');
     }
 
     // Kullanici adi regex kontrolu (DB'ye gitmeden once)
@@ -969,7 +974,7 @@ export const resetPassword = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const googleLogin = async (req, res, next) => {
   try {
-    const { accessToken, userInfo, termsAccepted } = req.body;
+    const { accessToken, userInfo, termsAccepted, privacyNoticeAcknowledged } = req.body;
 
     if (!accessToken || !userInfo) {
       res.status(400);
@@ -1019,9 +1024,9 @@ export const googleLogin = async (req, res, next) => {
 
     // Google ile ilk kayıt da e-posta kaydıyla aynı yasal onaydan geçer.
     // Mevcut hesapların girişini etkilemez.
-    if (termsAccepted !== true) {
+    if (termsAccepted !== true || privacyNoticeAcknowledged !== true) {
       res.status(400);
-      throw new Error('Yeni hesap oluşturmak için Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni onayı zorunludur.');
+      throw new Error('Yeni hesap oluşturmak için Kullanıcı Sözleşmesi kabulü ve KVKK Aydınlatma Metni bilgilendirmesi zorunludur.');
     }
 
     // ── Yeni kullanıcı: sistem için geçici, görünmeyen benzersiz ad üret.
