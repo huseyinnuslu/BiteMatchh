@@ -517,8 +517,9 @@ html, body, #root {
 .profile-rank-badge {
   width: fit-content;
   max-width: 100%;
-  min-height: 30px;
+  min-height: 42px;
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.38rem;
   margin: 0 0 0.65rem;
@@ -544,6 +545,21 @@ html, body, #root {
   border-left: 1px solid rgba(196, 181, 253, 0.34);
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.profile-rank-progress {
+  flex-basis: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.profile-rank-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
 }
 
 .profile-hero-details > div:last-child {

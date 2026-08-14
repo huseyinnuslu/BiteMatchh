@@ -465,7 +465,10 @@ const Profile = () => {
               <Sparkles size={14} />
               <span>{gamification.currentRank.icon}</span>
               <strong>{gamification.currentRank.title}</strong>
-              <span className="profile-rank-badge-xp">{gamification.xp} XP · Seviye {gamification.currentRank.level}</span>
+              <span className="profile-rank-badge-xp">Seviye {gamification.currentRank.level} · {gamification.xp} XP</span>
+              <span className="profile-rank-progress" aria-label={`Seviye ilerlemesi yüzde ${gamification.progress}`}>
+                <span style={{ width: `${gamification.progress}%` }} />
+              </span>
             </button>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
