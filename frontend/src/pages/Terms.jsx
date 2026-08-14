@@ -28,7 +28,7 @@ const Terms = () => {
         </div>
         <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>BiteMatch Kullanıcı Sözleşmesi</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '.25rem' }}>ve KVKK Aydınlatma Metni</p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '.78rem', margin: 0 }}>Metin sürümü: 2026-08-14</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '.78rem', margin: 0 }}>Metin sürümü: 2026-08-14-v2</p>
       </div>
 
       <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', lineHeight: '1.7', fontSize: '0.95rem' }}>
@@ -68,6 +68,11 @@ const Terms = () => {
           <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
             Bu metin, 6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında BiteMatch'i kullanırken hangi verilerin neden işlendiğini açıklamak içindir. Bu bilgilendirme, pazarlama amaçlı bir açık rıza değildir.
           </p>
+          <div style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid rgba(99,102,241,.35)', background: 'rgba(99,102,241,.08)', borderRadius: '10px', color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'white' }}>Veri sorumlusu:</strong> Hüseyin Uslu (BiteMatch) <br />
+            <strong style={{ color: 'white' }}>KVKK başvuru e-postası:</strong>{' '}
+            <a href="mailto:bitematchinfo@gmail.com" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>bitematchinfo@gmail.com</a>
+          </div>
           <ul style={{ color: 'var(--text-muted)', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li><strong style={{ color: 'white' }}>İşlenen veriler:</strong> Kullanıcı adı, e-posta adresi, şifre özeti, profil fotoğrafı, arkadaşlık ve bildirim kayıtları, oda/eşleşme geçmişi, mesaj içerikleri, destek talepleri ve konum paylaşımını seçtiğinizde konum verisi.</li>
             <li><strong style={{ color: 'white' }}>İşlenme amacı:</strong> Hesabınızı oluşturmak ve korumak, oda/eşleşme ve mesajlaşma özelliklerini sunmak, size ait geçmişi göstermek, destek taleplerini yanıtlamak, güvenliği sağlamak ve teknik sorunları gidermek.</li>
@@ -76,7 +81,7 @@ const Terms = () => {
             <li><strong style={{ color: 'white' }}>Saklama ve silme:</strong> Hesabınız aktifken veriler, bu özellikleri sunmak için gerekli olduğu süre boyunca saklanır. Ayarlar üzerinden hesap silme işlemi başlatarak hesabınızla bağlantılı verilerin silinmesini talep edebilir; verilerinizi dışa aktarabilirsiniz.</li>
           </ul>
           <div style={{ marginTop: '1.2rem', padding: '1rem', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.08)', borderRadius: '10px', color: 'var(--text-muted)' }}>
-            <strong style={{ color: '#fbbf24' }}>KVKK başvurusu ve haklarınız:</strong> KVKK'nın 11. maddesi kapsamındaki bilgi alma, düzeltme, silme/yok etme, itiraz ve diğer talepleriniz için uygulamadaki <strong style={{ color: 'white' }}>Ayarlar &gt; Destek</strong> alanını kullanabilirsiniz. Veri sorumlusunun kimliği ve resmi başvuru iletişim bilgileri, yayına geçmeden önce bu metne ayrıca eklenecektir.
+            <strong style={{ color: '#fbbf24' }}>KVKK başvurusu ve haklarınız:</strong> KVKK'nın 11. maddesi kapsamındaki bilgi alma, düzeltme, silme/yok etme, itiraz ve diğer talepleriniz için <a href="mailto:bitematchinfo@gmail.com" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>bitematchinfo@gmail.com</a> adresine veya uygulamadaki <strong style={{ color: 'white' }}>Ayarlar &gt; Destek</strong> alanına başvurabilirsiniz.
           </div>
         </section>
 

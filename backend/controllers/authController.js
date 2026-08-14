@@ -15,7 +15,7 @@ import generateToken from '../utils/generateToken.js';
 
 // ─── Google OAuth2 client ───────────────────────────────────────────────────
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const LEGAL_CONSENT_VERSION = '2026-08-14';
+const LEGAL_CONSENT_VERSION = '2026-08-14-v2';
 
 const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const GMAIL_API_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
