@@ -230,11 +230,22 @@ const Navbar = () => {
 
   const handleDeleteNotification = async (notif) => {
     if (!notif?._id) return;
+    const removedIndex = notifications.findIndex((item) => item._id === notif._id);
+
+    // Render/bağlantı gecikse bile mobilde silme hareketi anında tamamlanmış
+    // hissedilir. Sunucu işlemi başarısız olursa yalnızca silinen kaydı yerine
+    // koyarız; o sırada gelmiş yeni bildirimleri ezmeyiz.
+    setNotifications(prev => prev.filter(item => item._id !== notif._id));
     try {
       await api.delete(`/notifications/${notif._id}`);
-      setNotifications(prev => prev.filter(n => n._id !== notif._id));
     } catch (err) {
       console.error(err);
+      setNotifications((prev) => {
+        if (prev.some((item) => item._id === notif._id)) return prev;
+        const restored = [...prev];
+        restored.splice(Math.max(0, Math.min(removedIndex, restored.length)), 0, notif);
+        return restored;
+      });
       toast.error(err.response?.data?.message || 'Bildirim silinemedi. Lütfen tekrar deneyin.');
     }
   };
