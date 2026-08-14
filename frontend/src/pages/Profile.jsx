@@ -406,7 +406,7 @@ const Profile = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card profile-hero"
+        className="glass-card profile-hero profile-showcase"
         style={{ marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}
       >
         <div style={{
@@ -416,9 +416,9 @@ const Profile = () => {
           pointerEvents: 'none',
         }} />
 
-        <div className="profile-hero-content" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="profile-hero-content profile-showcase-main" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           {/* Avatar Yükleme Alanı */}
-          <div className="profile-hero-avatar" style={{ position: 'relative' }}>
+          <div className="profile-hero-avatar profile-showcase-avatar" style={{ position: 'relative' }}>
             <Avatar src={profile.profilePic} username={profile.username} size={80} />
             
             <label style={{
@@ -464,7 +464,7 @@ const Profile = () => {
             )}
           </div>
 
-          <div className="profile-hero-details" style={{ flex: 1, minWidth: 0 }}>
+          <div className="profile-hero-details profile-showcase-details" style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ margin: 0, fontSize: '1.6rem' }}>{profile.name || profile.username}</h2>
             <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0.6rem' }}>@{profile.username}</p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -501,7 +501,7 @@ const Profile = () => {
           <button
             type="button"
             onClick={() => setShowRanks(true)}
-            className="profile-rank-button"
+            className="profile-rank-button profile-showcase-rank"
             aria-label="Rütbeler ve XP ilerlemesini görüntüle"
             style={{
               background: 'linear-gradient(145deg, rgba(255,75,75,.14), rgba(139,92,246,.14))', border: '1px solid rgba(196,181,253,.36)',
@@ -511,11 +511,12 @@ const Profile = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.76rem', color: '#ddd6fe', fontWeight: 800 }}><Sparkles size={13} /> RÜTBE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontWeight: 800, marginTop: '.3rem', fontSize: '.9rem' }}><span style={{ fontSize: '1.2rem' }}>{gamification.currentRank.icon}</span>{gamification.currentRank.title}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '.7rem', marginTop: '.28rem' }}>{gamification.xp} XP · Sev. {gamification.currentRank.level}</div>
+            <div className="profile-xp-meter" aria-label={`Rütbe ilerlemesi yüzde ${gamification.progress}`}><span style={{ width: `${gamification.progress}%` }} /></div>
           </button>
         </div>
       </motion.div>
 
-      <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.2rem' }}>
+      <div className="glass-card profile-username-card" style={{ marginBottom: '1.2rem', padding: '1rem 1.2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
             <div style={{ color: 'white', fontWeight: 700, marginBottom: '0.2rem' }}>Kullanıcı Adı</div>
