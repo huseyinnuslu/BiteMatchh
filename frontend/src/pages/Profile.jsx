@@ -511,6 +511,17 @@ const Profile = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.76rem', color: '#ddd6fe', fontWeight: 800 }}><Sparkles size={13} /> RÜTBE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontWeight: 800, marginTop: '.3rem', fontSize: '.9rem' }}><span style={{ fontSize: '1.2rem' }}>{gamification.currentRank.icon}</span>{gamification.currentRank.title}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '.7rem', marginTop: '.28rem' }}>{gamification.xp} XP · Sev. {gamification.currentRank.level}</div>
+            {gamification.nextRank && (
+              <div className="profile-rank-progress-wrap">
+                <div className="profile-rank-progress-text">
+                  <span>{gamification.xp} / {gamification.nextRank.minXp} XP</span>
+                  <span>{gamification.xpToNext} XP kaldı</span>
+                </div>
+                <div className="profile-rank-progress-track" aria-label={`Bir sonraki rütbe ilerlemesi yüzde ${gamification.progress}`}>
+                  <span style={{ width: `${gamification.progress}%` }} />
+                </div>
+              </div>
+            )}
           </button>
         </div>
       </motion.div>
