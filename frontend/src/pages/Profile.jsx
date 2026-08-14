@@ -495,7 +495,7 @@ const Profile = () => {
               background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
             }}
           >
-            <Settings size={15} /> <span className="profile-settings-label">Ayarlar</span>
+            <Settings size={15} /> Ayarlar
           </button>
 
           <button
