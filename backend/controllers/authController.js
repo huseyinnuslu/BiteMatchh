@@ -15,6 +15,7 @@ import generateToken from '../utils/generateToken.js';
 
 // ─── Google OAuth2 client ───────────────────────────────────────────────────
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const LEGAL_CONSENT_VERSION = '2026-08-14';
 
 const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const GMAIL_API_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
@@ -401,11 +402,16 @@ const sendWelcomeEmailIfNeeded = async (user) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, username, email, password, role } = req.body;
+    const { name, username, email, password, role, termsAccepted } = req.body;
 
     if (!username || !email || !password) {
       res.status(400);
       throw new Error('Lutfen tum alanlari doldurun');
+    }
+
+    if (termsAccepted !== true) {
+      res.status(400);
+      throw new Error('Kayıt olmak için Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni onayı zorunludur.');
     }
 
     // Kullanici adi regex kontrolu (DB'ye gitmeden once)
@@ -452,6 +458,11 @@ export const registerUser = async (req, res, next) => {
       email,
       password,
       role: role || 'Host',
+      legalConsent: {
+        termsAcceptedAt: new Date(),
+        kvkkAcknowledgedAt: new Date(),
+        version: LEGAL_CONSENT_VERSION,
+      },
     });
 
     // E-posta teslimatı kayıt yanıtını geciktirmemeli.
@@ -958,7 +969,7 @@ export const resetPassword = async (req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const googleLogin = async (req, res, next) => {
   try {
-    const { accessToken, userInfo } = req.body;
+    const { accessToken, userInfo, termsAccepted } = req.body;
 
     if (!accessToken || !userInfo) {
       res.status(400);
@@ -1006,6 +1017,13 @@ export const googleLogin = async (req, res, next) => {
       });
     }
 
+    // Google ile ilk kayıt da e-posta kaydıyla aynı yasal onaydan geçer.
+    // Mevcut hesapların girişini etkilemez.
+    if (termsAccepted !== true) {
+      res.status(400);
+      throw new Error('Yeni hesap oluşturmak için Kullanıcı Sözleşmesi ve KVKK Aydınlatma Metni onayı zorunludur.');
+    }
+
     // ── Yeni kullanıcı: sistem için geçici, görünmeyen benzersiz ad üret.
     // Google adını dönüştürmüyoruz; Türkçe karakterlerin "_" olması sorunu
     // böylece tamamen ortadan kalkıyor. Kullanıcı devam etmeden kendi adını seçer.
@@ -1026,6 +1044,11 @@ export const googleLogin = async (req, res, next) => {
       password: randomPassword,
       role: 'Host',
       usernameOnboardingRequired: true,
+      legalConsent: {
+        termsAcceptedAt: new Date(),
+        kvkkAcknowledgedAt: new Date(),
+        version: LEGAL_CONSENT_VERSION,
+      },
     });
 
     res.status(201).json({

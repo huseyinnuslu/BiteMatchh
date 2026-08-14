@@ -74,7 +74,7 @@ const Register = () => {
       return;
     }
 
-    const result = await register(username, email, password);
+    const result = await register(username, email, password, termsAccepted);
     if (result.success) navigate(from, { replace: true });
   };
 
@@ -87,7 +87,7 @@ const Register = () => {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         });
         const userInfo = await userInfoRes.json();
-        const result = await googleLogin(tokenResponse.access_token, userInfo);
+        const result = await googleLogin(tokenResponse.access_token, userInfo, termsAccepted);
         if (result.success) {
           if (result.requiresUsernameSetup) {
             sessionStorage.setItem('bitematch_post_onboarding_path', from);
@@ -129,7 +129,7 @@ const Register = () => {
         {GOOGLE_ENABLED && <button
           type="button"
           onClick={() => handleGoogleLogin()}
-          disabled={googleLoading}
+          disabled={googleLoading || !termsAccepted}
           style={{
             width: '100%',
             display: 'flex',
@@ -143,12 +143,12 @@ const Register = () => {
             borderRadius: '8px',
             fontSize: '0.95rem',
             fontWeight: 600,
-            cursor: googleLoading ? 'not-allowed' : 'pointer',
-            opacity: googleLoading ? 0.7 : 1,
+            cursor: googleLoading || !termsAccepted ? 'not-allowed' : 'pointer',
+            opacity: googleLoading || !termsAccepted ? 0.7 : 1,
             transition: 'all 0.2s ease',
             marginBottom: '1.25rem',
           }}
-          onMouseEnter={(e) => { if (!googleLoading) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
+          onMouseEnter={(e) => { if (!googleLoading && termsAccepted) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
@@ -160,6 +160,11 @@ const Register = () => {
           </svg>
           {googleLoading ? 'Devam ediliyor...' : 'Google ile Devam Et'}
         </button>}
+        {GOOGLE_ENABLED && !termsAccepted && (
+          <p style={{ margin: '-.7rem 0 1.15rem', color: 'var(--text-muted)', fontSize: '.76rem', textAlign: 'center', lineHeight: 1.45 }}>
+            Google ile devam etmeden önce aşağıdaki sözleşme ve KVKK onayını ver.
+          </p>
+        )}
 
         {/* Ayırıcı – sadece Google butonu varsa göster */}
         {GOOGLE_ENABLED && <div style={{ position: 'relative', textAlign: 'center', margin: '0 0 1.5rem' }}>

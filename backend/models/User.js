@@ -31,6 +31,14 @@ const userSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Kayıt sırasındaki yasal metin onayının denetlenebilir kaydı.
+    // KVKK metni için "açık rıza" yerine aydınlatma metnini okuduğuna dair
+    // bilgilendirme kaydı tutulur; pazarlama izni gibi ayrı rızalar buraya eklenmez.
+    legalConsent: {
+      termsAcceptedAt: { type: Date, default: null },
+      kvkkAcknowledgedAt: { type: Date, default: null },
+      version: { type: String, default: null },
+    },
     email: {
       type: String,
       required: [true, 'E-posta adresi zorunludur'],

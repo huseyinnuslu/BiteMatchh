@@ -36,9 +36,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Kayıt ──────────────────────────────────────────────────────────────────
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, termsAccepted) => {
     try {
-      const { data } = await api.post('/auth/register', { username, email, password });
+      const { data } = await api.post('/auth/register', { username, email, password, termsAccepted });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       toast.success('Kayıt başarılı!');
@@ -92,9 +92,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── Google OAuth2 ile Giriş / Kayıt ───────────────────────────────────────
-  const googleLogin = async (accessToken, userInfo) => {
+  const googleLogin = async (accessToken, userInfo, termsAccepted = false) => {
     try {
-      const { data } = await api.post('/auth/google-login', { accessToken, userInfo });
+      const { data } = await api.post('/auth/google-login', { accessToken, userInfo, termsAccepted });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       if (data.usernameOnboardingRequired) {

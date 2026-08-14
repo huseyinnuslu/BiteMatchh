@@ -27,7 +27,8 @@ const Terms = () => {
           <Shield size={32} />
         </div>
         <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>BiteMatch Kullanıcı Sözleşmesi</h1>
-        <p style={{ color: 'var(--text-muted)' }}>ve KVKK Aydınlatma Metni</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '.25rem' }}>ve KVKK Aydınlatma Metni</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '.78rem', margin: 0 }}>Metin sürümü: 2026-08-14</p>
       </div>
 
       <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', lineHeight: '1.7', fontSize: '0.95rem' }}>
