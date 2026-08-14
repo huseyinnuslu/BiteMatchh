@@ -171,6 +171,14 @@ const Profile = () => {
     }
   };
 
+  const openFriendsTab = () => {
+    setActiveTab('friends');
+    // Profil başlığından gelindiğinde seçilen arkadaş listesi ekranda kalır.
+    requestAnimationFrame(() => {
+      document.querySelector('.profile-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
   const handleUsernameEditStart = () => {
     setUsernameDraft(profile.username);
     setEditingUsername(true);
@@ -471,9 +479,17 @@ const Profile = () => {
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Calendar size={13} /> {joinDate}'dan beri
               </span>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <button
+                type="button"
+                onClick={openFriendsTab}
+                title="Arkadaşlarını gör"
+                style={{
+                  fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  padding: 0, border: 'none', background: 'none', cursor: 'pointer', font: 'inherit',
+                }}
+              >
                 <Users size={13} /> {profile.friendCount} Arkadaş
-              </span>
+              </button>
               {pendingCount > 0 && (
                 <span
                   onClick={() => setActiveTab('pending')}
