@@ -400,7 +400,7 @@ const Profile = () => {
   const canChangeUsername = !nextUsernameChangeAt || nextUsernameChangeAt <= new Date();
 
   return (
-    <div className="profile-page" style={{ width: '100%', maxWidth: '1040px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
+    <div className="profile-page" style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
 
       {/* ── Hero Profil Kartı ───────────────────────────────────────────── */}
       <motion.div
@@ -580,10 +580,10 @@ const Profile = () => {
 
         {/* ══ İstatistikler ═══════════════════════════════════════════════ */}
         {activeTab === 'stats' && (
-          <motion.div className="profile-tab-content profile-stats-content" key="stats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+          <motion.div key="stats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             
             {/* Gizlilik Ayarı Toggle Kartı */}
-            <div className="glass-card profile-privacy-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', marginBottom: '1.2rem' }}>
+            <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', marginBottom: '1.2rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>İstatistiklerimi Profilimde Göster</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>İstatistiklerinizi profilinizde herkese görünür kılın.</span>
@@ -622,7 +622,7 @@ const Profile = () => {
               </div>
             ) : (
               <>
-                <div className="profile-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
                     { icon: '👆', label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
                     { icon: '❤️', label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
@@ -677,7 +677,7 @@ const Profile = () => {
 
         {/* ══ Arkadaşlar ═══════════════════════════════════════════════════ */}
         {activeTab === 'friends' && (
-          <motion.div className="profile-tab-content" key="friends" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+          <motion.div key="friends" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             {friends.length === 0 ? (
               <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
                 <Users size={64} style={{ opacity: 0.2, marginBottom: '1.5rem', color: 'var(--text-muted)' }} />
@@ -696,7 +696,7 @@ const Profile = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="glass-card profile-list-card"
+                    className="glass-card"
                     style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
                     <div 
@@ -751,7 +751,7 @@ const Profile = () => {
 
         {/* ══ Bekleyen İstekler ════════════════════════════════════════════ */}
         {activeTab === 'pending' && (
-          <motion.div className="profile-tab-content" key="pending" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+          <motion.div key="pending" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             {pendingFriendRequests.length === 0 ? (
               <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem' }}>
                 <Inbox size={64} style={{ opacity: 0.2, marginBottom: '1.5rem', color: 'var(--text-muted)' }} />
@@ -770,7 +770,7 @@ const Profile = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.06 }}
-                    className="glass-card profile-list-card"
+                    className="glass-card"
                     style={{ padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem', borderColor: 'rgba(255,75,75,0.2)' }}
                   >
                     <Avatar src={req.profilePic} username={req.username} size={50} />
@@ -816,7 +816,7 @@ const Profile = () => {
 
         {/* ══ Arkadaş Bul ══════════════════════════════════════════════════ */}
         {activeTab === 'add' && (
-          <motion.div className="profile-tab-content" key="add" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+          <motion.div key="add" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
             <div className="glass-card" style={{ marginBottom: '1rem' }}>
               <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Search size={18} color="var(--accent)" /> Kullanıcı Ara
@@ -846,7 +846,7 @@ const Profile = () => {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="glass-card profile-list-card"
+                      className="glass-card"
                       style={{ padding: '0.9rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}
                     >
                       <div style={{
