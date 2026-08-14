@@ -847,7 +847,9 @@ html, body, #root {
   }
 
   .profile-showcase-details h2 {
-    font-size: 1.55rem !important;
+    font-size: 1.38rem !important;
+    line-height: 1.1 !important;
+    white-space: nowrap;
   }
 
   .profile-showcase-details > div > span {
@@ -860,6 +862,10 @@ html, body, #root {
     min-width: 42px;
     height: 42px;
     padding: 0 !important;
+  }
+
+  .profile-settings-label {
+    display: none;
   }
 
   .profile-showcase .profile-settings-button svg {
@@ -876,12 +882,23 @@ html, body, #root {
   }
 
   .profile-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex !important;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
     margin-bottom: 1rem !important;
   }
 
+  .profile-tabs::-webkit-scrollbar { display: none; }
+
   .profile-tabs > button {
-    min-height: 46px;
+    width: auto;
+    min-width: max-content;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0.65rem 0.8rem !important;
     font-size: 0.82rem !important;
   }
 
