@@ -587,7 +587,8 @@ const Messages = () => {
         // Mesajlar mobilde baştan sona kendi viewport'unda çalışır. Bu,
         // klavye odağı sırasında ana uygulama sayfasının kaymasını engeller.
         position: isMobile ? 'fixed' : 'relative',
-        top: isMobile ? (isMobileChat ? 0 : 72) : undefined,
+        // Liste ekranını navbarın alt çizgisine yaklaştır; arada boş şerit kalmasın.
+        top: isMobile ? (isMobileChat ? 0 : 62) : undefined,
         left: isMobile ? 0 : '50%',
         right: isMobile ? 0 : undefined,
         transform: isMobile ? 'none' : 'translateX(-50%)',
@@ -596,7 +597,7 @@ const Messages = () => {
         // klavyenin üstünde değil sayfanın ortasında kalabiliyor.
         height: isMobileChat
           ? `${visibleViewportHeight}px`
-          : isMobile ? 'calc(100dvh - 152px)' : 'calc(100vh - 120px)',
+          : isMobile ? 'calc(100dvh - 142px)' : 'calc(100vh - 120px)',
         minHeight: 0,
         borderRadius: isMobile ? 0 : 18,
         overflow: 'hidden',
@@ -621,18 +622,11 @@ const Messages = () => {
         }}>
 
           {/* Başlık + Yeni DM */}
-          <div style={{ padding: isMobile ? '10px 14px' : '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MessageCircle size={18} color="var(--primary)" /> Mesajlar
-                </h2>
-                {isMobile && (
-                  <p style={{ margin: '3px 0 0 26px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {conversations.length > 0 ? `${conversations.length} sohbetin var` : 'Arkadaşlarınla bağlantıda kal'}
-                  </p>
-                )}
-              </div>
+          <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MessageCircle size={18} color="var(--primary)" /> Mesajlar
+              </h2>
               <button
                 onClick={() => setShowNewDM(true)}
                 title="Yeni Mesaj"
