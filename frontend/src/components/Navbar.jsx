@@ -464,7 +464,7 @@ const Navbar = () => {
           padding: '0.6rem 0', zIndex: 1000,
           boxShadow: '0 -4px 25px rgba(0,0,0,0.5)',
         }}>
-          <Link to="/dashboard" style={{
+          <Link to="/dashboard" className="mobile-nav-discover" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
             textDecoration: 'none',
             color: location.pathname === '/dashboard' ? 'var(--primary)' : 'var(--text-muted)',
@@ -474,7 +474,7 @@ const Navbar = () => {
             <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>Keşfet</span>
           </Link>
           
-          <Link to="/history" style={{
+          <Link to="/history" className="mobile-nav-history" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
             textDecoration: 'none',
             color: location.pathname === '/history' ? 'var(--primary)' : 'var(--text-muted)',
@@ -484,7 +484,7 @@ const Navbar = () => {
             <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>Geçmişim</span>
           </Link>
 
-          <Link to="/messages" style={{
+          <Link to="/messages" className="mobile-nav-messages" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
             textDecoration: 'none',
             color: location.pathname === '/messages' ? 'var(--primary)' : 'var(--text-muted)',
@@ -494,7 +494,7 @@ const Navbar = () => {
             <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>Mesajlar</span>
           </Link>
 
-          <Link to="/profile" style={{
+          <Link to="/profile" className="mobile-nav-profile" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
             textDecoration: 'none',
             color: location.pathname === '/profile' ? 'var(--primary)' : 'var(--text-muted)',
@@ -505,7 +505,7 @@ const Navbar = () => {
           </Link>
 
           {user.role === 'Admin' && (
-            <Link to="/admin" style={{
+            <Link to="/admin" className="mobile-nav-admin" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
               textDecoration: 'none',
               color: location.pathname === '/admin' ? 'var(--primary)' : 'var(--text-muted)',
