@@ -38,16 +38,17 @@ const RANK_PATH = [
 // ── Sekme bileşeni ───────────────────────────────────────────────────────────
 const Tab = ({ id, label, icon: Icon, active, onClick, badge }) => (
   <button
+    className="profile-tab-button"
     onClick={() => onClick(id)}
     style={{
       position: 'relative',
       display: 'flex', alignItems: 'center', gap: '0.4rem',
       padding: '0.6rem 1.1rem', borderRadius: '10px', border: 'none',
-      background: active ? 'linear-gradient(135deg,var(--primary),var(--secondary))' : 'transparent',
+      background: active ? 'var(--primary)' : 'transparent',
       color: active ? 'white' : 'var(--text-muted)',
       fontWeight: active ? 700 : 500, fontSize: '0.88rem',
-      cursor: 'pointer', transition: 'all 0.2s',
-      boxShadow: active ? '0 4px 14px rgba(255,75,75,0.3)' : 'none',
+      cursor: 'pointer', transition: 'none',
+      boxShadow: 'none',
     }}
   >
     <Icon size={14} />
@@ -403,19 +404,10 @@ const Profile = () => {
     <div className="profile-page" style={{ width: '100%', maxWidth: '760px', margin: '0 auto', padding: '0 1rem', paddingTop: '2rem', boxSizing: 'border-box' }}>
 
       {/* ── Hero Profil Kartı ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="glass-card profile-hero"
         style={{ marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}
       >
-        <div style={{
-          position: 'absolute', top: -60, right: -60,
-          width: 200, height: 200, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,75,75,0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
         <div className="profile-hero-content" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           {/* Avatar Yükleme Alanı */}
           <div className="profile-hero-avatar" style={{ position: 'relative' }}>
@@ -427,12 +419,9 @@ const Profile = () => {
               width: 28, height: 28, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: uploading ? 'wait' : 'pointer',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-              border: '2px solid var(--glass-border)',
-              transition: 'transform 0.2s',
+              boxShadow: 'none',
+              border: '2px solid var(--surface)',
             }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <Camera size={14} />
               <input 
@@ -455,7 +444,7 @@ const Profile = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: uploading ? 'wait' : 'pointer',
                   border: 'none',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  boxShadow: 'none',
                 }}
                 title="Fotoğrafı Kaldır"
               >
@@ -467,6 +456,17 @@ const Profile = () => {
           <div className="profile-hero-details" style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ margin: 0, fontSize: '1.6rem' }}>{profile.name || profile.username}</h2>
             <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0.6rem' }}>@{profile.username}</p>
+            <button
+              type="button"
+              onClick={() => setShowRanks(true)}
+              className="profile-rank-button profile-rank-badge"
+              aria-label="Rütbeler ve XP ilerlemesini görüntüle"
+            >
+              <Sparkles size={14} />
+              <span>{gamification.currentRank.icon}</span>
+              <strong>{gamification.currentRank.title}</strong>
+              <span className="profile-rank-badge-xp">{gamification.xp} XP · Seviye {gamification.currentRank.level}</span>
+            </button>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Calendar size={13} /> {joinDate}'dan beri
@@ -489,13 +489,15 @@ const Profile = () => {
             type="button"
             onClick={() => navigate('/settings')}
             className="profile-settings-button"
+            aria-label="Ayarlar"
+            title="Ayarlar"
             style={{
-              alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
-              border: '1px solid rgba(255,255,255,0.14)', borderRadius: '10px', padding: '0.55rem 0.75rem',
+              alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid rgba(255,255,255,0.14)', borderRadius: '10px', width: 38, height: 38, padding: 0,
               background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
             }}
           >
-            <Settings size={15} /> Ayarlar
+            <Settings size={17} />
           </button>
 
           <button
@@ -505,7 +507,7 @@ const Profile = () => {
             aria-label="Rütbeler ve XP ilerlemesini görüntüle"
             style={{
               background: 'linear-gradient(145deg, rgba(255,75,75,.14), rgba(139,92,246,.14))', border: '1px solid rgba(196,181,253,.36)',
-              borderRadius: '12px', padding: '.65rem .85rem', textAlign: 'left', color: 'white', cursor: 'pointer', minWidth: 132,
+              borderRadius: '12px', padding: '.65rem .85rem', textAlign: 'left', color: 'white', cursor: 'pointer', minWidth: 132, display: 'none',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.76rem', color: '#ddd6fe', fontWeight: 800 }}><Sparkles size={13} /> RÜTBE</div>
@@ -513,9 +515,9 @@ const Profile = () => {
             <div style={{ color: 'var(--text-muted)', fontSize: '.7rem', marginTop: '.28rem' }}>{gamification.xp} XP · Sev. {gamification.currentRank.level}</div>
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.2rem' }}>
+      {editingUsername && <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
             <div style={{ color: 'white', fontWeight: 700, marginBottom: '0.2rem' }}>Kullanıcı Adı</div>
@@ -565,7 +567,7 @@ const Profile = () => {
           </p>
         )}
 
-      </div>
+      </div>}
 
       {/* ── Sekmeler ────────────────────────────────────────────────────── */}
       <div className="profile-tabs" style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.4rem', borderRadius: '12px', flexWrap: 'wrap' }}>
