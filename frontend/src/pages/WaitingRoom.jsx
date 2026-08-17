@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { AuthContext } from '../context/AuthContext';
@@ -21,8 +21,13 @@ const WaitingRoom = () => {
   const [platforms, setPlatforms] = useState([]);
   const [savingPlatforms, setSavingPlatforms] = useState(false);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const refreshedRoomKeyRef = useRef('');
 
-  const isHost = currentRoom.host._id === user._id || currentRoom.host === user._id;
+  // Hesap değişimi / yeniden bağlanma sonrası host bazen populate edilmiş
+  // nesne, bazen yalnızca id olarak gelir. Tip farkı yüzünden oda kurucusunu
+  // katılımcı sanmamak için her iki biçimi aynı güvenli kimliğe çeviriyoruz.
+  const getEntityId = (entity) => String(entity?._id || entity?.id || entity || '');
+  const isHost = getEntityId(currentRoom?.host) === getEntityId(user?._id);
   const inviteLink = window.location.href;
   const isStreamingFilmRoom = currentRoom.category === 'film' && currentRoom.watchMode === 'streaming';
   const streamingSetup = currentRoom.streamingSetup || {};
@@ -30,6 +35,16 @@ const WaitingRoom = () => {
   useEffect(() => {
     if (isStreamingFilmRoom) setPlatforms(streamingSetup.myPlatforms || []);
   }, [isStreamingFilmRoom, currentRoom._id, JSON.stringify(streamingSetup.myPlatforms || [])]);
+
+  // Bekleme salonu her açıldığında oda bilgisini sunucudan yenileriz. Böylece
+  // başka bir hesapla giriş yaptıktan sonra önceki hesabın host/katılımcı
+  // bilgisi bellekte kalıp yanlış ekran gösteremez.
+  useEffect(() => {
+    const roomKey = `${currentRoom?._id || ''}:${user?._id || ''}`;
+    if (!currentRoom?._id || refreshedRoomKeyRef.current === roomKey) return;
+    refreshedRoomKeyRef.current = roomKey;
+    fetchRoomStatus(currentRoom._id);
+  }, [currentRoom?._id, user?._id, fetchRoomStatus]);
 
   // 1. Arkadaş listesini çek
   useEffect(() => {
@@ -254,8 +269,8 @@ const WaitingRoom = () => {
           </h4>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
             {currentRoom.participants.map((p, i) => (
-              <span key={i} style={{ padding: '0.4rem 0.9rem', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)' }}>
-                {p.username || 'Katılımcı'}
+              <span key={getEntityId(p) || i} style={{ padding: '0.4rem 0.9rem', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)' }}>
+                {p.username || (getEntityId(p) === getEntityId(user?._id) ? user?.username : 'Katılımcı')}
               </span>
             ))}
           </div>
