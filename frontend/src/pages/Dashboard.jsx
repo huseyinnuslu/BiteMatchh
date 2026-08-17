@@ -199,6 +199,11 @@ const Dashboard = () => {
     });
     if (result.success) {
       navigate(`/room/${result.roomId}`);
+    } else if (result.activeRoom?.id) {
+      // Kullanıcı aktif odasını Keşfet ekranından göremediği için kilitli
+      // bırakma: gerçek aktif odaya doğrudan geri götür.
+      toast.info(`Aktif odana yönlendiriliyorsun: ${result.activeRoom.name}`);
+      navigate(`/room/${result.activeRoom.id}`);
     }
   };
 

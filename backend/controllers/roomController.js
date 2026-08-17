@@ -35,14 +35,22 @@ const claimActiveRoom = async (userId, roomId) => {
       await User.updateOne({ _id: userId, activeRoom: null }, { $set: { activeRoom: legacyActiveRoom._id } });
       const error = new Error(`Şu anda “${legacyActiveRoom.name}” odasındasın. Yeni bir odaya katılmadan önce odadan çıkmalısın.`);
       error.statusCode = 409;
+      error.activeRoom = { id: legacyActiveRoom._id.toString(), name: legacyActiveRoom.name };
       throw error;
     }
   }
   if (user?.activeRoom && String(user.activeRoom) !== String(roomId)) {
-    const lockedRoom = await Room.findById(user.activeRoom).select('status name').lean();
-    if (lockedRoom && ACTIVE_ROOM_STATUSES.includes(lockedRoom.status)) {
+    const lockedRoom = await Room.findById(user.activeRoom).select('status name participants').lean();
+    // activeRoom, kullanıcı odadan ayrıldığında ya da başka bir hesap aynı
+    // tarayıcı oturumuna geçtiğinde eski kayıttan kalmış olabilir. Sadece
+    // kullanıcının hâlâ katılımcı olduğu gerçek aktif odalar kilit yaratır.
+    const isStillParticipant = lockedRoom?.participants?.some(
+      (participant) => String(participant) === String(userId)
+    );
+    if (lockedRoom && isStillParticipant && ACTIVE_ROOM_STATUSES.includes(lockedRoom.status)) {
       const error = new Error(`Şu anda “${lockedRoom.name}” odasındasın. Yeni bir odaya katılmadan önce odadan çıkmalısın.`);
       error.statusCode = 409;
+      error.activeRoom = { id: lockedRoom._id.toString(), name: lockedRoom.name };
       throw error;
     }
     await User.updateOne({ _id: userId, activeRoom: user.activeRoom }, { $set: { activeRoom: null } });
