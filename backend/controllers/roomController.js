@@ -68,6 +68,49 @@ const claimActiveRoom = async (userId, roomId) => {
   }
 };
 
+// @desc    Kullanıcının gerçekten aktif olan odasını getirir
+// @route   GET /api/rooms/active
+// @access  Private
+// Eski hesap/oda kayıtları burada da doğrulanır ve geçersizse temizlenir.
+export const getActiveRoom = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('activeRoom').lean();
+    let room = user?.activeRoom
+      ? await Room.findById(user.activeRoom).select('_id name status host participants').lean()
+      : null;
+
+    const isParticipant = room?.participants?.some(
+      (participant) => String(participant) === String(req.user._id)
+    );
+
+    // Eski activeRoom alanı olmayan hesaplar için de gerçek aktif oda bulunur.
+    if (!room && !user?.activeRoom) {
+      room = await Room.findOne({
+        participants: req.user._id,
+        status: { $in: ACTIVE_ROOM_STATUSES },
+      }).select('_id name status host participants').sort({ updatedAt: -1 }).lean();
+      if (room) {
+        await User.updateOne({ _id: req.user._id, activeRoom: null }, { $set: { activeRoom: room._id } });
+      }
+    }
+
+    const isValid = room && ACTIVE_ROOM_STATUSES.includes(room.status) && (
+      isParticipant || room.participants?.some((participant) => String(participant) === String(req.user._id))
+    );
+
+    if (!isValid) {
+      if (user?.activeRoom) {
+        await User.updateOne({ _id: req.user._id, activeRoom: user.activeRoom }, { $set: { activeRoom: null } });
+      }
+      return res.json({ room: null });
+    }
+
+    res.json({ room: { _id: room._id.toString(), name: room.name, status: room.status } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const isStreamingFilmRoom = (room) => ['film', 'movie'].includes(room.category) && room.watchMode === 'streaming';
 const completedStreamingParticipantIds = (room) => new Set(
   (room.platformSelections || [])

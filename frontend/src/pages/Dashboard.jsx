@@ -204,6 +204,18 @@ const Dashboard = () => {
       // bırakma: gerçek aktif odaya doğrudan geri götür.
       toast.info(`Aktif odana yönlendiriliyorsun: ${result.activeRoom.name}`);
       navigate(`/room/${result.activeRoom.id}`);
+    } else {
+      // Hata yanıtında oda bilgisi olmayan eski bir backend sürümü bile olsa,
+      // aktif oda endpoint'i kullanıcıya çıkış yolunu verir.
+      try {
+        const { data } = await api.get('/rooms/active');
+        if (data?.room?._id) {
+          toast.info(`Aktif odana yönlendiriliyorsun: ${data.room.name}`);
+          navigate(`/room/${data.room._id}`);
+        }
+      } catch {
+        // İlk hata toast'ı kullanıcıya zaten gösterildi.
+      }
     }
   };
 

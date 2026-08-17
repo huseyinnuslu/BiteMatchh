@@ -1,11 +1,12 @@
 import express from 'express';
-import { createRoom, getRoomById, joinRoom, deleteRoom, leaveRoom, getMyRooms, startRoom, getMatchHistory, inviteToRoom, updateStreamingPlatforms } from '../controllers/roomController.js';
+import { createRoom, getRoomById, joinRoom, deleteRoom, leaveRoom, getMyRooms, getActiveRoom, startRoom, getMatchHistory, inviteToRoom, updateStreamingPlatforms } from '../controllers/roomController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/').post(protect, createRoom).get(protect, getMyRooms);
 router.route('/history').get(protect, getMatchHistory);
+router.route('/active').get(protect, getActiveRoom);
 
 router.route('/:id')
   .get(protect, getRoomById)
