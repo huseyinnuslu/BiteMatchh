@@ -31,6 +31,8 @@ const Dashboard = () => {
   const [myRooms, setMyRooms] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
+  const [activeRoomToLeave, setActiveRoomToLeave] = useState(null);
+  const [pendingRoomCreation, setPendingRoomCreation] = useState(null);
   const [timeLimit, setTimeLimit] = useState(0);
   const [watchMode, setWatchMode] = useState('streaming');
   const [streamingPlatforms, setStreamingPlatforms] = useState(['Netflix']);
@@ -193,29 +195,49 @@ const Dashboard = () => {
       if (validOptions.length < 2) return;
     }
 
-    const result = await createRoom(roomName, validOptions, category, priceRange, timeLimit, {
+    const creation = {
+      name: roomName,
+      options: validOptions,
+      category,
+      priceRange,
+      timeLimit,
+      filmPreferences: {
       watchMode: category === 'film' ? watchMode : undefined,
       streamingPlatforms: category === 'film' && watchMode === 'streaming' ? streamingPlatforms : [],
-    });
+      },
+    };
+    const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences);
     if (result.success) {
       navigate(`/room/${result.roomId}`);
     } else if (result.activeRoom?.id) {
-      // Kullanıcı aktif odasını Keşfet ekranından göremediği için kilitli
-      // bırakma: gerçek aktif odaya doğrudan geri götür.
-      toast.info(`Aktif odana yönlendiriliyorsun: ${result.activeRoom.name}`);
-      navigate(`/room/${result.activeRoom.id}`);
+      setPendingRoomCreation(creation);
+      setActiveRoomToLeave(result.activeRoom);
     } else {
       // Hata yanıtında oda bilgisi olmayan eski bir backend sürümü bile olsa,
       // aktif oda endpoint'i kullanıcıya çıkış yolunu verir.
       try {
         const { data } = await api.get('/rooms/active');
         if (data?.room?._id) {
-          toast.info(`Aktif odana yönlendiriliyorsun: ${data.room.name}`);
-          navigate(`/room/${data.room._id}`);
+          setPendingRoomCreation(creation);
+          setActiveRoomToLeave({ id: data.room._id, name: data.room.name });
         }
       } catch {
         // İlk hata toast'ı kullanıcıya zaten gösterildi.
       }
+    }
+  };
+
+  const confirmLeaveActiveRoom = async () => {
+    if (!pendingRoomCreation) return;
+    try {
+      await api.put('/rooms/active/leave');
+      const creation = pendingRoomCreation;
+      setActiveRoomToLeave(null);
+      setPendingRoomCreation(null);
+      const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences);
+      if (result.success) navigate(`/room/${result.roomId}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Aktif oda kaydı temizlenemedi.');
     }
   };
 
@@ -881,6 +903,18 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {activeRoomToLeave && (
+        <ConfirmModal
+          icon="🚪"
+          title="Önce aktif odadan ayrıl"
+          message={`“${activeRoomToLeave.name}” için açık bir oda kaydı var. Yeni odayı kurmak için bu kaydı kapatacağız; ardından yeni odan otomatik oluşturulacak.`}
+          confirmText="Ayrıl ve yeni odayı kur"
+          confirmColor="#ff5252"
+          onConfirm={confirmLeaveActiveRoom}
+          onCancel={() => { setActiveRoomToLeave(null); setPendingRoomCreation(null); }}
+        />
       )}
     </div>
   );

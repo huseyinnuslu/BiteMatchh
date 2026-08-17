@@ -111,6 +111,54 @@ export const getActiveRoom = async (req, res, next) => {
   }
 };
 
+// @desc    Kullanıcının aktif oda kilidini güvenli biçimde kapatır
+// @route   PUT /api/rooms/active/leave
+// @access  Private
+// Oda silinmiş, kullanıcı katılımcılardan çıkarılmış veya farklı hesap
+// oturumundan kalmışsa yalnızca kilit temizlenir. Gerçek odadaysa normal
+// "odadan ayrıl" kuralları uygulanır.
+export const leaveActiveRoom = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('activeRoom').lean();
+    if (!user?.activeRoom) return res.json({ message: 'Aktif oda kaydı yoktu.', roomClosed: false });
+
+    const room = await Room.findById(user.activeRoom).select('host participants status name');
+    const isParticipant = room?.participants?.some(
+      (participant) => String(participant) === String(req.user._id)
+    );
+
+    if (!room || !isParticipant || !ACTIVE_ROOM_STATUSES.includes(room.status)) {
+      await User.updateOne({ _id: req.user._id, activeRoom: user.activeRoom }, { $set: { activeRoom: null } });
+      return res.json({ message: 'Eski aktif oda kaydı temizlendi.', roomClosed: false });
+    }
+
+    if (String(room.host) === String(req.user._id)) {
+      room.status = 'expired';
+      await room.save();
+      await clearActiveRoom(room.participants, room._id);
+      getIo()?.to(room._id.toString()).emit('room_expired', { roomId: room._id.toString() });
+      return res.json({ message: 'Aktif odadan ayrıldın. Oda kapatıldı.', roomClosed: true });
+    }
+
+    room.participants = room.participants.filter(
+      (participant) => String(participant) !== String(req.user._id)
+    );
+    if (room.participants.length < 2) {
+      room.status = 'expired';
+      await room.save();
+      await clearActiveRoom(room.participants, room._id);
+      getIo()?.to(room._id.toString()).emit('room_expired', { roomId: room._id.toString() });
+    } else {
+      await room.save();
+      getIo()?.to(room._id.toString()).emit('participant_left', { roomId: room._id.toString(), userId: req.user._id.toString() });
+    }
+    await clearActiveRoom([req.user._id], room._id);
+    res.json({ message: 'Aktif odadan ayrıldın.', roomClosed: room.status === 'expired' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const isStreamingFilmRoom = (room) => ['film', 'movie'].includes(room.category) && room.watchMode === 'streaming';
 const completedStreamingParticipantIds = (room) => new Set(
   (room.platformSelections || [])
