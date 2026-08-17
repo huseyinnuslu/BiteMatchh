@@ -899,7 +899,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         screenFormat: venue.screenFormat,
         website: venue.website,
         showtimesUrl: venue.showtimesUrl,
-        description: `Grubun en uzaktaki üyesine ${venue.maxGroupDistanceKm} km uzaklıkta.`,
+        description: 'Konumlara göre bulunan gerçek mekan seçeneklerinden biri.',
         location: venue.address,
         mapsQuery: `${venue.name} ${venue.address}`,
         latitude: venue.latitude,

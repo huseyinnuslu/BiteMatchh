@@ -9,7 +9,21 @@ export const getNotifications = async (req, res, next) => {
     const notifications = await Notification.find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .limit(50); // Son 50 bildirimi getir
-    res.json(notifications);
+
+    // İlk test sürümlerinden kalan ve BiteMatch akışında yeri olmayan
+    // deneme metinleri ("evlilik teklifi", "krallık" vb.) gerçek arkadaşlık
+    // isteği/bildirimleriyle karışmamalı. Bunları sadece saklamak yerine
+    // kullanıcının kendi bildirim geçmişinden kalıcı olarak temizliyoruz.
+    const legacyTestNotification = /(evlilik teklif|krallığını|sizi bir araya getirdi)/i;
+    const legacyIds = notifications
+      .filter((notification) => legacyTestNotification.test(notification.message || ''))
+      .map((notification) => notification._id);
+
+    if (legacyIds.length) {
+      await Notification.deleteMany({ user: req.user._id, _id: { $in: legacyIds } });
+    }
+
+    res.json(notifications.filter((notification) => !legacyTestNotification.test(notification.message || '')));
   } catch (error) {
     next(error);
   }

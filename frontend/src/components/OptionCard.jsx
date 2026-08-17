@@ -218,11 +218,6 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
                   <MapPin size={16} /> Sana {option.distanceFromYouKm} km
                 </div>
               )}
-              {isRestaurant && Number.isFinite(option.maxGroupDistanceKm) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#c4b5fd', fontWeight: 700 }}>
-                  <MapPin size={16} /> Grubun en uzağı {option.maxGroupDistanceKm} km
-                </div>
-              )}
               {option.budget && (
                 <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>
                   {option.budget}

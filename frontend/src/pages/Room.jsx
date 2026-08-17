@@ -376,6 +376,7 @@ const Room = () => {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '85vh',
+        paddingTop: '1.2rem',
         paddingBottom: '2rem',
       }}
     >

@@ -79,7 +79,21 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
         {!minimized && (
           <>
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+                padding: '0.75rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+              onWheel={(event) => event.stopPropagation()}
+            >
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '2rem' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉</div>
@@ -90,7 +104,7 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
                 const isMe = msg.sender === user._id || msg.sender === user._id?.toString();
                 return (
                   <div key={msg._id || i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ maxWidth: '75%', background: isMe ? 'var(--primary)' : 'rgba(255,255,255,0.08)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '0.5rem 0.75rem', fontSize: '0.88rem' }}>
+                    <div style={{ maxWidth: '75%', minWidth: 0, background: isMe ? 'var(--primary)' : 'rgba(255,255,255,0.08)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '0.5rem 0.75rem', fontSize: '0.88rem', overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                       {!isMe && <div style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 700, marginBottom: '0.2rem' }}>{msg.senderName}</div>}
                       <div>{msg.text}</div>
                     </div>
