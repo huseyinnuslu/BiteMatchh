@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -19,6 +19,35 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading] = useState(false);
+
+  // Tarayıcıdaki tüm normal sekmeler aynı localStorage oturumunu paylaşır.
+  // Başka bir sekmede farklı Google hesabıyla giriş yapılırsa eski sekmede
+  // önceki kullanıcının oda state'i kalmamalı; sayfayı güncel oturumla temiz
+  // şekilde yeniden kuruyoruz. İki hesabı eşzamanlı test etmek için gizli
+  // pencere veya farklı tarayıcı kullanılmalıdır.
+  useEffect(() => {
+    const handleSessionChange = (event) => {
+      if (event.key !== 'userInfo') return;
+      if (!event.newValue) {
+        setUser(null);
+        return;
+      }
+
+      try {
+        const nextUser = JSON.parse(event.newValue);
+        if (String(nextUser?._id || '') !== String(user?._id || '')) {
+          window.location.replace('/dashboard');
+          return;
+        }
+        setUser(nextUser);
+      } catch {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleSessionChange);
+    return () => window.removeEventListener('storage', handleSessionChange);
+  }, [user?._id]);
 
   // ── Giriş ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
