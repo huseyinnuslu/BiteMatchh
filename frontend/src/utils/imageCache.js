@@ -1,8 +1,12 @@
-// Uygulama genelinde aynı görsel için tek bir Image isteği açılır. Böylece
-// mesajlar/geçmiş/oda arasında geçişte bileşenler tekrar tekrar "yükleniyor"
-// durumuna dönmez; tarayıcı önbelleğindeki hazır dosya anında kullanılır.
+// Uygulama genelinde aynı görsel için tek bir arka plan isteği açılır.
+// Bu yardımcı, ekrandaki <img> etiketini GECİKTİRMEZ: görünür görseller
+// tarayıcı tarafından doğrudan çizilir; burada sadece sonraki kartları sıcak
+// tutmak için sınırlı sayıda istek kuyruğa alınır.
 const imageStatus = new Map();
 const pendingLoads = new Map();
+const preloadQueue = [];
+let activePreloads = 0;
+const MAX_CONCURRENT_PRELOADS = 3;
 
 export const resolveAssetUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
@@ -20,24 +24,35 @@ export const preloadImage = (url) => {
   if (known) return Promise.resolve(known);
   if (pendingLoads.has(resolvedUrl)) return pendingLoads.get(resolvedUrl);
 
-  const request = new Promise((resolve) => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.onload = async () => {
-      try { await image.decode?.(); } catch { /* decode desteği olmayan tarayıcılar */ }
-      imageStatus.set(resolvedUrl, 'loaded');
-      pendingLoads.delete(resolvedUrl);
-      resolve('loaded');
-    };
-    image.onerror = () => {
-      imageStatus.set(resolvedUrl, 'error');
-      pendingLoads.delete(resolvedUrl);
-      resolve('error');
-    };
-    image.src = resolvedUrl;
-  });
+  let resolveRequest;
+  const request = new Promise((resolve) => { resolveRequest = resolve; });
   pendingLoads.set(resolvedUrl, request);
+  preloadQueue.push({ resolvedUrl, resolve: resolveRequest });
+  runPreloadQueue();
   return request;
 };
 
-export const preloadImages = (urls) => Promise.all([...new Set((urls || []).filter(Boolean))].map(preloadImage));
+const runPreloadQueue = () => {
+  while (activePreloads < MAX_CONCURRENT_PRELOADS && preloadQueue.length) {
+    const next = preloadQueue.shift();
+    activePreloads += 1;
+    const image = new Image();
+    // Ön-yükleme işlemi görünür kartların kaynaklarını işgal etmesin.
+    image.decoding = 'async';
+    image.onload = () => finishPreload(next.resolvedUrl, next.resolve, 'loaded');
+    image.onerror = () => finishPreload(next.resolvedUrl, next.resolve, 'error');
+    image.src = next.resolvedUrl;
+  }
+};
+
+const finishPreload = (url, resolve, status) => {
+  imageStatus.set(url, status);
+  pendingLoads.delete(url);
+  activePreloads = Math.max(0, activePreloads - 1);
+  resolve(status);
+  runPreloadQueue();
+};
+
+export const preloadImages = (urls) => Promise.all(
+  [...new Set((urls || []).filter(Boolean))].map(preloadImage)
+);

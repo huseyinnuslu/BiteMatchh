@@ -574,6 +574,7 @@ const Dashboard = () => {
                         aria-hidden="true"
                         loading={i < 3 ? 'eager' : 'lazy'}
                         fetchPriority={i < 3 ? 'high' : 'auto'}
+                        decoding={i < 3 ? 'sync' : 'async'}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
                       />
                     )}
@@ -794,7 +795,7 @@ const Dashboard = () => {
             <div style={{ padding: '1.25rem', maxHeight: '350px', overflowY: 'auto' }}>
               {/* Event preview */}
               <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <img src={eventToShare?.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200'} alt="" style={{ width: 60, height: 60, borderRadius: '8px', objectFit: 'cover' }} />
+                <img src={eventToShare?.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200'} alt="" loading="eager" fetchPriority="high" decoding="sync" style={{ width: 60, height: 60, borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <h4 style={{ margin: 0, fontSize: '0.88rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eventToShare?.name}</h4>
                   <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eventToShare?.location}</p>

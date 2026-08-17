@@ -235,8 +235,9 @@ const MatchHistory = () => {
                       src={resolveAssetUrl(winner.imageUrl)}
                       alt={winner.name} 
                       loading="eager"
-                      decoding="async"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      fetchPriority="high"
+                      decoding="sync"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
                     <div style={{ 

@@ -459,7 +459,7 @@ const Room = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
                     {currentRoom.topOptions.map((opt, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {opt.imageUrl && <img src={opt.imageUrl} alt={opt.name} style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover' }} />}
+                        {opt.imageUrl && <img src={opt.imageUrl} alt={opt.name} loading="eager" fetchPriority="high" decoding="sync" style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />}
                         <div style={{ flex: 1, textAlign: 'left' }}>
                           <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{opt.name}</h4>
                           <small style={{ color: 'var(--success)' }}>{opt.likeCount} Beğeni</small>

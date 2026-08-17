@@ -13,6 +13,20 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // Kart, geçmiş, etkinlik ve restoran görsellerini ilk başarılı
+            // isteğin ardından cihazda saklar. Kaynak sunucu yavaşlasa bile
+            // sonraki ekran geçişlerinde görsel anında PWA önbelleğinden gelir.
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'bitematch-images-v1',
+              expiration: { maxEntries: 350, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       manifest: {
         name: 'BiteMatch - Grup Karar Motoru',

@@ -976,7 +976,10 @@ const Messages = () => {
                                 <img 
                                   src={msg.sharedEvent.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300'} 
                                   alt="" 
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                  loading="eager"
+                                  fetchPriority="high"
+                                  decoding="sync"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                 />
                                 <div style={{
                                   position: 'absolute', bottom: 0, left: 0, right: 0,
