@@ -46,6 +46,10 @@ const Room = () => {
   const [showRestaurantFlow, setShowRestaurantFlow] = useState(false);
   const [restaurantRecommendationsEnabled, setRestaurantRecommendationsEnabled] = useState(false);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  // Oda URL'si açıldığında önce sunucudaki gerçek katılımcı kaydını kontrol
+  // ederiz. Böylece başka hesap/önceki oda bellekteyken bekleme salonu
+  // yanlışlıkla çizilmez.
+  const [roomAccessReady, setRoomAccessReady] = useState(false);
   const pollingRef = useRef(null);
   // Bir kart karar kaydedilirken ikinci bir buton/gesture tetiklemesini engeller.
   const decisionInFlightRef = useRef(false);
@@ -126,12 +130,18 @@ const Room = () => {
     let socket;
     let handleConnect;
     const init = async () => {
+      setRoomAccessReady(false);
       socketMatchFired.current = false;
       autoOpenedChatForMatchRef.current = null;
 
       // 1. REST: oda durumunu al
-      const room = await fetchRoomStatus(id);
+      let room = await fetchRoomStatus(id);
       if (disposed) return;
+      if (!room) {
+        resetRoom();
+        navigate('/dashboard', { replace: true });
+        return;
+      }
       // Bildirimden `?chat=1` ile gelindiyse bu oda, kullanıcı seçim ekranına
       // dönmüş olsa bile önce oda sohbetini açmalıdır.
       const shouldOpenRoomChat = chatNotificationRequestedRef.current || new URLSearchParams(location.search).get('chat') === '1';
@@ -144,11 +154,26 @@ const Room = () => {
         // Referans eşitliği yerine değer eşitliği kullanılmazsa ikinci cihazda
         // kullanıcı odada olmasına rağmen tekrar katılma isteği atılıyordu.
         if (!room.participants.some((p) => String(p._id || p) === String(user._id))) {
-          await joinRoom(id);
+          const joinResult = await joinRoom(id);
           if (disposed) return;
+          if (!joinResult.success) {
+            resetRoom();
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+          // Katıldıktan sonra host/katılımcı bilgisini aynı token ile tekrar
+          // al; eski odanın sahibi ekranda kalmasın.
+          room = await fetchRoomStatus(id);
+          if (disposed || !room) {
+            resetRoom();
+            navigate('/dashboard', { replace: true });
+            return;
+          }
         }
         if (room.userSwipes) setCurrentIndex(room.userSwipes.length);
       }
+
+      setRoomAccessReady(true);
 
       // 2. Socket bağlantısı
       const token = JSON.parse(localStorage.getItem('userInfo'))?.token;
@@ -251,7 +276,7 @@ const Room = () => {
     window.setTimeout(() => setChatOpen(true), 1200);
   }, []);
 
-  if (!currentRoom) {
+  if (!roomAccessReady || !currentRoom || String(currentRoom._id) !== String(id)) {
     return <div className="flex-center" style={{ height: '70vh' }}>Oda Yükleniyor...</div>;
   }
 

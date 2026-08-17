@@ -97,6 +97,11 @@ export const RoomProvider = ({ children }) => {
       return data;
     } catch (error) {
       console.error("Room status error", error);
+      // Başka hesaptan kalan veya silinmiş oda state'i ekranda oda varmış
+      // gibi görünmesin.
+      setCurrentRoom(null);
+      setMatchResult(null);
+      return null;
     }
   };
 
