@@ -110,7 +110,7 @@ const NotificationItem = ({ notification, onOpen, onDelete, mobile = false }) =>
 // ---- Navbar ----
 const Navbar = () => {
   const { user, logout, updateUser } = useContext(AuthContext);
-  const { currentRoom, resetRoom } = useContext(RoomContext);
+  const { currentRoom, resetRoom, leaveRoom } = useContext(RoomContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -119,28 +119,42 @@ const Navbar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingRoomNavigation, setPendingRoomNavigation] = useState(null);
 
-  const roomPathMatch = location.pathname.match(/^\/room\/([^/]+)/);
-  const isActiveRoomRoute = Boolean(
-    roomPathMatch &&
-    currentRoom?._id &&
-    String(currentRoom._id) === roomPathMatch[1] &&
-    ['waiting', 'voting'].includes(currentRoom.status)
+  // Oda bilgisi Mesajlar gibi sayfalar arasında da korunur. Aksi halde
+  // kullanıcı sohbeti açtıktan sonra Keşfet'e tek tıkla gidip devam eden
+  // oylamasını/konum adımını kaybedebiliyordu.
+  const hasActiveRoomSession = Boolean(
+    currentRoom?._id && (
+      ['waiting', 'voting'].includes(currentRoom.status) ||
+      (currentRoom.status === 'finished' &&
+        ['mekan', 'food'].includes(currentRoom.category) &&
+        currentRoom.matchResult)
+    )
   );
 
   const guardRoomNavigation = (event) => {
     const anchor = event.target.closest('a[href]');
     const destination = anchor?.getAttribute('href');
-    if (!isActiveRoomRoute || !destination || destination === '#' || destination === location.pathname || /^https?:/i.test(destination)) return;
+    if (!hasActiveRoomSession || !destination || destination === '#' || destination === location.pathname || /^https?:/i.test(destination)) return;
+    // Sohbet, karar akışının parçasıdır. Mesajlara geçmek odayı kapatmaz;
+    // kullanıcı cevabını yazıp oda/konum akışına geri dönebilir.
+    if (destination === '/messages' || destination.startsWith(`/room/${currentRoom._id}`)) return;
 
     event.preventDefault();
     setShowNotifications(false);
     setPendingRoomNavigation(destination);
   };
 
-  const confirmRoomNavigation = () => {
+  const confirmRoomNavigation = async () => {
     const destination = pendingRoomNavigation;
     setPendingRoomNavigation(null);
-    resetRoom();
+    // Devam eden oda ise gerçekten ayrıl; yalnız yerel state'i temizlemek
+    // kullanıcıyı DB'de odada bırakıp sonraki davetlerde kilitliyordu.
+    if (['waiting', 'voting'].includes(currentRoom?.status)) {
+      const result = await leaveRoom(currentRoom._id);
+      if (!result.success) return;
+    } else {
+      resetRoom();
+    }
     navigate(destination || '/dashboard');
   };
 
@@ -547,7 +561,7 @@ const Navbar = () => {
         <ConfirmModal
           icon={<LogOut size={26} color="#f87171" />}
           title="Odadan ayrılmak istiyor musun?"
-          message="Odan açık kalır ve davet bağlantısıyla tekrar katılabilirsin. Sayfadan ayrıldığında mevcut seçim ekranın kapatılır."
+          message="Keşfet'e devam etmek için odadan ayrılacaksın. Devam eden seçimlerin bu oda için sonlanır."
           confirmText="Odadan Ayrıl"
           confirmColor="#ef4444"
           onConfirm={confirmRoomNavigation}

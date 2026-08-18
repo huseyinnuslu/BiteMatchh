@@ -302,7 +302,9 @@ const Room = () => {
         socket.off('participant_left');
         socket.off('room_started');
       }
-      resetRoom();
+      // Oda sayfasından Mesajlar'a geçmek odadan çıkmak değildir. Aktif oda
+      // bağlamını koruyoruz; gerçek çıkış leaveRoom/sonuç tamamlama akışında
+      // zaten state'i temizler.
     };
   }, [id, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
