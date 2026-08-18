@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { resolve4 } from 'node:dns/promises';
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
@@ -22,7 +22,7 @@ const GMAIL_API_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/s
 const GMAIL_SETUP_MAX_AGE_MS = 10 * 60 * 1000;
 
 // ─── Yardımcı: 6 haneli OTP üret ───────────────────────────────────────────
-const generateOTP = () => String(Math.floor(100000 + Math.random() * 900000));
+const generateOTP = () => String(randomInt(100000, 1000000));
 
 // ─── Yardımcı: Nodemailer transporter ──────────────────────────────────────
 const createTransporter = async () => {
