@@ -649,6 +649,11 @@ export const loginUser = async (req, res, next) => {
         res.status(403);
         throw error;
       }
+      // İlk hoş geldin e-postası geçici bir sağlayıcı hatası nedeniyle
+      // gönderilemediyse, kullanıcıyı hiçbir işlem yapmaya zorlamadan güvenli
+      // girişte bir kez daha deneriz. Gönderilmiş hesaplarda zaman damgası
+      // bulunduğundan tekrar e-posta atılmaz.
+      await sendWelcomeEmailIfNeeded(user);
       res.json({
         _id: user._id,
         name: user.name,
