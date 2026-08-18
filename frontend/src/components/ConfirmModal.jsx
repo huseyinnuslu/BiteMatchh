@@ -51,7 +51,7 @@ const ConfirmModal = ({
           display: 'flex', alignItems: 'center',
           justifyContent: 'center', fontSize: '1.6rem',
         }}>
-          {icon}
+          {icon || <AlertTriangle size={25} color={confirmColor} />}
         </div>
 
         {/* Başlık */}
@@ -108,3 +108,4 @@ const ConfirmModal = ({
 
 export default ConfirmModal;
 import { createPortal } from 'react-dom';
+import { AlertTriangle } from 'lucide-react';

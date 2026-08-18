@@ -6,34 +6,42 @@ import { toast } from 'react-toastify';
 import {
   Users, BarChart2, Search, UserPlus, UserMinus,
   Heart, Trophy, Calendar, Clock, CheckCircle, XCircle,
-  UserCircle, Camera, Trash2, Inbox, Pencil, Settings, Lock, Sparkles, X
+  UserCircle, Camera, Trash2, Inbox, Pencil, Settings, Lock, Sparkles, X,
+  Utensils, MapPin, Film, Tv, Tent, Gamepad2, Music2, SlidersHorizontal,
+  Sprout, Compass, Crosshair, UsersRound, Hammer, Route, Anchor, Crown,
+  Flame, MousePointer2, BarChart3, House, Package, Bell
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
 import ConfirmModal from '../components/ConfirmModal';
 
-// ── Kategori emoji haritası ──────────────────────────────────────────────────
+// ── Kategori ikon haritası ──────────────────────────────────────────────────
 const CATEGORY_ICONS = {
-  yemek: '🍔', restoran: '🍽️', film: '🎬', dizi: '📺',
-  aktivite: '🎯', mekan: '📍', muzik: '🎵', oyun: '🎮', custom: '✨',
+  yemek: Utensils, restoran: Utensils, film: Film, dizi: Tv,
+  aktivite: Tent, mekan: MapPin, muzik: Music2, oyun: Gamepad2, custom: SlidersHorizontal,
 };
 
 // Backend güncellenirken veya PWA eski bir API yanıtını gösterirken dahi
 // rütbe yolunun boş görünmemesi için istemci tarafında da tutulur.
 const RANK_PATH = [
-  { level: 1, minXp: 0, title: 'Karar Çırağı', icon: '🌱', description: 'İlk tercihlerine yön veriyorsun.' },
-  { level: 2, minXp: 35, title: 'Tercih Kaşifi', icon: '🧭', description: 'Farklı seçenekleri keşfetmeye başladın.' },
-  { level: 3, minXp: 100, title: 'Lezzet İz Sürücüsü', icon: '🍜', description: 'Grubun zevklerini yakalıyorsun.' },
-  { level: 4, minXp: 220, title: 'Eşleşme Avcısı', icon: '🎯', description: 'Ortak kararların peşindesin.' },
-  { level: 5, minXp: 420, title: 'Grup Nabzı', icon: '🤝', description: 'Kararsız grupları harekete geçiriyorsun.' },
-  { level: 6, minXp: 700, title: 'Karar Mimarı', icon: '🏗️', description: 'Seçim akışını ustalıkla yönetiyorsun.' },
-  { level: 7, minXp: 1050, title: 'Rota Ustası', icon: '🗺️', description: 'Yeni planların yönünü belirliyorsun.' },
-  { level: 8, minXp: 1500, title: 'Uyum Kaptanı', icon: '⚓', description: 'Grubun ortak noktasını buluyorsun.' },
-  { level: 9, minXp: 2100, title: 'Eşleşme Elçisi', icon: '✨', description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
-  { level: 10, minXp: 3000, title: 'Fikir Önderi', icon: '👑', description: 'Karar vermek için sana güveniliyor.' },
-  { level: 11, minXp: 4200, title: 'BiteMatch Ustası', icon: '🔥', description: 'Her odada tecrüben konuşuyor.' },
-  { level: 12, minXp: 6000, title: 'Karar Efsanesi', icon: '🏆', description: 'BiteMatch’in zirvesindesin.' },
+  { level: 1, minXp: 0, title: 'Karar Çırağı', Icon: Sprout, description: 'İlk tercihlerine yön veriyorsun.' },
+  { level: 2, minXp: 35, title: 'Tercih Kaşifi', Icon: Compass, description: 'Farklı seçenekleri keşfetmeye başladın.' },
+  { level: 3, minXp: 100, title: 'Lezzet İz Sürücüsü', Icon: Utensils, description: 'Grubun zevklerini yakalıyorsun.' },
+  { level: 4, minXp: 220, title: 'Eşleşme Avcısı', Icon: Crosshair, description: 'Ortak kararların peşindesin.' },
+  { level: 5, minXp: 420, title: 'Grup Nabzı', Icon: UsersRound, description: 'Kararsız grupları harekete geçiriyorsun.' },
+  { level: 6, minXp: 700, title: 'Karar Mimarı', Icon: Hammer, description: 'Seçim akışını ustalıkla yönetiyorsun.' },
+  { level: 7, minXp: 1050, title: 'Rota Ustası', Icon: Route, description: 'Yeni planların yönünü belirliyorsun.' },
+  { level: 8, minXp: 1500, title: 'Uyum Kaptanı', Icon: Anchor, description: 'Grubun ortak noktasını buluyorsun.' },
+  { level: 9, minXp: 2100, title: 'Eşleşme Elçisi', Icon: Sparkles, description: 'BiteMatch ruhunu grubuna taşıyorsun.' },
+  { level: 10, minXp: 3000, title: 'Fikir Önderi', Icon: Crown, description: 'Karar vermek için sana güveniliyor.' },
+  { level: 11, minXp: 4200, title: 'BiteMatch Ustası', Icon: Flame, description: 'Her odada tecrüben konuşuyor.' },
+  { level: 12, minXp: 6000, title: 'Karar Efsanesi', Icon: Trophy, description: 'BiteMatch’in zirvesindesin.' },
 ];
+
+const CategoryIcon = ({ category, size = 14 }) => {
+  const Icon = CATEGORY_ICONS[category] || Package;
+  return <Icon size={size} aria-hidden="true" />;
+};
 
 // ── Sekme bileşeni ───────────────────────────────────────────────────────────
 const Tab = ({ id, label, icon: Icon, active, onClick, badge }) => (
@@ -308,7 +316,7 @@ const Profile = () => {
     setActionId(friendId);
     try {
       await api.post(`/users/friends/${friendId}`);
-      toast.success('Arkadaşlık isteği gönderildi! 📨');
+      toast.success('Arkadaşlık isteği gönderildi.');
       // Arama sonuçlarında "İstek Gönderildi" olarak güncelle
       setSearchResults(prev =>
         prev.map(u => u._id === friendId ? { ...u, isPending: true } : u)
@@ -336,7 +344,7 @@ const Profile = () => {
     setActionId(fromId);
     try {
       const { data } = await api.put(`/users/friends/${fromId}/accept`);
-      toast.success(`Arkadaşlık kabul edildi! 🎉 Uyum: %${data.compatibilityScore}`);
+      toast.success(`Arkadaşlık kabul edildi. Uyum: %${data.compatibilityScore}`);
       await loadProfile();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Kabul edilemedi');
@@ -400,6 +408,7 @@ const Profile = () => {
     nextRank,
     ranks: RANK_PATH,
   };
+  const CurrentRankIcon = gamification.currentRank.Icon;
   const joinDate = new Date(profile.createdAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   const categoryEntries = Object.entries(stats?.categoryBreakdown || {}).sort((a, b) => b[1] - a[1]);
   const nextUsernameChangeAt = profile.usernameChangedAt
@@ -495,7 +504,7 @@ const Profile = () => {
                   onClick={() => setActiveTab('pending')}
                   style={{ fontSize: '0.82rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontWeight: 600 }}
                 >
-                  🔔 {pendingCount} bekleyen istek
+                  <Bell size={13} /> {pendingCount} bekleyen istek
                 </span>
               )}
             </div>
@@ -525,7 +534,7 @@ const Profile = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.76rem', color: '#ddd6fe', fontWeight: 800 }}><Sparkles size={13} /> RÜTBE</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontWeight: 800, marginTop: '.3rem', fontSize: '.9rem' }}><span style={{ fontSize: '1.2rem' }}>{gamification.currentRank.icon}</span>{gamification.currentRank.title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontWeight: 800, marginTop: '.3rem', fontSize: '.9rem' }}><CurrentRankIcon size={17} />{gamification.currentRank.title}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '.7rem', marginTop: '.28rem' }}>{gamification.xp} XP · Sev. {gamification.currentRank.level}</div>
             {gamification.nextRank && (
               <div className="profile-rank-progress-wrap">
@@ -650,14 +659,14 @@ const Profile = () => {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
-                    { icon: '👆', label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
-                    { icon: '❤️', label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
-                    { icon: '📊', label: 'Beğeni Oranı', value: `%${stats.likeRatio}`, color: 'var(--accent)' },
-                    { icon: '🏠', label: 'Oda',          value: stats.totalRooms,  color: 'gold' },
-                    { icon: '✅', label: 'Tamamlanan',   value: stats.completedRooms, color: 'var(--success)' },
+                    { Icon: MousePointer2, label: 'Toplam Swipe', value: stats.totalSwipes, color: 'var(--primary)' },
+                    { Icon: Heart, label: 'Beğeni',       value: stats.totalLikes,  color: 'var(--success)' },
+                    { Icon: BarChart3, label: 'Beğeni Oranı', value: `%${stats.likeRatio}`, color: 'var(--accent)' },
+                    { Icon: House, label: 'Oda',          value: stats.totalRooms,  color: 'gold' },
+                    { Icon: CheckCircle, label: 'Tamamlanan',   value: stats.completedRooms, color: 'var(--success)' },
                   ].map(s => (
                     <motion.div key={s.label} whileHover={{ y: -3 }} className="glass-card" style={{ textAlign: 'center', padding: '1.2rem 0.8rem' }}>
-                      <div style={{ fontSize: '1.8rem', marginBottom: '0.3rem' }}>{s.icon}</div>
+                      <div style={{ height: '1.8rem', marginBottom: '0.3rem', display: 'grid', placeItems: 'center', color: s.color }}><s.Icon size={23} strokeWidth={2.25} /></div>
                       <div style={{ fontSize: '1.6rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value ?? '—'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>{s.label}</div>
                     </motion.div>
@@ -674,7 +683,7 @@ const Profile = () => {
                         return (
                           <div key={cat}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.88rem' }}>
-                              <span>{CATEGORY_ICONS[cat] || '📦'} {cat}</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textTransform: 'capitalize' }}><CategoryIcon category={cat} /> {cat}</span>
                               <span style={{ color: 'var(--text-muted)' }}>%{pct}</span>
                             </div>
                             <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -692,7 +701,7 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                    <BarChart3 size={42} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
                     <p style={{ color: 'var(--text-muted)' }}>Oda katıl ve kaydırmaya başla!</p>
                   </div>
                 )}
@@ -919,7 +928,7 @@ const Profile = () => {
 
               {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
                 <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                  <Search size={34} style={{ marginBottom: '0.5rem', color: 'var(--text-muted)' }} />
                   <p>"{searchQuery}" için kullanıcı bulunamadı</p>
                 </div>
               )}
@@ -953,7 +962,7 @@ const Profile = () => {
 
               <div style={{ margin: '1rem 0', padding: '1rem', borderRadius: 14, background: 'linear-gradient(135deg, rgba(255,75,75,.16), rgba(139,92,246,.16))', border: '1px solid rgba(196,181,253,.22)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}><span style={{ fontSize: '2rem' }}>{gamification.currentRank.icon}</span><div><div style={{ color: 'white', fontWeight: 800 }}>{gamification.currentRank.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '.76rem', marginTop: '.15rem' }}>{gamification.currentRank.description}</div></div></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}><CurrentRankIcon size={30} color="#fef3c7" /><div><div style={{ color: 'white', fontWeight: 800 }}>{gamification.currentRank.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '.76rem', marginTop: '.15rem' }}>{gamification.currentRank.description}</div></div></div>
                   <div style={{ color: '#fef3c7', fontWeight: 900, whiteSpace: 'nowrap' }}>{gamification.xp} XP</div>
                 </div>
                 {gamification.nextRank ? <><div style={{ height: 7, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,.1)', marginTop: '.9rem' }}><div style={{ width: `${gamification.progress}%`, height: '100%', background: 'linear-gradient(90deg,#fb7185,#a78bfa)', borderRadius: 99 }} /></div><div style={{ marginTop: '.4rem', color: 'var(--text-muted)', fontSize: '.73rem' }}>{gamification.nextRank.title} için {gamification.xpToNext} XP kaldı</div></> : <div style={{ marginTop: '.65rem', color: '#fef3c7', fontSize: '.78rem', fontWeight: 700 }}>Zirvedesin. Karar Efsanesi rütbesi açıldı!</div>}
@@ -965,7 +974,7 @@ const Profile = () => {
                   const unlocked = gamification.xp >= rank.minXp;
                   const active = rank.level === gamification.currentRank.level;
                   return <div key={rank.level} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.72rem .78rem', borderRadius: 12, border: `1px solid ${active ? 'rgba(251,113,133,.7)' : unlocked ? 'rgba(134,239,172,.22)' : 'rgba(255,255,255,.08)'}`, background: active ? 'rgba(255,75,75,.11)' : unlocked ? 'rgba(34,197,94,.05)' : 'rgba(255,255,255,.025)', opacity: unlocked ? 1 : .56 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: unlocked ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)', fontSize: '1.05rem' }}>{unlocked ? rank.icon : <Lock size={15} color="#94a3b8" />}</div>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: unlocked ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)' }}>{unlocked ? <rank.Icon size={17} color={active ? '#fef3c7' : '#c4b5fd'} /> : <Lock size={15} color="#94a3b8" />}</div>
                     <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: 'white', fontWeight: 800, fontSize: '.86rem' }}>Seviye {rank.level} · {rank.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '.72rem', marginTop: '.12rem' }}>{rank.description}</div></div>
                     <div style={{ color: unlocked ? '#86efac' : 'var(--text-muted)', fontSize: '.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>{unlocked ? 'Açıldı' : `${rank.minXp} XP`}</div>
                   </div>;
@@ -978,7 +987,7 @@ const Profile = () => {
 
       {removeFriendTarget && (
         <ConfirmModal
-          icon="👋"
+          icon=""
           title="Arkadaşlıktan çıkar?"
           message={`@${removeFriendTarget.username} ile arkadaşlığı sonlandırmak istediğine emin misin? Bu işlem geri alınabilir; daha sonra yeniden arkadaşlık isteği gönderebilirsin.`}
           confirmText="Arkadaşlıktan çıkar"

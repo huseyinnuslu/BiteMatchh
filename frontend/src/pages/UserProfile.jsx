@@ -5,15 +5,27 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
   Users, BarChart2, UserPlus, UserMinus, Clock, ArrowLeft,
-  UserCheck, UserX, Award, MessageCircle
+  UserCheck, UserX, Award, MessageCircle, Utensils, MapPin, Film, Tv,
+  Tent, Gamepad2, Music2, SlidersHorizontal, Sprout, Compass, Crosshair,
+  UsersRound, Hammer, Route, Anchor, Sparkles, Crown, Flame, Trophy, Package, Lock
 } from 'lucide-react';
 import api from '../api';
 import Avatar from '../components/Avatar';
 import ConfirmModal from '../components/ConfirmModal';
 
 const CATEGORY_ICONS = {
-  yemek: '🍔', restoran: '🍽️', film: '🎬', dizi: '📺',
-  aktivite: '🏃', mekan: '📍', muzik: '🎵', oyun: '🎮', custom: '🎯',
+  yemek: Utensils, restoran: Utensils, film: Film, dizi: Tv,
+  aktivite: Tent, mekan: MapPin, muzik: Music2, oyun: Gamepad2, custom: SlidersHorizontal,
+};
+
+const RANK_ICONS = [Sprout, Compass, Utensils, Crosshair, UsersRound, Hammer, Route, Anchor, Sparkles, Crown, Flame, Trophy];
+const CategoryIcon = ({ category, size = 14 }) => {
+  const Icon = CATEGORY_ICONS[category] || Package;
+  return <Icon size={size} aria-hidden="true" />;
+};
+const RankIcon = ({ level, size = 14 }) => {
+  const Icon = RANK_ICONS[Math.max(0, Math.min(RANK_ICONS.length - 1, Number(level || 1) - 1))] || Award;
+  return <Icon size={size} aria-hidden="true" />;
 };
 
 const UserProfile = () => {
@@ -48,7 +60,7 @@ const UserProfile = () => {
     setActionId(id);
     try {
       await api.post(`/users/friends/${id}`);
-      toast.success('Arkadaşlık isteği gönderildi! 🤝');
+      toast.success('Arkadaşlık isteği gönderildi.');
       setProfile(prev => ({ ...prev, isPending: true }));
     } catch (e) {
       toast.error(e.response?.data?.message || 'İstek gönderilemedi');
@@ -117,7 +129,7 @@ const UserProfile = () => {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '.42rem', marginTop: '.58rem', padding: '.36rem .58rem', borderRadius: 999, color: '#fef3c7', fontSize: '.76rem', fontWeight: 800, background: 'linear-gradient(135deg, rgba(251,113,133,.16), rgba(139,92,246,.18))', border: '1px solid rgba(196,181,253,.35)' }}
               >
                 <Award size={14} />
-                <span>{profile.gamification.currentRank.icon}</span>
+                <RankIcon level={profile.gamification.currentRank.level} />
                 {profile.gamification.currentRank.title} · Seviye {profile.gamification.currentRank.level}
               </div>
             )}
@@ -182,7 +194,7 @@ const UserProfile = () => {
                   <div key={cat}>
                     <div className="user-profile-category-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.85rem', marginBottom: '0.3rem' }}>
                       <span style={{ textTransform: 'capitalize', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {CATEGORY_ICONS[cat] || '✨'} {cat}
+                        <CategoryIcon category={cat} /> {cat}
                       </span>
                       <span style={{ fontWeight: 600, color: 'var(--primary)' }}>%{percentage}</span>
                     </div>
@@ -197,7 +209,7 @@ const UserProfile = () => {
         </div>
       ) : (
         <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+          <Lock size={42} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
           <h3 style={{ margin: '0 0 0.5rem 0' }}>Gizli Profil</h3>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             Bu kullanıcı istatistiklerini herkese açık olarak paylaşmıyor.
@@ -207,7 +219,7 @@ const UserProfile = () => {
 
       {showRemoveConfirm && (
         <ConfirmModal
-          icon="👋"
+          icon=""
           title="Arkadaşlıktan çıkar?"
           message={`@${profile.username} ile arkadaşlığı sonlandırmak istediğine emin misin? Daha sonra yeniden arkadaşlık isteği gönderebilirsin.`}
           confirmText="Arkadaşlıktan çıkar"
