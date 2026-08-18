@@ -291,14 +291,11 @@ export const initSocket = (io) => {
         }
       }
 
-      if (roomCode && userId) {
-        const participants = getRoomParticipants(roomCode);
-        const wasParticipant = participants.delete(userId);
-        if (wasParticipant) {
-          socket.to(roomCode).emit('participant_left', { userId, username, count: participants.size });
-        }
-        if (participants.size === 0) { cleanupRoom(roomCode); }
-      }
+      // Socket kopması (PWA yenilemesi, ağ değişimi, sayfa geçişi) oda
+      // üyeliğinin bittiği anlamına gelmez. Üyelik Room/activeRoom kayıtlarıyla
+      // yönetilir; burada participant_left yayınlamak diğer kullanıcılara
+      // sahte "X odadan ayrıldı" bildirimi gönderiyordu. Gerçek ayrılma
+      // yalnızca leaveRoom controller'ından yayınlanır.
     });
 
     socket.on('ping_room', ({ roomCode }) => socket.emit('pong_room', { roomCode, ts: Date.now() }));
