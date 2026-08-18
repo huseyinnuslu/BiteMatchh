@@ -22,4 +22,29 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Hesap silindikten sonra veya oturum süresi geçtikten sonra tarayıcıda eski
+// JWT kalabilir. Sunucu bu isteği 401 ile reddettiğinde arayüzün kullanıcıyı
+// hâlâ giriş yapmış göstermesine ya da tekrar eden hata istekleri üretmesine
+// izin vermeyiz; eski oturumu temizleyip giriş sayfasına döneriz.
+let redirectingAfterUnauthorized = false;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || '');
+    const isAuthFlow = requestUrl.startsWith('/auth/');
+
+    if (status === 401 && !isAuthFlow && !redirectingAfterUnauthorized) {
+      redirectingAfterUnauthorized = true;
+      localStorage.removeItem('userInfo');
+
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login?reason=session_expired');
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;
