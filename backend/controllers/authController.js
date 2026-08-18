@@ -766,10 +766,6 @@ export const updateUserProfile = async (req, res, next) => {
         user.isStatsPublic = req.body.isStatsPublic;
       }
 
-      if (req.body.password) {
-        user.password = req.body.password;
-      }
-
       const updatedUser = await user.save();
 
       res.json({
@@ -787,6 +783,42 @@ export const updateUserProfile = async (req, res, next) => {
       res.status(404);
       throw new Error('Kullanıcı bulunamadı');
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Mevcut şifre doğrulanarak yeni şifre belirle
+// @route   POST /api/auth/change-password
+// @access  Private
+export const changePassword = async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || '');
+    const newPassword = String(req.body?.newPassword || '');
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Mevcut şifre ve yeni şifre zorunludur.' });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ message: 'Yeni şifre en az 8 karakter; bir büyük harf, bir küçük harf ve bir rakam içermelidir.' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(400).json({ message: 'Mevcut şifre doğru değil.' });
+    }
+
+    if (await user.matchPassword(newPassword)) {
+      return res.status(400).json({ message: 'Yeni şifre mevcut şifrenle aynı olamaz.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Şifren başarıyla güncellendi.' });
   } catch (error) {
     next(error);
   }

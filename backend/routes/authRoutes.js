@@ -6,6 +6,7 @@ import {
   loginUser,
   guestLogin,
   updateUserProfile,
+  changePassword,
   completeUsernameOnboarding,
   forgotPassword,
   resetPassword,
@@ -29,6 +30,7 @@ router.post('/verify-email/resend', resendRegistrationVerification);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);
+router.post('/change-password', protect, changePassword);
 router.post('/complete-username', protect, completeUsernameOnboarding);
 router.post('/email-change/request', protect, requestEmailChange);
 router.post('/email-change/confirm', protect, confirmEmailChange);
