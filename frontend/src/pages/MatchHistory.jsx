@@ -7,6 +7,41 @@ import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
 import { preloadImages, resolveAssetUrl } from '../utils/imageCache';
 
+const categoryFallbackImage = (category) => {
+  if (category === 'film' || category === 'movie') return '/film-card-fallback.svg';
+  if (category === 'aktivite' || category === 'activity') return '/activity-card-fallback.svg';
+  return '/food-card-fallback.svg';
+};
+
+const MatchHistoryImage = ({ winner, category }) => {
+  const primaryUrl = resolveAssetUrl(winner?.imageUrl || winner?.fallbackImageUrl || '');
+  const secondaryUrl = resolveAssetUrl(winner?.fallbackImageUrl || '');
+  const fallbackUrl = resolveAssetUrl(categoryFallbackImage(category));
+  const [src, setSrc] = useState(primaryUrl || fallbackUrl);
+
+  useEffect(() => {
+    setSrc(primaryUrl || fallbackUrl);
+  }, [primaryUrl, fallbackUrl]);
+
+  const handleError = () => {
+    if (src !== secondaryUrl && secondaryUrl) {
+      setSrc(secondaryUrl);
+      return;
+    }
+    if (src !== fallbackUrl) setSrc(fallbackUrl);
+  };
+
+  return <img
+    src={src}
+    alt={winner?.name || 'Eşleşme görseli'}
+    loading="eager"
+    fetchPriority="high"
+    decoding="sync"
+    onError={handleError}
+    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+  />;
+};
+
 const MatchHistory = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -21,8 +56,10 @@ const MatchHistory = () => {
     const fetchHistory = async () => {
       try {
         const { data } = await api.get('/rooms/history');
+        // Kart metinleri gelmişken görselin sonradan düşmesini önlemek için,
+        // geçmiş ekranını ancak görseller önbelleğe alındıktan sonra açıyoruz.
+        await preloadImages(data.flatMap((room) => [room.matchResult?.imageUrl, room.matchResult?.fallbackImageUrl]));
         setMatches(data);
-        preloadImages(data.flatMap((room) => [room.matchResult?.imageUrl, room.matchResult?.fallbackImageUrl]));
       } catch (err) {
         console.error('Eşleşme geçmişi yüklenirken hata oluştu:', err);
       } finally {
@@ -230,28 +267,7 @@ const MatchHistory = () => {
                   flexShrink: 0,
                   background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
                 }}>
-                  {winner?.imageUrl ? (
-                    <img 
-                      src={resolveAssetUrl(winner.imageUrl)}
-                      alt={winner.name} 
-                      loading="eager"
-                      fetchPriority="high"
-                      decoding="sync"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  ) : (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      height: '100%', 
-                      color: 'rgba(255,255,255,0.4)',
-                      fontSize: '0.8rem',
-                      fontWeight: 600
-                    }}>
-                      Görsel Yok
-                    </div>
-                  )}
+                  <MatchHistoryImage winner={winner} category={room.category} />
                   {/* Kategori Rozeti */}
                   <span style={{
                     position: 'absolute',

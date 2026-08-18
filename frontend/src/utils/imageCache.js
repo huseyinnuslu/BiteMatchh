@@ -6,7 +6,8 @@ const imageStatus = new Map();
 const pendingLoads = new Map();
 const preloadQueue = [];
 let activePreloads = 0;
-const MAX_CONCURRENT_PRELOADS = 4;
+const MAX_CONCURRENT_PRELOADS = 6;
+const PRELOAD_TIMEOUT_MS = 12000;
 
 export const resolveAssetUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
@@ -39,8 +40,18 @@ const runPreloadQueue = () => {
     const image = new Image();
     // Ön-yükleme işlemi görünür kartların kaynaklarını işgal etmesin.
     image.decoding = 'async';
-    image.onload = () => finishPreload(next.resolvedUrl, next.resolve, 'loaded');
-    image.onerror = () => finishPreload(next.resolvedUrl, next.resolve, 'error');
+    let completed = false;
+    let timeoutId;
+    const finish = (status) => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timeoutId);
+      finishPreload(next.resolvedUrl, next.resolve, status);
+    };
+    image.onload = () => finish('loaded');
+    image.onerror = () => finish('error');
+    timeoutId = setTimeout(() => finish('error'), PRELOAD_TIMEOUT_MS);
+    image.fetchPriority = 'high';
     image.src = next.resolvedUrl;
   }
 };
