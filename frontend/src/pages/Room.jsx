@@ -28,12 +28,17 @@ const Room = () => {
     roomRef.current = currentRoom;
   }, [currentRoom]);
 
-  // Oy başlamadan kart görsellerini arka planda hazırla. Kullanıcı kaydırınca
-  // kart zaten tarayıcı belleğinde olduğundan "Görsel hazırlanıyor" görmez.
+  // Görünür kart tarayıcı tarafından doğrudan yüklenirken, sıradaki birkaç
+  // kartı arka planda hazırlarız. Böylece kart değişimi ağ yanıtına bağlı
+  // kalmaz ve özellikle mobilde "görsel hazırlanıyor" görünmez.
   useEffect(() => {
     if (!currentRoom?.options?.length) return;
-    preloadImages(currentRoom.options.flatMap((option) => [option.imageUrl, option.fallbackImageUrl]));
-  }, [currentRoom?._id, currentRoom?.options]);
+    preloadImages(
+      currentRoom.options
+        .slice(currentIndex + 1, currentIndex + 6)
+        .flatMap((option) => [option.imageUrl, option.fallbackImageUrl])
+    );
+  }, [currentRoom?._id, currentRoom?.options, currentIndex]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -193,9 +198,21 @@ const Room = () => {
       socket.on('connect', handleConnect);
 
       // user_swiped: diğer katılımcı kaydırdı → UI güncelle (opsiyonel bilgi)
-      socket.on('user_swiped', ({ userId, username, direction: dir }) => {
+      socket.on('user_swiped', ({ userId, username, direction: dir, completed }) => {
         if (userId === user._id) return; // kendi aksiyonumuzu yoksay
         console.log(`👆 ${username} → ${dir === 'right' ? '💚' : '❌'}`);
+        // Katılımcı durumu polling'i beklemeden hemen güncellensin. Bu yalnız
+        // görsel ilerleme bilgisidir; gerçek eşleşme kararı yine backend'dedir.
+        if (completed) {
+          setCurrentRoom((previous) => previous ? {
+            ...previous,
+            participantStatuses: (previous.participantStatuses || []).map((participant) =>
+              String(participant.user?._id || participant.user) === String(userId)
+                ? { ...participant, status: 'finished' }
+                : participant
+            ),
+          } : previous);
+        }
       });
 
       // match_success: eşleşme socket'tan geldi → anlık modal aç
@@ -307,6 +324,7 @@ const Room = () => {
 
     const option = currentRoom.options[currentIndex];
     if (!option?._id) return;
+    const isLastOption = currentIndex + 1 >= currentRoom.options.length;
 
     decisionInFlightRef.current = true;
     setDirection(decision === 'like' ? 1 : -1);
@@ -319,22 +337,48 @@ const Room = () => {
         userId: user._id,
         itemId: option._id,
         direction: decision === 'like' ? 'right' : 'left',
+        completed: isLastOption,
       });
     }
 
-    try {
-      // REST swipe kaydı (DB'ye yaz + server-side eşleşme kontrolü)
-      await swipe(id, option._id, decision);
-
-      setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
-        setDirection(0);
-        decisionInFlightRef.current = false;
-      }, 300);
-    } catch (error) {
+    // REST kaydı arka planda sürerken kartı kısa bir çıkış animasyonundan
+    // sonra ilerlet. Önceden ağ yanıtı + 300ms bekleniyor, bu da Render'da
+    // swipe'ın gözle görülür biçimde ağırlaşmasına yol açıyordu.
+    let hasAdvanced = false;
+    const advanceCard = () => {
+      if (hasAdvanced) return;
+      hasAdvanced = true;
+      setCurrentIndex((prev) => prev + 1);
+      if (isLastOption) {
+        setCurrentRoom((previous) => previous ? {
+          ...previous,
+          participantStatuses: (previous.participantStatuses || []).map((participant) =>
+            String(participant.user?._id || participant.user) === String(user._id)
+              ? { ...participant, status: 'finished' }
+              : participant
+          ),
+        } : previous);
+      }
       setDirection(0);
+    };
+    const advanceTimer = window.setTimeout(advanceCard, 160);
+
+    try {
+      // DB kaydı ve server-side eşleşme kontrolü güvenlik için aynen devam
+      // eder; yalnızca kullanıcı arayüzü bunun cevabını beklemez.
+      const saved = await swipe(id, option._id, decision);
+      if (!saved) {
+        window.clearTimeout(advanceTimer);
+        setDirection(0);
+        const refreshedRoom = await fetchRoomStatus(id);
+        setCurrentIndex(refreshedRoom?.userSwipes?.length ?? currentIndex);
+      } else {
+        // Sunucu çok hızlı yanıt verirse bile kartın sıradaki halini bekletme.
+        advanceCard();
+      }
+    } finally {
+      window.clearTimeout(advanceTimer);
       decisionInFlightRef.current = false;
-      toast.error(error?.response?.data?.message || 'Karar kaydedilemedi. Lütfen tekrar dene.');
     }
   };
 

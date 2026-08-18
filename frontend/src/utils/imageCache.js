@@ -6,7 +6,7 @@ const imageStatus = new Map();
 const pendingLoads = new Map();
 const preloadQueue = [];
 let activePreloads = 0;
-const MAX_CONCURRENT_PRELOADS = 3;
+const MAX_CONCURRENT_PRELOADS = 4;
 
 export const resolveAssetUrl = (url) => {
   if (!url || typeof url !== 'string') return '';

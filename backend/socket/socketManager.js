@@ -130,9 +130,9 @@ export const initSocket = (io) => {
     });
 
     // ── swipe_action ─────────────────────────────────────────────────────────
-    socket.on('swipe_action', ({ roomCode, userId, itemId, direction }) => {
+    socket.on('swipe_action', ({ roomCode, userId, itemId, direction, completed = false }) => {
       if (!roomCode || !userId || !itemId) return;
-      socket.to(roomCode).emit('user_swiped', { userId, username: socket.data.username, itemId, direction });
+      socket.to(roomCode).emit('user_swiped', { userId, username: socket.data.username, itemId, direction, completed: Boolean(completed) });
     });
 
     // ── send_message (Oda içi sohbet) ────────────────────────────────────────
