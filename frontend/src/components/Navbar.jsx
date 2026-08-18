@@ -221,6 +221,9 @@ const Navbar = () => {
       const { data } = await api.post(`/notifications/${notif._id}/open`);
       setNotifications(prev => prev.map(n => n._id === notif._id ? { ...n, isRead: true } : n));
       if (data.inactive) toast.info('Bu oda daveti artık geçerli değil. Keşfet’e yönlendirildin.');
+      if (data.blockedByActiveRoom) {
+        toast.info(`Zaten “${data.blockedByActiveRoom.name}” odasındasın. Davete katılmak için önce o odadan ayrılmalısın.`);
+      }
       navigate(data.link || '/dashboard');
     } catch (err) {
       console.error(err);

@@ -120,6 +120,28 @@ export const openNotification = async (req, res, next) => {
       if (!isLiveRoom || !invitationIsActive) {
         link = '/dashboard';
         inactive = true;
+      } else if (notification.type === 'room_invite') {
+        // Davetli kullanıcının zaten başka bir canlı odası varsa, onu önce
+        // davet odasına yönlendirip join isteğinin 409 ile düşmesine izin
+        // vermeyiz. Bu hem açık odanın kaybolmuş gibi görünmesini hem de
+        // Keşfet -> davet odası arasında tutarsız gezinmeyi engeller.
+        const activeRoom = await Room.findOne({
+          participants: req.user._id,
+          status: { $in: ['waiting', 'voting'] },
+          _id: { $ne: room._id },
+        }).select('_id name').sort({ updatedAt: -1 }).lean();
+
+        if (activeRoom) {
+          link = `/room/${activeRoom._id}`;
+          return res.json({
+            link,
+            inactive: false,
+            blockedByActiveRoom: {
+              id: activeRoom._id.toString(),
+              name: activeRoom.name,
+            },
+          });
+        }
       }
     }
     res.json({ link, inactive });
