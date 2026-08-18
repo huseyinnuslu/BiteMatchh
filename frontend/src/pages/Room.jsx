@@ -102,9 +102,25 @@ const Room = () => {
   }, [currentRoom?._id, currentRoom?.status, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name, id]);
   useEffect(() => {
     // Yeni bir oda/sonuç geldiğinde modal ve devam akışını sıfırdan başlat.
-    setMatchModalDismissed(chatNotificationRequestedRef.current);
-    setShowRestaurantFlow(false);
-  }, [id, currentRoom?.matchResult?._id, currentRoom?.matchResult?.name]);
+    // Ancak oda sohbeti bildiriminden dönüldüyse, kullanıcı zaten bu yemek
+    // eşleşmesinin "Nerede Yiyelim?" adımındaydı. Sohbeti açarken bu adımı
+    // gizlemek, konum/öneri ekranını kaybolmuş gibi gösteriyordu.
+    const openedFromRoomChat = new URLSearchParams(location.search).get('chat') === '1';
+    const isFinishedFoodMatch =
+      currentRoom?.status === 'finished' &&
+      ['mekan', 'food'].includes(currentRoom?.category) &&
+      Boolean(currentRoom?.matchResult);
+
+    setMatchModalDismissed(openedFromRoomChat || chatNotificationRequestedRef.current);
+    setShowRestaurantFlow(Boolean(openedFromRoomChat && isFinishedFoodMatch));
+  }, [
+    id,
+    location.search,
+    currentRoom?.status,
+    currentRoom?.category,
+    currentRoom?.matchResult?._id,
+    currentRoom?.matchResult?.name,
+  ]);
 
   // ── Geri sayım ─────────────────────────────────────────────────────────────
   useEffect(() => {
