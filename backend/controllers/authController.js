@@ -832,8 +832,10 @@ export const completeUsernameOnboarding = async (req, res, next) => {
     user.usernameChangedAt = null;
     await user.save();
 
-    // Hoş geldin e-postası seçilmiş kullanıcı adıyla gönderilir.
-    void sendWelcomeEmailIfNeeded(user);
+    // Google ile ilk kayıtta kullanıcı adı bu adımda tamamlanır. Hoş geldin
+    // e-postasını yanıt dönmeden önce başlatırız; ücretsiz instance'ın uykuya
+    // geçmesi nedeniyle arka plan görevinin kaybolmasına izin vermeyiz.
+    await sendWelcomeEmailIfNeeded(user);
 
     res.json({
       _id: user._id,
@@ -1168,10 +1170,12 @@ export const googleLogin = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
       }
 
-      // İlk kayıt denemesinde e-posta gönderilemediyse, Google ile sonraki girişte tekrar dener.
-      // Bu işlem giriş ekranını asla bekletmez.
+      // İlk Google kaydında e-posta gönderilemediyse sonraki güvenli Google
+      // girişinde tekrar deneriz. Bu çağrı gönderim isteğini tamamlar; daha
+      // önce arka plana bırakılması bazı cihazlarda hoş geldin e-postasının
+      // hiç gönderilmemesine yol açabiliyordu.
       if (!user.usernameOnboardingRequired) {
-        void sendWelcomeEmailIfNeeded(user);
+        await sendWelcomeEmailIfNeeded(user);
       }
 
       // ── Mevcut kullanıcı: direkt JWT ver
