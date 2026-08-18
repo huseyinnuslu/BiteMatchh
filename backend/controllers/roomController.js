@@ -22,9 +22,9 @@ const clearActiveRoom = (userIds, roomId) => User.updateMany(
 
 // Aynı hesabın iki cihazdan iki ayrı odaya girmesini UI'ye değil, atomik DB
 // güncellemesine bağlayarak engeller. Eski/biten oda kilitleri otomatik temizlenir.
-const claimActiveRoom = async (userId, roomId) => {
+const claimActiveRoom = async (userId, roomId, { skipLegacyRecovery = false } = {}) => {
   const user = await User.findById(userId).select('activeRoom').lean();
-  if (!user?.activeRoom) {
+  if (!user?.activeRoom && !skipLegacyRecovery) {
     // Bu alan eklenmeden önce oluşturulmuş aktif odaları da ilk istekte yakalar.
     const legacyActiveRoom = await Room.findOne({
       participants: userId,
@@ -280,7 +280,6 @@ export const createRoom = async (req, res, next) => {
     }
 
     const roomId = new mongoose.Types.ObjectId();
-    await claimActiveRoom(req.user._id, roomId);
     let room;
     try {
       room = await Room.create({
@@ -302,8 +301,15 @@ export const createRoom = async (req, res, next) => {
       timeLimit: Number(timeLimit) || 0,
       status: 'waiting',
       });
+
+      // Oda belgesini kilitten önce oluşturuyoruz. Önce kilit alınıp oda
+      // birkaç ms sonra yazıldığında ikinci cihaz bu kaydı "eski" sanıp
+      // temizleyebiliyor ve aynı hesap iki oda açabiliyordu. Belge artık
+      // görünür durumdayken atomik activeRoom kilidi alınır.
+      await claimActiveRoom(req.user._id, roomId, { skipLegacyRecovery: true });
     } catch (error) {
       await clearActiveRoom([req.user._id], roomId);
+      await Room.deleteOne({ _id: roomId, host: req.user._id, status: 'waiting' });
       throw error;
     }
 
