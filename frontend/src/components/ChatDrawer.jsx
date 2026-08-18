@@ -32,6 +32,20 @@ const LEGACY_QUICK_REPLY_TEXTS = new Map([
 
 const displayMessageText = (text) => LEGACY_QUICK_REPLY_TEXTS.get(text) || text;
 
+// Oda sohbeti kapalıyken de socketten gelen yeni mesajı koruruz. Böylece
+// kullanıcı bildirime tıkladığında önce API yanıtını bekleyen boş bir kutu
+// yerine mesajı hemen görür; arka plandaki istek yalnız geçmişi eşitler.
+const roomMessageCache = new Map();
+
+const mergeMessages = (current = [], incoming = []) => {
+  const byId = new Map();
+  [...current, ...incoming].forEach((message) => {
+    const key = String(message?._id || `${message?.sender || ''}:${message?.createdAt || ''}:${message?.text || ''}`);
+    if (message) byId.set(key, message);
+  });
+  return [...byId.values()].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+};
+
 const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
   const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
@@ -41,21 +55,35 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
 
   // Bildirimden gelen oda katılımcısı geçmiş oda sohbetini de görür.
   useEffect(() => {
-    if (!isOpen || !roomId) return;
+    if (!roomId) return;
     let cancelled = false;
+    const cachedMessages = roomMessageCache.get(String(roomId)) || [];
+    if (cachedMessages.length) setMessages(cachedMessages);
+
     api.get(`/messages/room/${roomId}`)
-      .then(({ data }) => { if (!cancelled) setMessages(data); })
-      .catch(() => { if (!cancelled) setMessages([]); });
+      .then(({ data }) => {
+        if (cancelled) return;
+        const merged = mergeMessages(roomMessageCache.get(String(roomId)) || [], data);
+        roomMessageCache.set(String(roomId), merged);
+        setMessages(merged);
+      })
+      .catch(() => { if (!cancelled && !cachedMessages.length) setMessages([]); });
     return () => { cancelled = true; };
-  }, [isOpen, roomId]);
+  }, [roomId]);
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket || !isOpen) return;
-    const handler = (msg) => setMessages(prev => [...prev, msg]);
+    if (!socket || !roomId) return;
+    const handler = (msg) => {
+      setMessages((previous) => {
+        const merged = mergeMessages(previous, [msg]);
+        roomMessageCache.set(String(roomId), merged);
+        return merged;
+      });
+    };
     socket.on('receive_message', handler);
     return () => socket.off('receive_message', handler);
-  }, [isOpen]);
+  }, [roomId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
