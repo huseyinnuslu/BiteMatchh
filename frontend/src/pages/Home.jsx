@@ -30,7 +30,7 @@ const Home = () => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Bana Fark Eder! 🔥
+          Bana Fark Eder
         </h1>
       </motion.div>
 

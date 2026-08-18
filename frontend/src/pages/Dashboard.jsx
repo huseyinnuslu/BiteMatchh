@@ -634,19 +634,19 @@ const Dashboard = () => {
                       const tUrl = ev.ticketUrl || '';
                       let label, bg;
                       if (tUrl.includes('bubilet.com.tr')) {
-                        label = '🎟 Bubilet'; bg = 'rgba(220,38,38,0.88)';
+                        label = 'Bubilet'; bg = 'rgba(220,38,38,0.88)';
                       } else if (tUrl.includes('passo.com.tr')) {
-                        label = '🎟 Passo'; bg = 'rgba(234,88,12,0.85)';
+                        label = 'Passo'; bg = 'rgba(234,88,12,0.85)';
                       } else if (tUrl.includes('biletix.com')) {
-                        label = '🎟 Biletix'; bg = 'rgba(37,99,235,0.85)';
+                        label = 'Biletix'; bg = 'rgba(37,99,235,0.85)';
                       } else if (tUrl.includes('biletinial.com')) {
-                        label = '🎟 Biletinial'; bg = 'rgba(124,58,237,0.85)';
+                        label = 'Biletinial'; bg = 'rgba(124,58,237,0.85)';
                       } else if (ev.eventSource === 'IBB') {
-                        label = '🏛 IBB'; bg = 'rgba(4,120,87,0.85)';
+                        label = 'İBB'; bg = 'rgba(4,120,87,0.85)';
                       } else if (ev.eventSource === 'Eventbrite') {
-                        label = '📍 Eventbrite'; bg = 'rgba(248,113,113,0.7)';
+                        label = 'Eventbrite'; bg = 'rgba(248,113,113,0.7)';
                       } else {
-                        label = ev.city ? `📍 ${ev.city}` : '🎯 Etkinlik';
+                        label = ev.city || 'Etkinlik';
                         bg = 'rgba(0,0,0,0.6)';
                       }
                       return (
@@ -674,7 +674,7 @@ const Dashboard = () => {
                         borderRadius: '6px', padding: '0.3rem 0.5rem',
                         fontSize: '0.65rem', fontWeight: 800, color: '#1a1a1a',
                         whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                      }}>⭐ ÖNE ÇIKAN</div>
+                      }}>ÖNE ÇIKAN</div>
                     )}
                     
                     {/* Share Button */}
@@ -763,7 +763,7 @@ const Dashboard = () => {
                           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(99,102,241,0.7)'; }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.5)'; }}
                         >
-                          🎟 Bilet Al
+                          Bilet Al
                         </button>
                       )}
                       {(ev.mapsQuery || ev.location) && (
@@ -787,7 +787,7 @@ const Dashboard = () => {
                           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(66,133,244,0.8)'; }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = ev.ticketUrl ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)'; }}
                         >
-                          📍 Harita
+                          Harita
                         </button>
                       )}
                       {!ev.ticketUrl && !ev.mapsQuery && !ev.location && (

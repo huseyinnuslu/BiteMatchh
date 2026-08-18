@@ -133,7 +133,7 @@ const WaitingRoom = () => {
   const handleCopyLink = () => {
     navigator.clipboard.writeText(inviteLink)
       .then(() => {
-        toast.success('Katılım bağlantısı panoya kopyalandı! 🔗');
+        toast.success('Katılım bağlantısı panoya kopyalandı.');
       })
       .catch(() => {
         toast.error('Bağlantı kopyalanamadı!');
@@ -147,7 +147,7 @@ const WaitingRoom = () => {
     try {
       const { data } = await api.put(`/rooms/${currentRoom._id}/invite`, { friendId });
 
-      if (!data.alreadyInvited) toast.success(`@${friendUsername} odaya davet edildi! 📩`);
+      if (!data.alreadyInvited) toast.success(`@${friendUsername} odaya davet edildi.`);
       fetchRoomStatus(currentRoom._id); // Sayaç başlaması için odayı yenile
     } catch (err) {
       setInvitedIds(prev => {

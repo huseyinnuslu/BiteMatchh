@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2, History } from 'lucide-react';
+import { Award, CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2, History, Ticket } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
@@ -304,7 +304,7 @@ const MatchHistory = () => {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary)' }}>
-                          🏆 {winner?.name || 'Bilinmeyen Seçenek'}
+                          <Award size={15} /> {winner?.name || 'Bilinmeyen Seçenek'}
                         </h4>
                         {winner?.budget && (
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)' }}>
@@ -335,7 +335,7 @@ const MatchHistory = () => {
                         onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
                         onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                       >
-                        🎟 Bilet Sayfasına Git <ExternalLink size={12} />
+                        <Ticket size={13} /> Bilet sayfasına git <ExternalLink size={12} />
                       </button>
                     )}
                     {(winner?.location || winner?.mapsQuery) && (
@@ -356,7 +356,7 @@ const MatchHistory = () => {
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(66, 133, 244, 0.25)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(66, 133, 244, 0.15)'; }}
                       >
-                        📍 Haritada Göster <ExternalLink size={12} />
+                        <MapPin size={13} /> Haritada göster <ExternalLink size={12} />
                       </button>
                     )}
                   </div>

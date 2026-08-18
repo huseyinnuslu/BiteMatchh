@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, Flame, MapPin, Share2, Navigation, LogOut } from 'lucide-react';
+import { CalendarDays, Clock3, Flame, MapPin, Share2, Star, Navigation, LogOut } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { toast } from 'react-toastify';
 import RestaurantImage from './RestaurantImage';
@@ -38,8 +38,8 @@ const yandexMapsUrl = (result) => {
 // Bağlantıyı kopyala — native share dialog YOK, sadece clipboard + toast
 const handleShare = async (name, location) => {
   const text = location
-    ? `BiteMatch'te eşleştik! 🎉 "${name}" — ${location}`
-    : `BiteMatch'te eşleştik! 🎉 "${name}"`;
+    ? `BiteMatch'te eşleştik: "${name}" — ${location}`
+    : `BiteMatch'te eşleştik: "${name}"`;
 
   try {
     await navigator.clipboard.writeText(text);
@@ -54,7 +54,7 @@ const handleShare = async (name, location) => {
     document.body.removeChild(el);
   }
 
-  toast.success('Bağlantı panoya kopyalandı! 📋', {
+  toast.success('Bağlantı panoya kopyalandı.', {
     position: 'top-right',
     autoClose: 2500,
     theme: 'dark',
@@ -103,7 +103,7 @@ const MatchModal = ({
   onClose,
   onExitRoom,
   title = 'EŞLEŞME SAĞLANDI!',
-  subtitle = 'Grubunuz ortak karara vardı 🎉',
+  subtitle = 'Grubunuz ortak karara vardı.',
   closeLabel = 'Oylamayı Bitir & Kapat',
 }) => {
   const name     = matchResult?.name     || '';
@@ -194,10 +194,10 @@ const MatchModal = ({
 
                   {/* Badge'ler */}
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {matchResult.rating    && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>⭐ {matchResult.rating}</span>}
+                    {matchResult.rating    && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Star size={13} fill="currentColor" /> {matchResult.rating}</span>}
                     {matchResult.budget    && <span style={{ background: 'rgba(34,197,94,0.2)', color: 'var(--success)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>{matchResult.budget}</span>}
                     {isPlace && matchResult.imdbScore && <span style={{ background: 'rgba(255,215,0,0.2)',  color: 'gold',            padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>Puan: {matchResult.imdbScore}</span>}
-                    {isPlace && matchResult.duration  && <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white',          padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>⏱ {matchResult.duration}</span>}
+                    {isPlace && matchResult.duration  && <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white',          padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock3 size={13} /> {matchResult.duration}</span>}
                   </div>
                 </div>
               )}
@@ -210,7 +210,7 @@ const MatchModal = ({
                   {isPlace && (
                     <>
                       <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        📍 Nerede?
+                        Nerede?
                       </p>
                       <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.75rem' }}>
                         <ActionBtn
@@ -244,7 +244,7 @@ const MatchModal = ({
 
                   {/* Paylaş */}
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    🔗 Paylaş
+                    Paylaş
                   </p>
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
                     <ActionBtn

@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       if (data.usernameOnboardingRequired) {
         toast.info('Devam etmek için kullanıcı adını seç.');
       } else {
-        toast.success(`Hoş geldin, ${data.name || data.username}! 🎉`);
+        toast.success(`Hoş geldin, ${data.name || data.username}.`);
       }
       return { success: true, requiresUsernameSetup: Boolean(data.usernameOnboardingRequired) };
     } catch (error) {
@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post('/auth/complete-username', { username });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success(`@${data.username} hazır. BiteMatch'e hoş geldin! 🎉`);
+      toast.success(`@${data.username} hazır. BiteMatch'e hoş geldin.`);
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Kullanıcı adı kaydedilemedi';

@@ -5,12 +5,12 @@ import { getSocket } from '../socket/socketClient';
 import api from '../api';
 
 const QUICK_REPLIES = [
-  'Hangi saatte bulusuyoruz? 🕐',
-  'Mekanda bulusalalim mi? 📍',
-  'Rezervasyon yapayim mi? 🍽️',
-  'Yolda misin? 🚗',
-  'Harika secim! 🎉',
-  'Ben de ayni fikirdeyim 👍',
+  'Hangi saatte buluşuyoruz?',
+  'Mekânda buluşalım mı?',
+  'Rezervasyon yapayım mı?',
+  'Yolda mısın?',
+  'Harika seçim.',
+  'Ben de aynı fikirdeyim.',
 ];
 
 const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
@@ -68,7 +68,7 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1rem', borderBottom: minimized ? 'none' : '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', flexShrink: 0 }}
           onClick={() => setMinimized(m => !m)}>
           <MessageCircle size={18} color="var(--primary)" />
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>💬 {matchedItem?.name || 'Sohbet'}</span>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>{matchedItem?.name || 'Sohbet'}</span>
           {messages.length > 0 && minimized && (
             <span style={{ background: 'var(--primary)', color: 'white', borderRadius: '50%', width: 20, height: 20, fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{messages.length > 9 ? '9+' : messages.length}</span>
           )}
@@ -96,8 +96,8 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
             >
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '2rem' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉</div>
-                  <p style={{ fontSize: '0.85rem' }}>Eslestiniz! Simdi plan yapin.</p>
+                  <MessageCircle size={30} style={{ marginBottom: '0.5rem', color: 'var(--primary)' }} />
+                  <p style={{ fontSize: '0.85rem' }}>Eşleştiniz. Şimdi plan yapın.</p>
                 </div>
               )}
               {messages.map((msg, i) => {

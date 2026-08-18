@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RoomContext } from '../context/RoomContext';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Link as LinkIcon, Check, Flame, RotateCcw, LogOut, AlertTriangle } from 'lucide-react';
+import { X, Heart, Link as LinkIcon, Check, CheckCircle2, Circle, Flame, RotateCcw, LogOut, AlertTriangle, Map } from 'lucide-react';
 import MatchModal from '../components/MatchModal';
 import OptionCard from '../components/OptionCard';
 import WaitingRoom from './WaitingRoom';
@@ -200,7 +200,7 @@ const Room = () => {
       // user_swiped: diğer katılımcı kaydırdı → UI güncelle (opsiyonel bilgi)
       socket.on('user_swiped', ({ userId, username, direction: dir, completed }) => {
         if (userId === user._id) return; // kendi aksiyonumuzu yoksay
-        console.log(`👆 ${username} → ${dir === 'right' ? '💚' : '❌'}`);
+        console.log(`${username}: ${dir === 'right' ? 'beğendi' : 'geçti'}`);
         // Katılımcı durumu polling'i beklemeden hemen güncellensin. Bu yalnız
         // görsel ilerleme bilgisidir; gerçek eşleşme kararı yine backend'dedir.
         if (completed) {
@@ -238,11 +238,11 @@ const Room = () => {
 
       // participant_joined / left
       socket.on('participant_joined', ({ username: uname, count }) => {
-        toast.info(`👥 ${uname} odaya katıldı! (${count} kişi)`);
+        toast.info(`${uname} odaya katıldı. (${count} kişi)`);
         fetchRoomStatus(id); // Katılımcı listesini güncellemek için DB'den tekrar çek
       });
       socket.on('participant_left', ({ username: uname }) => {
-        toast.warning(`👋 ${uname} odadan ayrıldı`);
+        toast.warning(`${uname} odadan ayrıldı.`);
         fetchRoomStatus(id);
       });
 
@@ -427,7 +427,6 @@ const Room = () => {
     // durduruyordu. Sonucu kaydedilmiş odada güvenle Keşfet'e dönüyoruz.
     setMatchModalDismissed(true);
     resetRoom();
-    toast.success('Sana fark eder! Ortak kararınız hazır.');
     navigate('/dashboard');
   };
 
@@ -515,11 +514,11 @@ const Room = () => {
             <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-center" style={{ flexDirection: 'column', textAlign: 'center', width: '100%' }}>
               <div className="glass-card animate-slide-up" style={{ width: '100%', borderColor: 'var(--primary)', background: 'rgba(255,255,255,0.05)' }}>
                 <h3 style={{ color: 'var(--primary)', marginBottom: '1rem', fontSize: '1.4rem' }}>
-                  Grup Uyum Yüzdeniz: %{currentRoom.compatibilityPercentage || 0}! 🤝
+                  Grup uyumu: %{currentRoom.compatibilityPercentage || 0}
                 </h3>
                 {currentRoom.timeLimit > 0 && (
                   <p style={{ fontSize: '0.85rem', color: 'var(--danger)', marginBottom: '1rem', fontWeight: 'bold' }}>
-                    ⏰ Süre Sınırı Dolduğu İçin Oylama Kapanmıştır!
+                    Süre sınırı dolduğu için oylama kapandı.
                   </p>
                 )}
                 <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
@@ -534,7 +533,7 @@ const Room = () => {
                           <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{opt.name}</h4>
                           <small style={{ color: 'var(--success)' }}>{opt.likeCount} Beğeni</small>
                           {opt.location && (
-                            <div style={{ marginTop: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>📍 {opt.location}</div>
+                            <div style={{ marginTop: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}><Map size={12} /> {opt.location}</div>
                           )}
                         </div>
                         {opt.location && (
@@ -544,7 +543,7 @@ const Room = () => {
                             rel="noopener noreferrer"
                             style={{ padding: '0.4rem 0.7rem', background: 'rgba(66,133,244,0.2)', color: '#93c5fd', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
                           >
-                            🗺 Harita
+                            <Map size={13} /> Harita
                           </a>
                         )}
                       </div>
@@ -643,9 +642,9 @@ const Room = () => {
               currentRoom.participantStatuses.map((p, idx) => (
                 <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                   {p.status === 'finished' ? (
-                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><span style={{ color: 'var(--success)' }}>🟢</span> {p.user.username} (Oylamayı Bitirdi)</>
+                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><CheckCircle2 size={15} color="var(--success)" /> {p.user.username} (Oylamayı bitirdi)</>
                   ) : (
-                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><span style={{ color: 'gold' }}>🟡</span> {p.user.username} (Seçim yapıyor...)</>
+                    <><Avatar src={p.user.profilePic} username={p.user.username} size={28} /><Circle size={12} fill="#fbbf24" color="#fbbf24" /> {p.user.username} (Seçim yapıyor…)</>
                   )}
                 </div>
               ))
@@ -671,7 +670,6 @@ const Room = () => {
           onRestaurantMatched={openRestaurantMatchChat}
           onComplete={() => {
             resetRoom();
-            toast.success('Sana fark eder! Restoran kararınız hazır.');
             navigate('/dashboard');
           }}
           onExit={requestRoomExit}

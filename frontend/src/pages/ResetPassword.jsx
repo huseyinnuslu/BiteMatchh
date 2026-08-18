@@ -43,7 +43,7 @@ const ResetPassword = () => {
     <div className="flex-center animate-slide-up" style={{ minHeight: '60vh' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔒</div>
+          <div style={{ fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 800, color: 'var(--primary)' }}>Güvenli şifre güncelleme</div>
           <h2 className="text-gradient">Yeni Şifre Belirle</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
             Güçlü bir şifre oluşturun.

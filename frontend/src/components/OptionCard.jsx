@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Star, MapPin, Clock, Tv, Calendar } from 'lucide-react';
+import { Star, MapPin, Clock, Tv, Calendar, HelpCircle, Ticket } from 'lucide-react';
 import RestaurantImage from './RestaurantImage';
 import OptionImage from './OptionImage';
 
@@ -139,7 +139,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
               : 'var(--surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {isRestaurant ? <MapPin size={52} color="var(--primary)" /> : <span style={{ fontSize: '4rem' }}>{isLive ? '🎫' : '❓'}</span>}
+            {isRestaurant ? <MapPin size={52} color="var(--primary)" /> : isLive ? <Ticket size={52} color="var(--primary)" /> : <HelpCircle size={52} color="var(--text-muted)" />}
           </div>
         )
       )}

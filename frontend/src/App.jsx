@@ -77,9 +77,9 @@ function App() {
           onClick={() => { if (notif.link) window.location.href = notif.link; }}
         >
           <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-            {notif.type === 'message' ? 'Yeni Mesaj 💬' :
-             notif.type === 'friend_request' ? 'Arkadaşlık İsteği! 🤝' :
-             notif.type === 'room_invite' ? 'Oda Daveti! 📬' : 'Bildirim 🔔'}
+            {notif.type === 'message' ? 'Yeni mesaj' :
+             notif.type === 'friend_request' ? 'Arkadaşlık isteği' :
+             notif.type === 'room_invite' ? 'Oda daveti' : 'Bildirim'}
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.9 }}>{notif.message}</div>
         </div>,

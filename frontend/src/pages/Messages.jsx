@@ -82,8 +82,8 @@ const ConvItem = ({ conv, active, online, onClick }) => {
         }}>
           {lm 
             ? (lm.isMe 
-                ? `Sen: ${lm.text || (lm.hasSharedEvent ? 'Etkinlik Paylaşıldı 🎟' : '')}` 
-                : (lm.text || (lm.hasSharedEvent ? 'Etkinlik Paylaştı 🎟' : ''))) 
+                ? `Sen: ${lm.text || (lm.hasSharedEvent ? 'Etkinlik paylaşıldı' : '')}`
+                : (lm.text || (lm.hasSharedEvent ? 'Etkinlik paylaştı' : '')))
             : <em>Henüz mesaj yok</em>}
         </div>
       </div>

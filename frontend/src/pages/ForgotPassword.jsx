@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import { KeyRound, Mail } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -89,8 +90,8 @@ const ForgotPassword = () => {
 
         {/* Başlık */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-            {step === 1 ? '📧' : '🔒'}
+          <div style={{ marginBottom: '0.6rem', color: 'var(--primary)' }}>
+            {step === 1 ? <Mail size={34} /> : <KeyRound size={34} />}
           </div>
           <h2 className="text-gradient" style={{ marginBottom: '0.25rem' }}>Şifremi Unuttum</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
@@ -127,7 +128,7 @@ const ForgotPassword = () => {
               style={{ width: '100%', marginTop: '1.25rem' }}
               disabled={loading}
             >
-              {loading ? '⏳ Gönderiliyor...' : '📨 Doğrulama Kodu Gönder'}
+              {loading ? 'Gönderiliyor...' : 'Doğrulama Kodu Gönder'}
             </button>
           </form>
         )}
@@ -146,7 +147,7 @@ const ForgotPassword = () => {
               color: '#7dd3fc',
               lineHeight: 1.5,
             }}>
-              📬 <strong>{email}</strong> adresine 6 haneli bir kod gönderdik.
+              <strong>{email}</strong> adresine 6 haneli bir kod gönderdik.
               Gelen kutunuzu (ve spam klasörünüzü) kontrol edin.
             </div>
 
@@ -165,7 +166,7 @@ const ForgotPassword = () => {
                 style={{ letterSpacing: '0.5rem', fontSize: '1.4rem', textAlign: 'center', fontWeight: 700 }}
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.73rem', marginTop: '0.35rem', display: 'block' }}>
-                💡 Kod 10 dakika geçerlidir.
+                Kod 10 dakika geçerlidir.
               </small>
             </div>
 

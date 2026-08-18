@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Trash2 } from 'lucide-react';
+import { Award, LogIn, Trash2 } from 'lucide-react';
 
 /**
  * RoomCard Bileşeni
@@ -65,7 +65,7 @@ const RoomCard = ({ room, onDelete }) => {
               border: '1px solid var(--success)',
               borderRadius: '4px', color: 'var(--success)',
             }}>
-              🏆 {room.matchResult.name}
+              <Award size={13} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />{room.matchResult.name}
             </span>
           )}
         </div>
