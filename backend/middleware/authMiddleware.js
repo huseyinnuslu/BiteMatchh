@@ -12,8 +12,19 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      req.user = await User.findById(decoded.id).select('-password');
-      next();
+      const user = await User.findById(decoded.id).select('-password');
+
+      // Kullanıcı hesabı silinmiş ancak tarayıcıda eski JWT kalmış olabilir.
+      // Bu durumda isteği boş bir req.user ile controller'a göndermek 500
+      // hatasına neden olur. Oturumu geçersiz sayıp istemcinin güvenle
+      // yeniden giriş akışına dönmesini sağlarız.
+      if (!user) {
+        res.status(401);
+        return next(new Error('Oturum geçersiz. Lütfen tekrar giriş yapın.'));
+      }
+
+      req.user = user;
+      return next();
     } catch (error) {
       res.status(401);
       next(new Error('Yetkisiz erişim, token geçersiz'));
