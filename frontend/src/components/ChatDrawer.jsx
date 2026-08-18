@@ -13,6 +13,25 @@ const QUICK_REPLIES = [
   'Ben de aynı fikirdeyim.',
 ];
 
+// İlk test sürümlerinde hızlı cevaplar ASCII karakterler ve emoji ile
+// kaydedilmişti. Bu yalnızca o birebir eski şablonları ekranda düzeltir;
+// kullanıcıların kendi yazdığı mesajlara kesinlikle müdahale etmez.
+const LEGACY_QUICK_REPLY_TEXTS = new Map([
+  ['Hangi saatte bulusuyoruz? 🕐', 'Hangi saatte buluşuyoruz?'],
+  ['Hangi saatte bulusuyoruz?', 'Hangi saatte buluşuyoruz?'],
+  ['Mekanda bulusalalim mi? 📍', 'Mekânda buluşalım mı?'],
+  ['Mekanda bulusalalim mi?', 'Mekânda buluşalım mı?'],
+  ['Rezervasyon yapayim mi? 🍽️', 'Rezervasyon yapayım mı?'],
+  ['Rezervasyon yapayim mi?', 'Rezervasyon yapayım mı?'],
+  ['Yolda misin? 🚗', 'Yolda mısın?'],
+  ['Harika secim! 🎉', 'Harika seçim.'],
+  ['Harika secim!', 'Harika seçim.'],
+  ['Ben de ayni fikirdeyim 👍', 'Ben de aynı fikirdeyim.'],
+  ['Ben de ayni fikirdeyim', 'Ben de aynı fikirdeyim.'],
+]);
+
+const displayMessageText = (text) => LEGACY_QUICK_REPLY_TEXTS.get(text) || text;
+
 const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
   const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
@@ -106,7 +125,7 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
                   <div key={msg._id || i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
                     <div style={{ maxWidth: '75%', minWidth: 0, background: isMe ? 'var(--primary)' : 'rgba(255,255,255,0.08)', borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '0.5rem 0.75rem', fontSize: '0.88rem', overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                       {!isMe && <div style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 700, marginBottom: '0.2rem' }}>{msg.senderName}</div>}
-                      <div>{msg.text}</div>
+                      <div>{displayMessageText(msg.text)}</div>
                     </div>
                   </div>
                 );
@@ -123,7 +142,7 @@ const ChatDrawer = ({ isOpen, onClose, roomCode, roomId, matchedItem }) => {
 
             {/* Input */}
             <div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem 0.75rem 0.75rem', flexShrink: 0 }}>
-              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()} placeholder="Bir seyler yaz..."
+              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()} placeholder="Bir şeyler yaz..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0.6rem 0.9rem', color: 'white', fontSize: '0.9rem', outline: 'none' }} />
               <button onClick={() => sendMessage()} disabled={!input.trim()}
                 style={{ width: 42, height: 42, borderRadius: '12px', border: 'none', background: input.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.07)', color: 'white', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}>
