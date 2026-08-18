@@ -87,13 +87,23 @@ function App() {
       );
     };
 
-    const handleRoomInvitation = ({ roomId, inviterName, message }) => {
+    const handleRoomInvitation = ({ roomId, inviterName, message, notificationId }) => {
       // This is a dedicated fallback for invitations. It keeps the invitation
       // visible even if the generic notification event is delayed.
       toast.info(`${message || `${inviterName} sizi bir odaya davet etti!`}`, {
         autoClose: 6000,
-        // Davet geçerliliği yalnız bildirim merkezinden sunucuda kontrol
-        // edilerek açılır; eski toast'ın bitmiş odayı açmasına izin vermeyiz.
+        onClick: async () => {
+          try {
+            // Zil listesindeki davranışla aynıdır: davet hâlâ aktif mi ve
+            // kullanıcı başka bir canlı odada mı, önce sunucu kontrol eder.
+            const { data } = notificationId
+              ? await api.post(`/notifications/${notificationId}/open`)
+              : { data: { link: `/room/${roomId}` } };
+            window.location.assign(data.link || '/dashboard');
+          } catch {
+            window.location.assign('/dashboard');
+          }
+        },
       });
     };
 

@@ -184,7 +184,13 @@ export const initSocket = (io) => {
         });
         // Kişisel oda ile gönder — socketId'ye gerek yok
         io.to(userRoom(friendId)).emit('new_notification', notif);
-        io.to(userRoom(friendId)).emit('room_invitation', { roomCode, roomId, inviterName, message });
+        io.to(userRoom(friendId)).emit('room_invitation', {
+          roomCode,
+          roomId,
+          inviterName,
+          message,
+          notificationId: notif._id.toString(),
+        });
       } catch (e) { console.error('Bildirim kaydedilemedi:', e.message); }
     });
 
