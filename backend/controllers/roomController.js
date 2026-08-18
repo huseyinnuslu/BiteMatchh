@@ -9,8 +9,8 @@ import { getIo } from '../server.js';
 import LocationShare from '../models/LocationShare.js';
 import User from '../models/User.js';
 import mongoose from 'mongoose';
+import { roundedDistanceKm } from '../utils/locationDistance.js';
 
-const EARTH_RADIUS_KM = 6371;
 const STREAMING_PLATFORMS = ['Netflix', 'Disney+', 'Prime Video', 'HBO Max', 'Apple TV+'];
 
 const ACTIVE_ROOM_STATUSES = ['waiting', 'voting'];
@@ -184,14 +184,6 @@ const selectFilmOptionsForPlatforms = (catalog, platforms) => {
   return selectDiverseOptions(pool, Math.min(pool.length, Math.floor(Math.random() * 6) + 10));
 };
 
-const haversineKm = (from, to) => {
-  const radians = (degrees) => (degrees * Math.PI) / 180;
-  const dLat = radians(to.latitude - from.latitude);
-  const dLng = radians(to.longitude - from.longitude);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(dLng / 2) ** 2;
-  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
 // Oda oluşturulduktan sonra kartlar oda belgesine kopyalanır. Görsel havuzu
 // düzeltildiğinde eski/açık odaların da yeni doğru görseli alabilmesi için,
 // yalnızca API cevabındaki kart görselini güncel katalogla eşitliyoruz.
@@ -225,10 +217,13 @@ const personalizeRestaurantDistances = async (room, userId) => {
     options: (room.options || []).map((option) => ({
       ...option,
       distanceFromYouKm: Number.isFinite(option.latitude) && Number.isFinite(option.longitude)
-        ? Number(haversineKm(location, option).toFixed(1))
+        ? roundedDistanceKm(location, option)
         : null,
-      maxGroupDistanceKm: Number.isFinite(option.latitude) && Number.isFinite(option.longitude) && locations.length
-        ? Number(Math.max(...locations.map((memberLocation) => haversineKm(memberLocation, option))).toFixed(1))
+      // Bu değer öneriler hazırlanırken tüm katılımcıların aynı anlık
+      // konumlarıyla tek kez hesaplanıp saklanır. İstek anında tekrar
+      // hesaplamamak, iki cihazın farklı "grubun en uzağı" görmesini önler.
+      maxGroupDistanceKm: Number.isFinite(option.maxGroupDistanceKm)
+        ? option.maxGroupDistanceKm
         : null,
     })),
   };

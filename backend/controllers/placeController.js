@@ -2,12 +2,14 @@ import Room from '../models/Room.js';
 import User from '../models/User.js';
 import LocationShare from '../models/LocationShare.js';
 import { getIo } from '../server.js';
+import { haversineKm, maxGroupDistanceKm, roundedDistanceKm } from '../utils/locationDistance.js';
+import { getFoursquareCategoryNames, normalizeFoodName, venueMatchesFoursquareFoodProfile } from '../utils/venueVerification.js';
 
 const LOCATION_TTL_MS = 15 * 60 * 1000;
-const EARTH_RADIUS_KM = 6371;
+const MAX_LOCATION_ACCURACY_METERS = 100;
 // Arama ve doğrulama kuralları değiştiğinde devam eden odalardaki öneriler
 // güvenli şekilde yeniden hesaplanır; bitmiş geçmiş kararlar korunur.
-const RESTAURANT_RECOMMENDATION_VERSION = 8;
+const RESTAURANT_RECOMMENDATION_VERSION = 9;
 const FOURSQUARE_PLACES_URL = 'https://places-api.foursquare.com/places/search';
 const FOURSQUARE_API_VERSION = '2025-06-17';
 const FOURSQUARE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -21,14 +23,6 @@ const isRoomParticipant = (room, userId) =>
 const parseCoordinate = (value, min, max) => {
   const coordinate = Number(value);
   return Number.isFinite(coordinate) && coordinate >= min && coordinate <= max ? coordinate : null;
-};
-
-const haversineKm = (from, to) => {
-  const radians = (degrees) => (degrees * Math.PI) / 180;
-  const dLat = radians(to.latitude - from.latitude);
-  const dLng = radians(to.longitude - from.longitude);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(dLng / 2) ** 2;
-  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const groupCenter = (locations) => ({
@@ -169,12 +163,6 @@ const FOOD_VENUE_PROFILES = [
   { names: ['dondurma'], queries: ['dondurma', 'gelato'], types: ['amenity:ice_cream', 'amenity:cafe', 'shop:confectionery'] },
 ];
 
-const normalizeFoodName = (value = '') => value
-  .toLocaleLowerCase('tr-TR')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/ı/g, 'i');
-
 const GENERIC_VENUE_WORDS = new Set(['restaurant', 'restoran', 'restorani', 'mutfagi', 'sef', 'chef', 'food']);
 
 const venueSearchText = (place) => normalizeFoodName([
@@ -193,16 +181,6 @@ const venueMatchesFoodProfile = (place, profile) => {
     .filter((word) => word.length >= 4 && !GENERIC_VENUE_WORDS.has(word));
   const searchableText = venueSearchText(place);
   return keywords.some((keyword) => searchableText.includes(keyword));
-};
-
-const venueMatchesFoursquareFoodProfile = (place, profile) => {
-  const requiredTerms = profile.requiredTerms || [];
-  if (!requiredTerms.length) return true;
-  const searchableText = normalizeFoodName([
-    place.name,
-    ...getFoursquareCategoryNames(place),
-  ].filter(Boolean).join(' '));
-  return requiredTerms.some((term) => searchableText.includes(normalizeFoodName(term)));
 };
 
 const venueVerificationScore = (place) => {
@@ -327,15 +305,6 @@ const hasFoursquareBusinessContact = (place) => {
   return phone.length >= 7 || /^https?:\/\//i.test(website);
 };
 
-const getFoursquareCategoryNames = (place) => {
-  const categories = place.categories || place.fsq_categories || [];
-  return categories
-    .map((category) => typeof category === 'string'
-      ? category
-      : category.name || category.fsq_category_name || category.label || category.fsq_category_label)
-    .filter(Boolean)
-};
-
 const isCinemaRoom = (room) => ['film', 'movie'].includes(room.category);
 
 const getVenueSearch = (room) => {
@@ -408,8 +377,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   // Katılımcılar aynı yerdeyse 5 km, birbirinden uzaktalarsa ortak merkeze
   // göre ölçülü biçimde genişleyen bir alan kullanırız. "Yakın" öneri,
   // şehrin rastgele başka bir ucundan gelemez.
-  const maxGroupDistanceKm = Math.min(20, Math.max(5, Number((farthestMemberKm + 4).toFixed(1))));
-  const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxGroupDistanceKm + 1) * 1000)));
+  const maxAllowedGroupDistanceKm = Math.min(20, Math.max(5, Number((farthestMemberKm + 4).toFixed(1))));
+  const radiusMeters = Math.min(25000, Math.max(5000, Math.ceil((maxAllowedGroupDistanceKm + 1) * 1000)));
   const requesterLocation = locations.find((item) => item.user.toString() === userId.toString());
   const venueSearch = getVenueSearch(room);
   const { query, venueType, profile } = venueSearch;
@@ -419,10 +388,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
   const venues = places
     .map((place, index) => ({ place, index, coordinates: getFoursquareCoordinates(place), address: getFoursquareAddress(place) }))
     .filter(({ place, coordinates, address }) => {
-      // Foursquare araması seçilen yemek terimiyle yapılır ve sonuçlar kendi
-      // Places veritabanından gelir. Burada tekrar kategori adına göre elemek,
-      // "Turkish Restaurant" gibi geçerli kategorileri yanlışlıkla dışarıda
-      // bırakıyordu. Kimlik + açık adres + koordinat ise zorunlu kalır.
+      // Arama sonucu tek başına yeterli kanıt değildir: mekan adı veya kaynak
+      // kategorisi, seçilen mutfakla ilişki kurabilmelidir.
       if (!place.fsq_place_id || !place.name) {
         rejectionCounts.missingIdentity += 1;
         return false;
@@ -447,17 +414,16 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         rejectionCounts.missingContact += 1;
         return false;
       }
-      const venueMaxGroupDistanceKm = Math.max(...locations.map((location) => haversineKm(location, coordinates)));
-      if (venueMaxGroupDistanceKm > maxGroupDistanceKm) {
+      const venueMaxGroupDistanceKm = maxGroupDistanceKm(locations, coordinates);
+      if (venueMaxGroupDistanceKm > maxAllowedGroupDistanceKm) {
         rejectionCounts.outsideGroupArea += 1;
         return false;
       }
       return true;
     })
     .map(({ place, index, coordinates, address }) => {
-      const distances = locations.map((location) => haversineKm(location, coordinates));
-      const venueMaxGroupDistanceKm = Math.max(...distances);
-      const distanceScore = Math.max(0, 1 - venueMaxGroupDistanceKm / maxGroupDistanceKm);
+      const venueMaxGroupDistanceKm = maxGroupDistanceKm(locations, coordinates);
+      const distanceScore = Math.max(0, 1 - venueMaxGroupDistanceKm / maxAllowedGroupDistanceKm);
       const relevanceScore = Math.max(0, 1 - index / Math.max(places.length, 1));
       return {
         id: `fsq-${place.fsq_place_id}`,
@@ -489,8 +455,8 @@ const getLiveVenueOptions = async ({ room, locations, userId, limit }) => {
         imageSourceUrl: '',
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
-        distanceFromYouKm: requesterLocation ? Number(haversineKm(requesterLocation, coordinates).toFixed(1)) : null,
-        maxGroupDistanceKm: Number(venueMaxGroupDistanceKm.toFixed(1)),
+        distanceFromYouKm: requesterLocation ? roundedDistanceKm(requesterLocation, coordinates) : null,
+        maxGroupDistanceKm: venueMaxGroupDistanceKm,
         verificationScore: 10,
         recommendationScore: Number((distanceScore * 0.75 + relevanceScore * 0.25).toFixed(4)),
       };
@@ -539,7 +505,7 @@ const personalizeStoredRecommendations = (recommendations, requesterLocation, gr
       ...plainVenue,
       id: plainVenue.venueId,
       distanceFromYouKm: requesterLocation && hasVenueCoordinates
-        ? Number(haversineKm(requesterLocation, plainVenue).toFixed(1))
+        ? roundedDistanceKm(requesterLocation, plainVenue)
         : null,
       maxGroupDistanceKm: Number.isFinite(plainVenue.maxGroupDistanceKm)
         ? plainVenue.maxGroupDistanceKm
@@ -630,20 +596,20 @@ export const shareRecommendationLocation = async (req, res, next) => {
     const longitude = parseCoordinate(req.body.longitude, -180, 180);
     const accuracy = Number(req.body.accuracy);
     if (latitude === null || longitude === null) { res.status(400); throw new Error('Geçerli bir konum bilgisi gerekli'); }
-    if (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 500) {
+    if (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > MAX_LOCATION_ACCURACY_METERS) {
       res.status(422);
-      throw new Error('Konum yeterince hassas alınamadı. Daha doğru konum için GPS/Wi‑Fi açıkken tekrar dene.');
+      throw new Error('Konum yeterince hassas alınamadı. Daha doğru öneriler için GPS/Wi‑Fi açıkken tekrar dene.');
     }
 
-    // Yaklaşık 11 metre koordinat hassasiyeti öneri için yeterlidir; doğruluk
-    // bilgisiyle birlikte kısa süreli tutulur, böylece kilometrelerce kayan
-    // ağ/IP tahminleri restoran mesafelerine yansımaz.
+    // Koordinatı yaklaşık 11 metreye yuvarlarız. 100 m'den kötü GPS/ağ
+    // tahminini reddederek ekranda 0.1 km hassasiyetinde yanıltıcı mesafe
+    // göstermeyiz.
     await LocationShare.findOneAndUpdate(
       { room: room._id, user: req.user._id },
       { latitude: Number(latitude.toFixed(4)), longitude: Number(longitude.toFixed(4)), accuracy: Number(accuracy.toFixed(0)), expiresAt: new Date(Date.now() + LOCATION_TTL_MS) },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    const sharedCount = await LocationShare.countDocuments({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: 500 } });
+    const sharedCount = await LocationShare.countDocuments({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: MAX_LOCATION_ACCURACY_METERS } });
     const payload = { roomId: room._id.toString(), sharedCount, participantCount: room.participants.length };
     getIo()?.to(room._id.toString()).emit('recommendation_location_updated', payload);
     res.json({ ...payload, ready: sharedCount >= room.participants.length });
@@ -657,7 +623,7 @@ export const shareRecommendationLocation = async (req, res, next) => {
 export const getRestaurantRecommendations = async (req, res, next) => {
   try {
     const room = await getEligibleRoom(req.params.id, req.user._id);
-    const locations = await LocationShare.find({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: 500 } }).lean();
+    const locations = await LocationShare.find({ room: room._id, user: { $in: room.participants }, expiresAt: { $gt: new Date() }, accuracy: { $lte: MAX_LOCATION_ACCURACY_METERS } }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor', sharedCount: locations.length, participantCount: room.participants.length });
     }
@@ -703,7 +669,7 @@ export const submitRestaurantQuickVote = async (req, res, next) => {
       room: room._id,
       user: { $in: room.participants },
       expiresAt: { $gt: new Date() },
-      accuracy: { $lte: 500 },
+      accuracy: { $lte: MAX_LOCATION_ACCURACY_METERS },
     }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({ code: 'LOCATION_WAITING', message: 'Tüm katılımcıların konum paylaşması bekleniyor' });
@@ -817,7 +783,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
       room: room._id,
       user: { $in: room.participants },
       expiresAt: { $gt: new Date() },
-      accuracy: { $lte: 500 },
+      accuracy: { $lte: MAX_LOCATION_ACCURACY_METERS },
     }).lean();
     if (locations.length < room.participants.length) {
       return res.status(409).json({

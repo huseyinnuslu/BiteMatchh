@@ -215,7 +215,7 @@ const OptionCard = ({ option, direction, currentIndex, category }) => {
               )}
               {isRestaurant && option.distanceFromYouKm !== null && option.distanceFromYouKm !== undefined && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#86efac', fontWeight: 700 }}>
-                  <MapPin size={16} /> Sana {option.distanceFromYouKm} km
+                  <MapPin size={16} /> Sana ≈{option.distanceFromYouKm} km
                 </div>
               )}
               {option.budget && (
