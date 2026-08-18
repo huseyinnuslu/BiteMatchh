@@ -664,7 +664,11 @@ export const getMatchHistory = async (req, res, next) => {
 export const inviteToRoom = async (req, res, next) => {
   try {
     const { friendId } = req.body;
-    const room = await Room.findById(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(friendId)) {
+      return res.status(400).json({ message: 'Geçerli bir arkadaş seçmelisin.' });
+    }
+
+    const room = await Room.findById(req.params.id).select('host status participants invitedUsers');
 
     if (!room) {
       res.status(404);
@@ -676,15 +680,31 @@ export const inviteToRoom = async (req, res, next) => {
       throw new Error('Sadece oda sahibi davet gönderebilir');
     }
 
-    // 15 dakika süre belirle
-    room.inviteExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    await room.save();
+    if (room.status !== 'waiting') {
+      return res.status(400).json({ message: 'Bu odaya artık davet gönderilemez.' });
+    }
+
+    // Bu güncelleme atomiktir: kullanıcı iki kez tıklasa veya iki HTTP
+    // isteği aynı anda ulaşsa bile yalnızca ilk istek invitedUsers dizisine
+    // eklenir ve aşağıdaki bildirim gönderme adımına geçer.
+    const claimedRoom = await Room.findOneAndUpdate(
+      { _id: room._id, host: req.user._id, invitedUsers: { $ne: friendId } },
+      {
+        $addToSet: { invitedUsers: friendId },
+        $set: { inviteExpiresAt: new Date(Date.now() + 15 * 60 * 1000) },
+      },
+      { new: true }
+    );
+
+    if (!claimedRoom) {
+      return res.json({ ...room.toObject(), alreadyInvited: true });
+    }
 
     // Push notification gönder (fire-and-forget)
     sendPushToUser(friendId, {
       title: 'BiteMatch Oda Daveti',
       body: `${req.user.username} sizi odaya davet etti! Katılmak için 15 dakikanız var.`,
-      url: `/room/${room._id}`,
+      url: `/room/${claimedRoom._id}`,
     }).catch(() => {});
 
     // Socket.io ile anlık bildirim fırlat
@@ -693,14 +713,14 @@ export const inviteToRoom = async (req, res, next) => {
       const notif = await Notification.create({
         user: friendId, message,
         type: 'room_invite',
-        link: `/room/${room._id}`
+        link: `/room/${claimedRoom._id}`
       });
       const io = getIo();
       if (io) {
         io.to(`user:${friendId}`).emit('new_notification', notif);
         io.to(`user:${friendId}`).emit('room_invitation', { 
-          roomCode: room.name, 
-          roomId: room._id, 
+          roomCode: claimedRoom.name, 
+          roomId: claimedRoom._id, 
           inviterName: req.user.username, 
           message 
         });
@@ -709,7 +729,7 @@ export const inviteToRoom = async (req, res, next) => {
       console.error('Bildirim gönderilemedi:', e.message);
     }
 
-    res.json(room);
+    res.json(claimedRoom);
   } catch (error) {
     next(error);
   }

@@ -17,6 +17,7 @@ const WaitingRoom = () => {
   const [friends, setFriends] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [invitedIds, setInvitedIds] = useState(new Set());
+  const inviteInFlightRef = useRef(new Set());
   const [timeLeft, setTimeLeft] = useState(null);
   const [platforms, setPlatforms] = useState([]);
   const [savingPlatforms, setSavingPlatforms] = useState(false);
@@ -140,14 +141,23 @@ const WaitingRoom = () => {
   };
 
   const handleInviteFriend = async (friendId, friendUsername) => {
+    if (invitedIds.has(friendId) || inviteInFlightRef.current.has(friendId)) return;
+    inviteInFlightRef.current.add(friendId);
+    setInvitedIds(prev => new Set([...prev, friendId]));
     try {
-      await api.put(`/rooms/${currentRoom._id}/invite`, { friendId });
+      const { data } = await api.put(`/rooms/${currentRoom._id}/invite`, { friendId });
 
-      setInvitedIds(prev => new Set([...prev, friendId]));
-      toast.success(`@${friendUsername} odaya davet edildi! 📩`);
+      if (!data.alreadyInvited) toast.success(`@${friendUsername} odaya davet edildi! 📩`);
       fetchRoomStatus(currentRoom._id); // Sayaç başlaması için odayı yenile
     } catch (err) {
+      setInvitedIds(prev => {
+        const next = new Set(prev);
+        next.delete(friendId);
+        return next;
+      });
       toast.error(err.response?.data?.message || 'Davet gönderilemedi.');
+    } finally {
+      inviteInFlightRef.current.delete(friendId);
     }
   };
 

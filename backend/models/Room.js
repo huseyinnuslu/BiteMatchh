@@ -71,6 +71,13 @@ const roomSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Aynı davetli için çift tıklama/ağ tekrarı kaynaklı bildirimleri
+    // engeller. Davet penceresi zaten oda ömrüyle sınırlı olduğu için,
+    // kişi odaya katılana veya oda kapanana kadar tekrar davet gönderilmez.
+    invitedUsers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
     matchResult: {
       name: String,
       imageUrl: String,
