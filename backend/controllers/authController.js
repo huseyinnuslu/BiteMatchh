@@ -830,11 +830,18 @@ export const changePassword = async (req, res, next) => {
 export const completeUsernameOnboarding = async (req, res, next) => {
   try {
     const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+    const name = typeof req.body?.name === 'string' ? req.body.name.replace(/\s+/g, ' ').trim() : '';
     const usernameRegex = /^[a-zA-Z0-9._]{3,15}$/;
+    const nameParts = name.split(' ').filter(Boolean);
 
     if (!usernameRegex.test(username)) {
       res.status(400);
       throw new Error('Kullanıcı adı 3-15 karakter olmalı; yalnızca harf, rakam, alt çizgi ve nokta içerebilir.');
+    }
+
+    if (name.length < 3 || name.length > 60 || nameParts.length < 2) {
+      res.status(400);
+      throw new Error('Lütfen adını ve soyadını gir.');
     }
 
     const user = await User.findById(req.user._id);
@@ -858,6 +865,7 @@ export const completeUsernameOnboarding = async (req, res, next) => {
       throw new Error('Bu kullanıcı adı zaten alınmış. Lütfen başka bir ad deneyin.');
     }
 
+    user.name = name;
     user.username = username;
     user.usernameOnboardingRequired = false;
     // İlk seçim, 7 günlük kullanıcı adı değiştirme sınırını başlatmaz.

@@ -173,9 +173,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const completeUsernameOnboarding = async (username) => {
+  const completeUsernameOnboarding = async (name, username) => {
     try {
-      const { data } = await api.post('/auth/complete-username', { username });
+      const { data } = await api.post('/auth/complete-username', { name, username });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       toast.success(`@${data.username} hazır. BiteMatch'e hoş geldin.`);
