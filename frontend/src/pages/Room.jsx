@@ -259,7 +259,7 @@ const Room = () => {
         fetchRoomStatus(id); // Katılımcı listesini güncellemek için DB'den tekrar çek
       });
       socket.on('participant_left', ({ username: uname }) => {
-        toast.warning(`${uname} odadan ayrıldı.`);
+        if (uname) toast.warning(`${uname} odadan ayrıldı.`);
         fetchRoomStatus(id);
       });
 
@@ -291,9 +291,10 @@ const Room = () => {
       clearInterval(pollingRef.current);
       const socket = getSocket();
       if (socket) {
-        // Eski odadan tamamen ayrıl (match_success vs. sızmasını önlemek için)
-        socket.emit('leave_room', { roomCode: id, userId: user?._id, username: user?.username });
-        
+        // Sayfa değişimi (ör. sohbet/bildirim) odadan ayrılmak değildir.
+        // Burada leave_room yayını yapmak diğer katılımcılara sahte ayrılma
+        // bildirimi gönderiyordu. Gerçek ayrılma yalnız Odadan Çık onayıyla
+        // backend üzerinden yapılır.
         socket.off('connect', handleConnect);
         socket.off('user_swiped');
         socket.off('match_success');

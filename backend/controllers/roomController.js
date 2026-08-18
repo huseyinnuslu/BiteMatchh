@@ -446,6 +446,7 @@ export const leaveRoom = async (req, res, next) => {
       return res.json({ message: 'Odadan ayrıldın. Oda kapatıldı.', roomClosed: true });
     }
 
+    const departingUser = await User.findById(req.user._id).select('username').lean();
     room.participants = room.participants.filter((participant) => String(participant) !== String(req.user._id));
     if (room.participants.length < 2 && ACTIVE_ROOM_STATUSES.includes(room.status)) {
       room.status = 'expired';
@@ -454,7 +455,11 @@ export const leaveRoom = async (req, res, next) => {
       getIo()?.to(room._id.toString()).emit('room_expired', { roomId: room._id.toString() });
     } else {
       await room.save();
-      getIo()?.to(room._id.toString()).emit('participant_left', { roomId: room._id.toString(), userId: req.user._id.toString() });
+      getIo()?.to(room._id.toString()).emit('participant_left', {
+        roomId: room._id.toString(),
+        userId: req.user._id.toString(),
+        username: departingUser?.username || 'Bir katılımcı',
+      });
     }
     await clearActiveRoom([req.user._id], room._id);
     res.json({ message: 'Odadan ayrıldın.', roomClosed: room.status === 'expired' });
