@@ -76,7 +76,9 @@ const Register = () => {
     }
 
     const result = await register(username, email, password, termsAccepted, privacyNoticeAcknowledged);
-    if (result.success) navigate(from, { replace: true });
+    if (result.success && result.requiresEmailVerification) {
+      navigate('/verify-email', { state: { email: result.email, from: fromLocation }, replace: true });
+    }
   };
 
   // Google ile hızlı kayıt / giriş

@@ -31,6 +31,32 @@ const userSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    // E-posta/şifreyle açılan hesaplar, posta kutusuna gönderilen kod
+    // doğrulanmadan aktif kabul edilmez. `default: true` eski kullanıcıları
+    // geriye dönük olarak kilitlememek içindir; yeni e-posta kayıtları
+    // controller tarafından açıkça false ile oluşturulur.
+    isEmailVerified: {
+      type: Boolean,
+      default: true,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+    emailVerificationExpire: {
+      type: Date,
+      default: null,
+    },
+    emailVerificationLastSentAt: {
+      type: Date,
+      default: null,
+    },
+    // Doğrulanmayan kayıtlar kullanıcı olamaz ve bu tarihte MongoDB TTL
+    // indeksiyle otomatik temizlenir; sahte e-posta kullanıcı adı kapamaz.
+    pendingAccountExpiresAt: {
+      type: Date,
+      default: null,
+    },
     // Kayıt sırasındaki yasal metin onayının denetlenebilir kaydı.
     // KVKK metni için "açık rıza" yerine aydınlatma metnini okuduğuna dair
     // bilgilendirme kaydı tutulur; pazarlama izni gibi ayrı rızalar buraya eklenmez.
@@ -164,6 +190,7 @@ const userSchema = mongoose.Schema(
 
 // resetPasswordToken: OTP sıfırlama sorgularını hızlandırır (sparse: sadece değeri olanlarda)
 userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
+userSchema.index({ pendingAccountExpiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
 
 
 

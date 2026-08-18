@@ -11,5 +11,7 @@ export const errorHandler = (err, req, res, next) => {
     message: err.message,
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     ...(err.activeRoom ? { activeRoom: err.activeRoom } : {}),
+    ...(err.code ? { code: err.code } : {}),
+    ...(err.email ? { email: err.email } : {}),
   });
 };

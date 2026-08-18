@@ -394,6 +394,27 @@ const sendWelcomeEmailIfNeeded = async (user) => {
   }
 };
 
+const sendRegistrationVerificationEmail = async (user, otp) => {
+  if (!isEmailConfigured()) {
+    throw new Error('E-posta doğrulama servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+  }
+
+  const username = escapeHtml(user.username || user.name || 'BiteMatch kullanıcısı');
+  await sendEmail({
+    from: getEmailFrom(),
+    to: user.email,
+    subject: 'BiteMatch – E-posta Doğrulama Kodu',
+    text: `Merhaba ${user.username || user.name}, BiteMatch hesabını etkinleştirmek için kodun: ${otp}. Kod 10 dakika geçerlidir. Bu isteği sen yapmadıysan işlem yapma.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#0f172a;color:#f8fafc;border-radius:16px">
+      <h1 style="color:#ff4b4b;margin-top:0">BiteMatch</h1>
+      <h2>E-posta adresini doğrula</h2>
+      <p>Merhaba <strong>${username}</strong>, hesabını etkinleştirmek için aşağıdaki 6 haneli kodu BiteMatch'e gir.</p>
+      <div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#ff4b4b;padding:18px;background:#1e293b;border-radius:12px;text-align:center">${otp}</div>
+      <p style="color:#94a3b8">Kod 10 dakika geçerlidir. Bu isteği sen yapmadıysan bu e-postayı görmezden gelebilirsin.</p>
+    </div>`,
+  });
+};
+
 // ──────────────────────────────────────────────────────────────────────────────
 // @desc    Yeni kullanıcı kaydı
 // @route   POST /api/auth/register
@@ -402,7 +423,9 @@ const sendWelcomeEmailIfNeeded = async (user) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, username, email, password, role, termsAccepted, privacyNoticeAcknowledged } = req.body;
+    const { name, password, role, termsAccepted, privacyNoticeAcknowledged } = req.body;
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
     if (!username || !email || !password) {
       res.status(400);
@@ -428,6 +451,12 @@ export const registerUser = async (req, res, next) => {
       );
     }
 
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      res.status(400);
+      throw new Error('Geçerli bir e-posta adresi girin.');
+    }
+
     // Sifre guclukluk kontrolu (DB'ye gitmeden once)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(password)) {
@@ -438,15 +467,23 @@ export const registerUser = async (req, res, next) => {
     }
 
     // TEK sorguyla hem username hem email cakismasini kontrol et
-    const existing = await User.findOne(
+    let existing = await User.findOne(
       {
         $or: [
           { email },
           { $expr: { $eq: [{ $toLower: '$username' }, username.toLowerCase()] } },
         ],
       },
-      'username email'
-    ).lean();
+      'username email isEmailVerified pendingAccountExpiresAt'
+    );
+
+    // Daha önce kodu girmeden yarım bırakılan kayıt süreyi geçtiyse yeni
+    // denemeyi engellemez. TTL temizliği kısa bir gecikmeyle çalışabileceği
+    // için burada da kesin temizlik yapıyoruz.
+    if (existing?.isEmailVerified === false && existing.pendingAccountExpiresAt && existing.pendingAccountExpiresAt <= new Date()) {
+      await existing.deleteOne();
+      existing = null;
+    }
 
     if (existing) {
       res.status(400);
@@ -457,12 +494,24 @@ export const registerUser = async (req, res, next) => {
       );
     }
 
+    if (!isEmailConfigured()) {
+      res.status(503);
+      throw new Error('E-posta doğrulama servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.');
+    }
+
+    const otp = generateOTP();
+    const now = Date.now();
     const user = await User.create({
       name: name || username,
       username,
       email,
       password,
       role: role || 'Host',
+      isEmailVerified: false,
+      emailVerificationToken: otp,
+      emailVerificationExpire: new Date(now + 10 * 60 * 1000),
+      emailVerificationLastSentAt: new Date(now),
+      pendingAccountExpiresAt: new Date(now + 30 * 60 * 1000),
       legalConsent: {
         termsAcceptedAt: new Date(),
         kvkkAcknowledgedAt: new Date(),
@@ -470,10 +519,57 @@ export const registerUser = async (req, res, next) => {
       },
     });
 
-    // E-posta teslimatı kayıt yanıtını geciktirmemeli.
-    void sendWelcomeEmailIfNeeded(user);
+    try {
+      await sendRegistrationVerificationEmail(user, otp);
+    } catch (mailError) {
+      // Kod gönderilemezse kullanıcı hesabı yaratılmış sayılmaz; sahte ya da
+      // ulaşılamayan bir e-posta hiçbir kullanıcı adını rezerve edemez.
+      await user.deleteOne();
+      throw mailError;
+    }
 
     res.status(201).json({
+      email: user.email,
+      requiresEmailVerification: true,
+      message: 'Doğrulama kodu e-posta adresine gönderildi. Kodu girmeden hesabın etkinleşmez.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    E-posta ile açılan hesabı 6 haneli kodla etkinleştir
+// @route   POST /api/auth/verify-email
+// @access  Public
+export const verifyRegistrationEmail = async (req, res, next) => {
+  try {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const otp = String(req.body?.otp || '').trim();
+
+    if (!email || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ message: 'E-posta adresi ve 6 haneli doğrulama kodu zorunludur.' });
+    }
+
+    const user = await User.findOne({
+      email,
+      isEmailVerified: false,
+      emailVerificationToken: otp,
+      emailVerificationExpire: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Kod hatalı veya süresi dolmuş. Yeni kod isteyin.' });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    user.emailVerificationLastSentAt = undefined;
+    user.pendingAccountExpiresAt = undefined;
+    await user.save({ validateBeforeSave: false });
+    void sendWelcomeEmailIfNeeded(user);
+
+    res.json({
       _id: user._id,
       name: user.name,
       username: user.username,
@@ -481,6 +577,40 @@ export const registerUser = async (req, res, next) => {
       role: user.role,
       token: generateToken(user._id),
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Kayıt doğrulama kodunu yeniden gönder
+// @route   POST /api/auth/verify-email/resend
+// @access  Public
+export const resendRegistrationVerification = async (req, res, next) => {
+  try {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const user = await User.findOne({ email, isEmailVerified: false });
+
+    // Hesap var/yok bilgisini dışarı vermeden güvenli yanıt.
+    if (!user) {
+      return res.json({ message: 'Bu adres için bekleyen doğrulama varsa yeni kod gönderildi.' });
+    }
+
+    const lastSentAt = user.emailVerificationLastSentAt?.getTime() || 0;
+    const waitMs = 60 * 1000 - (Date.now() - lastSentAt);
+    if (waitMs > 0) {
+      return res.status(429).json({ message: `Yeni kod için ${Math.ceil(waitMs / 1000)} saniye bekleyin.` });
+    }
+
+    const otp = generateOTP();
+    const now = Date.now();
+    user.emailVerificationToken = otp;
+    user.emailVerificationExpire = new Date(now + 10 * 60 * 1000);
+    user.emailVerificationLastSentAt = new Date(now);
+    user.pendingAccountExpiresAt = new Date(now + 30 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await sendRegistrationVerificationEmail(user, otp);
+
+    res.json({ message: 'Yeni doğrulama kodu e-posta adresine gönderildi.' });
   } catch (error) {
     next(error);
   }
@@ -506,9 +636,16 @@ export const loginUser = async (req, res, next) => {
     // $or sorgusu: hem email hem username ile eslisir
     const user = await User.findOne({
       $or: [{ email: loginId }, { username: loginId }],
-    }).select('_id name username email role password');
+    }).select('_id name username email role password isEmailVerified');
 
     if (user && (await user.matchPassword(password))) {
+      if (user.isEmailVerified === false) {
+        const error = new Error('E-posta adresini doğrulamadan giriş yapamazsın. Kayıt ekranındaki kodu gir.');
+        error.code = 'EMAIL_NOT_VERIFIED';
+        error.email = user.email;
+        res.status(403);
+        throw error;
+      }
       res.json({
         _id: user._id,
         name: user.name,
@@ -544,6 +681,7 @@ export const guestLogin = async (req, res, next) => {
       email,
       password,
       role: 'Guest',
+      isEmailVerified: true,
     });
 
     if (user) {
@@ -774,7 +912,7 @@ export const exportPersonalData = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const [user, swipes, rooms, messages, notifications, supportRequests] = await Promise.all([
-      User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpire -emailChangeToken -emailChangeExpire -accountDeletionToken -accountDeletionExpire -pushSubscription').lean(),
+      User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire -emailChangeToken -emailChangeExpire -accountDeletionToken -accountDeletionExpire -pushSubscription').lean(),
       Swipe.find({ user: userId }).lean(),
       Room.find({ participants: userId }).lean(),
       Message.find({ $or: [{ sender: userId }, { recipient: userId }] }).lean(),
@@ -846,6 +984,10 @@ export const forgotPassword = async (req, res, next) => {
     if (!user) {
       res.status(404);
       throw new Error('Bu e-posta adresiyle kayıtlı bir hesap bulunamadı');
+    }
+    if (user.isEmailVerified === false) {
+      res.status(403);
+      throw new Error('Önce kayıt e-posta adresini doğrulamalısın.');
     }
 
     // 6 haneli OTP kodu üret ve hash'le
@@ -927,6 +1069,7 @@ export const resetPassword = async (req, res, next) => {
     // OTP ve süre kontrolü
     const user = await User.findOne({
       email,
+      isEmailVerified: { $ne: false },
       resetPasswordToken: otp,
       resetPasswordExpire: { $gt: Date.now() },
     });
@@ -1004,6 +1147,19 @@ export const googleLogin = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (user) {
+      // Google, e-posta adresinin sahibini kendi OAuth akışında doğruladığı
+      // için bekleyen e-posta kaydı aynı Google hesabıyla girerse güvenle
+      // etkinleştirilebilir. Böylece kullanıcı ayrı bir kod girmek zorunda
+      // kalmaz; başka biri ise bu adımı geçemez.
+      if (user.isEmailVerified === false) {
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpire = undefined;
+        user.emailVerificationLastSentAt = undefined;
+        user.pendingAccountExpiresAt = undefined;
+        await user.save({ validateBeforeSave: false });
+      }
+
       // İlk kayıt denemesinde e-posta gönderilemediyse, Google ile sonraki girişte tekrar dener.
       // Bu işlem giriş ekranını asla bekletmez.
       if (!user.usernameOnboardingRequired) {
@@ -1049,6 +1205,7 @@ export const googleLogin = async (req, res, next) => {
       password: randomPassword,
       role: 'Host',
       usernameOnboardingRequired: true,
+      isEmailVerified: true,
       legalConsent: {
         termsAcceptedAt: new Date(),
         kvkkAcknowledgedAt: new Date(),

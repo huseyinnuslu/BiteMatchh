@@ -60,7 +60,12 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Giriş başarısız';
       toast.error(msg);
-      return { success: false, message: msg };
+      return {
+        success: false,
+        message: msg,
+        requiresEmailVerification: error.response?.data?.code === 'EMAIL_NOT_VERIFIED',
+        email: error.response?.data?.email || (String(email || '').includes('@') ? email : ''),
+      };
     }
   };
 
@@ -68,12 +73,37 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password, termsAccepted, privacyNoticeAcknowledged) => {
     try {
       const { data } = await api.post('/auth/register', { username, email, password, termsAccepted, privacyNoticeAcknowledged });
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success('Kayıt başarılı!');
-      return { success: true };
+      toast.success(data.message || 'Doğrulama kodu e-posta adresine gönderildi.');
+      return { success: true, requiresEmailVerification: Boolean(data.requiresEmailVerification), email: data.email || email };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Kayıt başarısız';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  // ── Kayıt e-postası doğrulama ──────────────────────────────────────────────
+  const verifyRegistrationEmail = async (email, otp) => {
+    try {
+      const { data } = await api.post('/auth/verify-email', { email, otp });
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      toast.success('E-posta doğrulandı. Hesabın hazır!');
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'E-posta doğrulanamadı';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const resendRegistrationVerification = async (email) => {
+    try {
+      const { data } = await api.post('/auth/verify-email/resend', { email });
+      toast.success(data.message || 'Yeni doğrulama kodu gönderildi.');
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Kod yeniden gönderilemedi';
       toast.error(msg);
       return { success: false, message: msg };
     }
@@ -191,6 +221,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        verifyRegistrationEmail,
+        resendRegistrationVerification,
         guestLogin,
         logout,
         updateProfile,

@@ -1,6 +1,8 @@
 import express from 'express';
 import {
   registerUser,
+  verifyRegistrationEmail,
+  resendRegistrationVerification,
   loginUser,
   guestLogin,
   updateUserProfile,
@@ -22,6 +24,8 @@ const router = express.Router();
 
 // Kimlik doğrulama rotaları
 router.post('/register', registerUser);
+router.post('/verify-email', verifyRegistrationEmail);
+router.post('/verify-email/resend', resendRegistrationVerification);
 router.post('/login', loginUser);
 router.post('/guest', guestLogin);
 router.put('/profile', protect, updateUserProfile);

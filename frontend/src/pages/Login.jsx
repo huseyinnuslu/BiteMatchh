@@ -23,7 +23,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(identifier, password);
-    if (result.success) navigate(from, { replace: true });
+    if (result.success) {
+      navigate(from, { replace: true });
+    } else if (result.requiresEmailVerification) {
+      navigate('/verify-email', { state: { email: result.email, from: fromLocation }, replace: true });
+    }
   };
 
   // Google ile giriş – access_token alıp Google userinfo endpoint'inden idToken benzeri bilgi çek
