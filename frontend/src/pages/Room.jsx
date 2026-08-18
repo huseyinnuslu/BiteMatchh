@@ -28,6 +28,9 @@ const Room = () => {
     roomRef.current = currentRoom;
   }, [currentRoom]);
 
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+
   // Görünür kart tarayıcı tarafından doğrudan yüklenirken, sıradaki birkaç
   // kartı arka planda hazırlarız. Böylece kart değişimi ağ yanıtına bağlı
   // kalmaz ve özellikle mobilde "görsel hazırlanıyor" görünmez.
@@ -40,8 +43,6 @@ const Room = () => {
     );
   }, [currentRoom?._id, currentRoom?.options, currentIndex]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [socketMatch, setSocketMatch] = useState(null); // Socket'tan gelen anlık eşleşme
