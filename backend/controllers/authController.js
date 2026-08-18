@@ -567,7 +567,10 @@ export const verifyRegistrationEmail = async (req, res, next) => {
     user.emailVerificationLastSentAt = undefined;
     user.pendingAccountExpiresAt = undefined;
     await user.save({ validateBeforeSave: false });
-    void sendWelcomeEmailIfNeeded(user);
+    // Kayıt doğrulama ekranından çıkmadan önce e-posta gönderimini başlat.
+    // Arka plana bırakılan işlem ücretsiz Render instance'ının uykuya geçişi
+    // gibi durumlarda bazen tamamlanmadan kesilebiliyordu.
+    await sendWelcomeEmailIfNeeded(user);
 
     res.json({
       _id: user._id,
