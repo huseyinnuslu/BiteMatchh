@@ -136,7 +136,18 @@ const sendWithGmailApi = async (mailOptions) => {
   const gmailClient = createGmailApiClient();
   gmailClient.setCredentials({ refresh_token: process.env.GMAIL_API_REFRESH_TOKEN });
 
-  const accessToken = await gmailClient.getAccessToken();
+  let accessToken;
+  try {
+    accessToken = await gmailClient.getAccessToken();
+  } catch (error) {
+    // Google'ın refresh token'ı iptal edildiğinde teknik `invalid_grant`
+    // yanıtını son kullanıcıya yansıtmıyoruz. Yönetici token'ı yenileyene
+    // kadar işlemin neden yapılamadığını açıkça belirtiriz.
+    if (String(error?.message || '').includes('invalid_grant')) {
+      throw new Error('E-posta gönderim bağlantısı yenilenmeli. Lütfen biraz sonra tekrar deneyin.');
+    }
+    throw error;
+  }
   if (!accessToken.token) {
     throw new Error('Gmail API erişim belirteci alınamadı');
   }
