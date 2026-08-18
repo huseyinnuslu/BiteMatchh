@@ -64,6 +64,7 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
 
   const loadSettings = async () => {
     try {
@@ -314,11 +315,19 @@ const Settings = () => {
 
         <p style={{ color: 'var(--text-muted)', margin: '1.45rem 0 .65rem', fontSize: '.72rem', fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase' }}>Güvenlik</p>
         <section className="glass-card" style={panelStyle}>
-          <div style={{ display: 'flex', gap: '.8rem', alignItems: 'flex-start' }}>
-            <LockKeyhole size={19} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ display: 'flex', gap: '.8rem', alignItems: 'center' }}>
+            <LockKeyhole size={19} color="var(--primary)" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Şifre değiştir</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', marginTop: '.2rem', lineHeight: 1.45 }}>Önce mevcut şifreni doğrula; ardından yeni şifreni iki kez gir.</div>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: '.92rem' }}>Şifre</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', marginTop: '.15rem', lineHeight: 1.45 }}>Hesabının giriş şifresini güncelle.</div>
+            </div>
+            <button type="button" onClick={() => setEditingPassword((isOpen) => !isOpen)} style={{ border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '.48rem .7rem', background: editingPassword ? 'rgba(255,75,75,.12)' : 'rgba(255,255,255,.04)', color: editingPassword ? 'var(--primary)' : 'white', fontWeight: 700, cursor: 'pointer', fontSize: '.78rem', whiteSpace: 'nowrap' }}>
+              {editingPassword ? 'Kapat' : 'Değiştir'}
+            </button>
+          </div>
+          {editingPassword && (
+            <div style={{ paddingTop: '.9rem', marginTop: '.9rem', borderTop: '1px solid rgba(255,255,255,.08)' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.79rem', lineHeight: 1.45 }}>Önce mevcut şifreni doğrula; ardından yeni şifreni iki kez gir.</div>
               <form onSubmit={changePassword} style={{ display: 'grid', gap: '.65rem', marginTop: '.85rem' }}>
                 <input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" placeholder="Mevcut şifre" required style={{ width: '100%', boxSizing: 'border-box', padding: '.62rem .72rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white' }} />
                 <input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" placeholder="Yeni şifre" required style={{ width: '100%', boxSizing: 'border-box', padding: '.62rem .72rem', background: 'var(--surface)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, color: 'white' }} />
@@ -327,7 +336,7 @@ const Settings = () => {
                 <button type="submit" className="btn btn-primary" disabled={changingPassword} style={{ justifySelf: 'start', padding: '.58rem .82rem', fontSize: '.8rem' }}>{changingPassword ? 'Güncelleniyor...' : 'Şifremi güncelle'}</button>
               </form>
             </div>
-          </div>
+          )}
           <div style={{ height: 1, background: 'rgba(255,255,255,.08)', margin: '1rem 0' }} />
           <div style={{ display: 'flex', gap: '.8rem', alignItems: 'flex-start', marginBottom: blockedUsers.length ? '.95rem' : 0 }}>
             <ShieldCheck size={19} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
