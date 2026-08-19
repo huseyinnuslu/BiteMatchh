@@ -14,6 +14,7 @@ const Register = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyNoticeAcknowledged, setPrivacyNoticeAcknowledged] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showGoogleConsent, setShowGoogleConsent] = useState(false);
 
   const [errors, setErrors] = useState({ username: '', email: '', password: '' });
   const [touched, setTouched] = useState({ username: false, email: false, password: false });
@@ -61,6 +62,7 @@ const Register = () => {
   const isFormValid =
     username && email && password && termsAccepted && privacyNoticeAcknowledged &&
     !validateUsername(username) && !validateEmail(email) && !validatePassword(password);
+  const hasLegalConsent = termsAccepted && privacyNoticeAcknowledged;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -82,7 +84,7 @@ const Register = () => {
   };
 
   // Google ile hızlı kayıt / giriş
-  const handleGoogleLogin = useGoogleLogin({
+  const startGoogleOAuth = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true);
       try {
@@ -108,6 +110,15 @@ const Register = () => {
     onError: () => setGoogleLoading(false),
   });
 
+  const handleGoogleLogin = () => {
+    if (googleLoading) return;
+    if (!hasLegalConsent) {
+      setShowGoogleConsent(true);
+      return;
+    }
+    startGoogleOAuth();
+  };
+
   const inputStyle = (field) =>
     touched[field] && errors[field]
       ? { borderColor: 'var(--danger)', boxShadow: '0 0 5px rgba(220,53,69,0.3)' }
@@ -122,47 +133,39 @@ const Register = () => {
 
   return (
     <div className="flex-center animate-slide-up" style={{ minHeight: '80vh', padding: '2rem 0' }}>
+      {showGoogleConsent && (
+        <div role="presentation" onMouseDown={() => setShowGoogleConsent(false)} style={{ position: 'fixed', inset: 0, zIndex: 1500, display: 'grid', placeItems: 'center', padding: '1rem', background: 'rgba(2,6,23,.76)', backdropFilter: 'blur(5px)' }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="google-consent-title" onMouseDown={(event) => event.stopPropagation()} className="glass-card" style={{ width: '100%', maxWidth: 440, padding: '1.35rem' }}>
+            <h3 id="google-consent-title" style={{ margin: '0 0 .45rem', fontSize: '1.15rem' }}>Devam etmeden önce</h3>
+            <p style={{ margin: '0 0 1.15rem', color: 'var(--text-muted)', fontSize: '.85rem', lineHeight: 1.55 }}>
+              Hesabını güvenle oluşturabilmemiz için sözleşmeyi kabul etmeni ve KVKK bilgilendirmesini okuduğunu onaylamanı istiyoruz.
+            </p>
+            <label style={{ marginBottom: '.9rem', display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} aria-label="Kullanıcı Sözleşmesini kabul ediyorum" style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)' }} />
+              <span style={{ fontSize: '.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}><Link to="/terms" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.</span>
+            </label>
+            <label style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={privacyNoticeAcknowledged} onChange={(event) => setPrivacyNoticeAcknowledged(event.target.checked)} aria-label="KVKK Aydınlatma Metni hakkında bilgilendirildim" style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)' }} />
+              <span style={{ fontSize: '.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}><Link to="/terms#kvkk" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında bilgilendirildim.</span>
+            </label>
+            <div style={{ display: 'flex', gap: '.7rem', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-outline" onClick={() => setShowGoogleConsent(false)}>Vazgeç</button>
+              <button type="button" className="btn btn-primary" disabled={!hasLegalConsent} onClick={() => { setShowGoogleConsent(false); startGoogleOAuth(); }}>Google ile devam et</button>
+            </div>
+          </section>
+        </div>
+      )}
       <div className="glass-card" style={{ width: '100%', maxWidth: '440px' }}>
         <h2 className="text-gradient" style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Kayıt Ol</h2>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '2rem' }}>
           Hesap oluşturmak için formu doldurun
         </p>
 
-        {/* Onaylar Google akışından önce görünür olmalı: butonun neden pasif
-            olduğu anlaşılır, ayrıca klavye ve ekran okuyucu ile de erişilebilir. */}
-        <div style={{ marginBottom: '1.15rem', padding: '.85rem', border: '1px solid rgba(255,255,255,.08)', borderRadius: '12px', background: 'rgba(255,255,255,.02)' }}>
-          <label style={{ marginBottom: '.8rem', display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(event) => setTermsAccepted(event.target.checked)}
-              aria-label="Kullanıcı Sözleşmesini kabul ediyorum"
-              style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.
-            </span>
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={privacyNoticeAcknowledged}
-              onChange={(event) => setPrivacyNoticeAcknowledged(event.target.checked)}
-              aria-label="KVKK Aydınlatma Metni hakkında bilgilendirildim"
-              style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
-            />
-            <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              <Link to="/terms#kvkk" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında kişisel verilerimin işlenmesi hakkında bilgilendirildim.
-            </span>
-          </label>
-        </div>
-
         {/* Google ile Hızlı Kayıt – sadece Client ID varsa göster */}
         {GOOGLE_ENABLED && <button
           type="button"
-          onClick={() => handleGoogleLogin()}
-          disabled={googleLoading || !termsAccepted || !privacyNoticeAcknowledged}
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
           style={{
             width: '100%',
             display: 'flex',
@@ -176,12 +179,12 @@ const Register = () => {
             borderRadius: '8px',
             fontSize: '0.95rem',
             fontWeight: 600,
-            cursor: googleLoading || !termsAccepted || !privacyNoticeAcknowledged ? 'not-allowed' : 'pointer',
-            opacity: googleLoading || !termsAccepted || !privacyNoticeAcknowledged ? 0.7 : 1,
+            cursor: googleLoading ? 'not-allowed' : 'pointer',
+            opacity: googleLoading ? 0.7 : 1,
             transition: 'all 0.2s ease',
             marginBottom: '1.25rem',
           }}
-          onMouseEnter={(e) => { if (!googleLoading && termsAccepted && privacyNoticeAcknowledged) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
+          onMouseEnter={(e) => { if (!googleLoading) e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
@@ -193,11 +196,7 @@ const Register = () => {
           </svg>
           {googleLoading ? 'Devam ediliyor...' : 'Google ile Devam Et'}
         </button>}
-        {GOOGLE_ENABLED && (!termsAccepted || !privacyNoticeAcknowledged) && (
-          <p style={{ margin: '-.7rem 0 1.15rem', color: 'var(--text-muted)', fontSize: '.76rem', textAlign: 'center', lineHeight: 1.45 }}>
-            Google ile devam etmeden önce aşağıdaki sözleşme kabulünü ve KVKK bilgilendirmesini tamamla.
-          </p>
-        )}
+        {GOOGLE_ENABLED && <p style={{ margin: '-.7rem 0 1.15rem', color: 'var(--text-muted)', fontSize: '.76rem', textAlign: 'center', lineHeight: 1.45 }}>Google ile devam ettiğinde gerekli onayları kısa bir adımda tamamlayabilirsin.</p>}
 
         {/* Ayırıcı – sadece Google butonu varsa göster */}
         {GOOGLE_ENABLED && <div style={{ position: 'relative', textAlign: 'center', margin: '0 0 1.5rem' }}>
@@ -239,6 +238,17 @@ const Register = () => {
               onBlur={makeBlurHandler(password, validatePassword, 'password')}
               placeholder="••••••••" style={inputStyle('password')} required />
             <ErrorMsg field="password" />
+          </div>
+
+          <div style={{ margin: '1.2rem 0 .9rem', paddingTop: '.9rem', borderTop: '1px solid rgba(255,255,255,.08)' }}>
+            <label style={{ marginBottom: '.75rem', display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} aria-label="Kullanıcı Sözleşmesini kabul ediyorum" style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)' }} />
+              <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}><Link to="/terms" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={privacyNoticeAcknowledged} onChange={(event) => setPrivacyNoticeAcknowledged(event.target.checked)} aria-label="KVKK Aydınlatma Metni hakkında bilgilendirildim" style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)' }} />
+              <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}><Link to="/terms#kvkk" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında bilgilendirildim.</span>
+            </label>
           </div>
 
           {/* Submit */}
