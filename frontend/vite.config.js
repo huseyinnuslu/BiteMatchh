@@ -13,6 +13,10 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // Katalog görselleri uygulama paketine gömülmez; ilk kartta indirilir
+        // ve aşağıdaki runtime cache ile saklanır. Böylece ilk PWA kurulumu
+        // gereksiz 15+ MB büyümez.
+        globIgnores: ['catalog/**/*'],
         runtimeCaching: [
           {
             // Kart, geçmiş, etkinlik ve restoran görsellerini ilk başarılı
@@ -21,7 +25,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'bitematch-images-v1',
+              cacheName: 'bitematch-images-v2',
               expiration: { maxEntries: 350, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },

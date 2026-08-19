@@ -1,5 +1,6 @@
 import CatalogOverride from '../models/CatalogOverride.js';
 import { mockOptions } from '../data/mockOptions.js';
+import { getStaticCatalogImageUrl } from './catalogAssetService.js';
 
 // Bu kartlar eski sürümlerde yönetim panelinden düzenlenmiş olabilir. O durumda
 // CatalogOverride, kaynak katalogdaki yeni görseli gölgeler. Bu geçiş yalnızca
@@ -29,6 +30,9 @@ export const synchronizeRefreshedFoodImages = async () => {
 
   await Promise.all(refreshedCards.map(({ name, imageUrl, category }) => CatalogOverride.updateOne(
     { category, sourceName: name },
-    { $set: { 'changes.imageUrl': imageUrl } },
+    // Bu otomatik geçişte mümkünse dış URL değil, Vercel CDN'deki katalog
+    // kopyası kaydedilir. Böylece eski yönetim override'ları da yeni
+    // görsel altyapısını atlamaz.
+    { $set: { 'changes.imageUrl': getStaticCatalogImageUrl(category, name, imageUrl) || imageUrl } },
   )));
 };

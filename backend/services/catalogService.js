@@ -1,5 +1,6 @@
 import CatalogOverride from '../models/CatalogOverride.js';
 import { mockOptions } from '../data/mockOptions.js';
+import { getStaticCatalogImageUrl } from './catalogAssetService.js';
 
 const CATEGORIES = ['mekan', 'film', 'aktivite'];
 
@@ -9,7 +10,14 @@ export const getEffectiveCatalog = async () => {
 
   return Object.fromEntries(CATEGORIES.map((category) => [category, (mockOptions[category] || []).map((item) => {
     const sourceName = item.name;
-    return { ...item, ...overrideMap.get(`${category}:${sourceName}`), sourceName };
+    const changes = overrideMap.get(`${category}:${sourceName}`) || {};
+    const staticImageUrl = changes.imageUrl ? null : getStaticCatalogImageUrl(category, sourceName, item.imageUrl);
+    return {
+      ...item,
+      ...changes,
+      imageUrl: staticImageUrl || changes.imageUrl || item.imageUrl,
+      sourceName,
+    };
   })]));
 };
 
