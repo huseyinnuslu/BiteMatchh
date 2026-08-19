@@ -466,7 +466,9 @@ const Room = () => {
     if (isVenueMatch && restaurantRecommendationsEnabled) {
       setMatchModalDismissed(true);
       setShowRestaurantFlow(true);
-      setChatOpen(false);
+      // Eşleşmeyle açılan oda sohbeti konum/restoran kararında da
+      // kullanılmaya devam eder. Burada kapatmak, kullanıcıya sanki
+      // sohbet kaybolmuş gibi hissettiriyordu.
       return;
     }
     // Karar zaten tamamlandı; ikinci bir çıkış onayı kullanıcıyı gereksiz
