@@ -20,6 +20,17 @@ const isFoursquareConfigured = () => Boolean(process.env.FOURSQUARE_PLACES_API_K
 const isRoomParticipant = (room, userId) =>
   room.participants.some((participant) => participant.toString() === userId.toString());
 
+// Eski/verisi eksik odalarda bile ikinci tur başlığının "undefined" diye
+// görünmemesi gerekir. Eşleşen yemek, oda adı yoksa anlaşılır bir yedektir.
+const venueVotingRoomName = (room) => {
+  const parentName = String(room?.name || '').trim();
+  const matchedFood = String(room?.matchResult?.name || '').trim();
+  const baseName = parentName && parentName.toLowerCase() !== 'undefined'
+    ? parentName
+    : matchedFood || 'Ortak Karar';
+  return `${baseName} • ${isCinemaRoom(room) ? 'Nerede İzleyelim?' : 'Nerede Yiyelim?'}`;
+};
+
 const parseCoordinate = (value, min, max) => {
   const coordinate = Number(value);
   return Number.isFinite(coordinate) && coordinate >= min && coordinate <= max ? coordinate : null;
@@ -803,7 +814,13 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
         parentRoom: room._id,
         status: { $in: ['waiting', 'voting', 'finished'] },
       });
-      if (linkedRoom) return res.json({ room: linkedRoom, reused: true });
+      if (linkedRoom) {
+        if (!String(linkedRoom.name || '').trim() || String(linkedRoom.name).trim().toLowerCase().startsWith('undefined')) {
+          linkedRoom.name = venueVotingRoomName(room);
+          await linkedRoom.save();
+        }
+        return res.json({ room: linkedRoom, reused: true });
+      }
       await Room.updateOne({ _id: room._id, restaurantRoom: room.restaurantRoom }, { $set: { restaurantRoom: null } });
       room.restaurantRoom = null;
     }
@@ -815,6 +832,10 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
     });
     if (existingRoom) {
       let imageAdded = false;
+      if (!String(existingRoom.name || '').trim() || String(existingRoom.name).trim().toLowerCase().startsWith('undefined')) {
+        existingRoom.name = venueVotingRoomName(room);
+        imageAdded = true;
+      }
       existingRoom.options.forEach((option) => {
         if (!option.imageUrl && room.matchResult.imageUrl) {
           option.imageUrl = room.matchResult.imageUrl;
@@ -846,7 +867,7 @@ export const createRestaurantVotingRoom = async (req, res, next) => {
     }
 
     const candidateRoom = await Room.create({
-      name: `${room.name} • ${isCinemaRoom(room) ? 'Nerede İzleyelim?' : 'Nerede Yiyelim?'}`,
+      name: venueVotingRoomName(room),
       host: room.host,
       participants: room.participants,
       category: isCinemaRoom(room) ? 'cinema' : 'restaurant',

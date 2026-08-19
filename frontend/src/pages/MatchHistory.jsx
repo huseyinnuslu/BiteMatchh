@@ -14,6 +14,14 @@ const categoryFallbackImage = (category) => {
   return '/food-card-fallback.svg';
 };
 
+const historyRoomTitle = (room) => {
+  const storedName = String(room?.name || '').trim();
+  if (storedName && !storedName.toLowerCase().startsWith('undefined')) return storedName;
+  if (room?.category === 'restaurant') return `${room?.matchResult?.name || 'Restoran'} • Nerede Yiyelim?`;
+  if (room?.category === 'cinema') return `${room?.matchResult?.name || 'Sinema'} • Nerede İzleyelim?`;
+  return room?.matchResult?.name || 'Ortak karar';
+};
+
 const MatchHistoryImage = ({ winner, category }) => {
   const primaryUrl = resolveAssetUrl(winner?.imageUrl || winner?.fallbackImageUrl || '');
   const secondaryUrl = resolveAssetUrl(winner?.fallbackImageUrl || '');
@@ -294,7 +302,7 @@ const MatchHistory = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
-                          {room.name}
+                          {historyRoomTitle(room)}
                         </h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                           <CalendarDays size={13} />
