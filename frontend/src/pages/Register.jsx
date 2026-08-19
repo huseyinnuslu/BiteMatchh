@@ -128,6 +128,36 @@ const Register = () => {
           Hesap oluşturmak için formu doldurun
         </p>
 
+        {/* Onaylar Google akışından önce görünür olmalı: butonun neden pasif
+            olduğu anlaşılır, ayrıca klavye ve ekran okuyucu ile de erişilebilir. */}
+        <div style={{ marginBottom: '1.15rem', padding: '.85rem', border: '1px solid rgba(255,255,255,.08)', borderRadius: '12px', background: 'rgba(255,255,255,.02)' }}>
+          <label style={{ marginBottom: '.8rem', display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(event) => setTermsAccepted(event.target.checked)}
+              aria-label="Kullanıcı Sözleşmesini kabul ediyorum"
+              style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.
+            </span>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '.7rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={privacyNoticeAcknowledged}
+              onChange={(event) => setPrivacyNoticeAcknowledged(event.target.checked)}
+              aria-label="KVKK Aydınlatma Metni hakkında bilgilendirildim"
+              style={{ width: 19, height: 19, flexShrink: 0, marginTop: '.1rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              <Link to="/terms#kvkk" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında kişisel verilerimin işlenmesi hakkında bilgilendirildim.
+            </span>
+          </label>
+        </div>
+
         {/* Google ile Hızlı Kayıt – sadece Client ID varsa göster */}
         {GOOGLE_ENABLED && <button
           type="button"
@@ -209,36 +239,6 @@ const Register = () => {
               onBlur={makeBlurHandler(password, validatePassword, 'password')}
               placeholder="••••••••" style={inputStyle('password')} required />
             <ErrorMsg field="password" />
-          </div>
-
-          {/* Sözleşme kabulü ve KVKK bilgilendirmesi ayrı kaydedilir. */}
-          <div style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }} onClick={() => setTermsAccepted(!termsAccepted)}>
-            <div style={{
-              minWidth: '20px', height: '20px', borderRadius: '4px',
-              border: `2px solid ${termsAccepted ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
-              background: termsAccepted ? 'var(--primary)' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginTop: '0.1rem', transition: 'all 0.2s'
-            }}>
-              {termsAccepted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              <Link to="/terms" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Kullanıcı Sözleşmesi</Link>'ni okudum ve kabul ediyorum.
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }} onClick={() => setPrivacyNoticeAcknowledged(!privacyNoticeAcknowledged)}>
-            <div style={{
-              minWidth: '20px', height: '20px', borderRadius: '4px',
-              border: `2px solid ${privacyNoticeAcknowledged ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
-              background: privacyNoticeAcknowledged ? 'var(--primary)' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.1rem', transition: 'all 0.2s',
-            }}>
-              {privacyNoticeAcknowledged && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              <Link to="/terms#kvkk" onClick={e => e.stopPropagation()} style={{ color: 'var(--primary)', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link> kapsamında kişisel verilerimin işlenmesi hakkında bilgilendirildim.
-            </div>
           </div>
 
           {/* Submit */}

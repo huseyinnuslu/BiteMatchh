@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MailCheck } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
@@ -11,6 +11,7 @@ const VerifyEmail = () => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const fromLocation = location.state?.from;
   const destination = fromLocation
     ? `${fromLocation.pathname || '/dashboard'}${fromLocation.search || ''}${fromLocation.hash || ''}`
@@ -24,10 +25,19 @@ const VerifyEmail = () => {
     if (result.success) navigate(destination, { replace: true });
   };
 
+  useEffect(() => {
+    if (resendCountdown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendCountdown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCountdown]);
+
   const resend = async () => {
-    if (!email) return;
+    if (!email || resendCountdown > 0) return;
     setResending(true);
-    await resendRegistrationVerification(email);
+    const result = await resendRegistrationVerification(email);
+    if (result.retryAfterSeconds > 0) setResendCountdown(result.retryAfterSeconds);
     setResending(false);
   };
 
@@ -78,9 +88,14 @@ const VerifyEmail = () => {
           </button>
         </form>
 
-        <button type="button" className="btn btn-outline" onClick={resend} disabled={!email || resending} style={{ width: '100%', marginTop: '0.75rem' }}>
-          {resending ? 'Kod gönderiliyor...' : 'Kodu yeniden gönder'}
+        <button type="button" className="btn btn-outline" onClick={resend} disabled={!email || resending || resendCountdown > 0} style={{ width: '100%', marginTop: '0.75rem' }}>
+          {resending ? 'Kod gönderiliyor...' : resendCountdown > 0 ? `Yeni kod için ${resendCountdown} sn bekle` : 'Kodu yeniden gönder'}
         </button>
+        {resendCountdown > 0 && (
+          <small style={{ display: 'block', textAlign: 'center', marginTop: '0.55rem', color: 'var(--text-muted)' }}>
+            Yeni kod gönderilirse önceki kod otomatik olarak geçersiz olur.
+          </small>
+        )}
         <p style={{ textAlign: 'center', marginTop: '1.25rem', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
           <Link to="/login" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Giriş sayfasına dön</Link>
         </p>

@@ -26,6 +26,7 @@ import {
 import ConfirmModal from '../components/ConfirmModal';
 import Avatar from '../components/Avatar';
 import { preloadImages } from '../utils/imageCache';
+import { getSafeExternalUrl } from '../utils/externalUrl';
 
 /* ─── Yardımcılar ─────────────────────────────────────────────────────────── */
 
@@ -1002,9 +1003,9 @@ const Messages = () => {
                                 )}
                                 {/* Yönlendirme Düğmeleri */}
                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                  {msg.sharedEvent.ticketUrl && (
+                                  {getSafeExternalUrl(msg.sharedEvent.ticketUrl) && (
                                     <button
-                                      onClick={() => window.open(msg.sharedEvent.ticketUrl, '_blank', 'noopener,noreferrer')}
+                                      onClick={() => window.open(getSafeExternalUrl(msg.sharedEvent.ticketUrl), '_blank', 'noopener,noreferrer')}
                                       style={{
                                         flex: 1, padding: '0.45rem', borderRadius: '8px',
                                         background: 'linear-gradient(135deg, var(--primary), var(--secondary))',

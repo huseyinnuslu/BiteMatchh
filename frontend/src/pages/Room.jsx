@@ -56,6 +56,8 @@ const Room = () => {
   // ederiz. Böylece başka hesap/önceki oda bellekteyken bekleme salonu
   // yanlışlıkla çizilmez.
   const [roomAccessReady, setRoomAccessReady] = useState(false);
+  const [roomAccessError, setRoomAccessError] = useState('');
+  const [roomLoadAttempt, setRoomLoadAttempt] = useState(0);
   const pollingRef = useRef(null);
   // Bir kart karar kaydedilirken ikinci bir buton/gesture tetiklemesini engeller.
   const decisionInFlightRef = useRef(false);
@@ -153,6 +155,7 @@ const Room = () => {
     let handleConnect;
     const init = async () => {
       setRoomAccessReady(false);
+      setRoomAccessError('');
       socketMatchFired.current = false;
       autoOpenedChatForMatchRef.current = null;
 
@@ -161,7 +164,8 @@ const Room = () => {
       if (disposed) return;
       if (!room) {
         resetRoom();
-        navigate('/dashboard', { replace: true });
+        setRoomAccessError('Bu oda bulunamadı, kapatıldı veya davet bağlantısı artık geçerli değil.');
+        setRoomAccessReady(true);
         return;
       }
       // Bildirimden `?chat=1` ile gelindiyse bu oda, kullanıcı seçim ekranına
@@ -180,7 +184,12 @@ const Room = () => {
           if (disposed) return;
           if (!joinResult.success) {
             resetRoom();
-            navigate('/dashboard', { replace: true });
+            if (joinResult.activeRoom?.id) {
+              navigate(`/room/${joinResult.activeRoom.id}`, { replace: true });
+              return;
+            }
+            setRoomAccessError(joinResult.message || 'Bu odaya şu anda katılamadın. Bağlantıyı tekrar deneyin.');
+            setRoomAccessReady(true);
             return;
           }
           // Katıldıktan sonra host/katılımcı bilgisini aynı token ile tekrar
@@ -188,7 +197,8 @@ const Room = () => {
           room = await fetchRoomStatus(id);
           if (disposed || !room) {
             resetRoom();
-            navigate('/dashboard', { replace: true });
+            setRoomAccessError('Katılım tamamlanamadı. Lütfen davet bağlantısını yeniden deneyin.');
+            setRoomAccessReady(true);
             return;
           }
         }
@@ -306,15 +316,31 @@ const Room = () => {
       // bağlamını koruyoruz; gerçek çıkış leaveRoom/sonuç tamamlama akışında
       // zaten state'i temizler.
     };
-  }, [id, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, location.search, roomLoadAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openRestaurantMatchChat = useCallback((restaurant) => {
     setChatMatchItem(restaurant);
     window.setTimeout(() => setChatOpen(true), 1200);
   }, []);
 
-  if (!roomAccessReady || !currentRoom || String(currentRoom._id) !== String(id)) {
+  if (!roomAccessReady) {
     return <div className="flex-center" style={{ height: '70vh' }}>Oda Yükleniyor...</div>;
+  }
+
+  if (roomAccessError || !currentRoom || String(currentRoom._id) !== String(id)) {
+    return (
+      <div className="flex-center" style={{ minHeight: '70vh', padding: '1rem' }}>
+        <div className="glass-card" style={{ width: '100%', maxWidth: 480, textAlign: 'center', padding: '2rem' }}>
+          <AlertTriangle size={34} color="var(--danger)" style={{ marginBottom: '.8rem' }} />
+          <h2 style={{ margin: '0 0 .65rem', fontSize: '1.2rem' }}>Odaya katılamadık</h2>
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.55, margin: '0 0 1.3rem' }}>{roomAccessError || 'Oda bilgisi yüklenemedi.'}</p>
+          <div style={{ display: 'flex', gap: '.7rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={() => setRoomLoadAttempt((attempt) => attempt + 1)}>Tekrar dene</button>
+            <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>Keşfet'e dön</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (currentRoom.status === 'expired') {

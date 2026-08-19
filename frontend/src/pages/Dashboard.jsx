@@ -9,6 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 import { getSocket } from '../socket/socketClient';
 import { toast } from 'react-toastify';
 import { preloadImages } from '../utils/imageCache';
+import { getSafeExternalUrl } from '../utils/externalUrl';
 
 const LIVE_EVENTS_CACHE_KEY = 'bitematch-live-events-v1';
 const LIVE_EVENTS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -114,7 +115,7 @@ const Dashboard = () => {
         name: eventToShare.name,
         imageUrl: eventToShare.imageUrl,
         location: eventToShare.location,
-        ticketUrl: eventToShare.ticketUrl,
+        ticketUrl: getSafeExternalUrl(eventToShare.ticketUrl),
         mapsQuery: eventToShare.mapsQuery || eventToShare.location,
       }
     });
@@ -189,14 +190,21 @@ const Dashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!roomName.trim()) {
+      toast.error('Oda adı boş bırakılamaz.');
+      return;
+    }
     let validOptions = [];
     if (category === 'custom') {
       validOptions = options.filter(opt => opt.name.trim() !== '');
-      if (validOptions.length < 2) return;
+      if (validOptions.length < 2) {
+        toast.error('Kendi listen için en az iki seçenek eklemelisin.');
+        return;
+      }
     }
 
     const creation = {
-      name: roomName,
+      name: roomName.trim(),
       options: validOptions,
       category,
       priceRange,
@@ -631,7 +639,7 @@ const Dashboard = () => {
                     zIndex: 10,
                   }}>
                     {(() => {
-                      const tUrl = ev.ticketUrl || '';
+                      const tUrl = getSafeExternalUrl(ev.ticketUrl) || '';
                       let label, bg;
                       if (tUrl.includes('bubilet.com.tr')) {
                         label = 'Bubilet'; bg = 'rgba(220,38,38,0.88)';
@@ -743,12 +751,12 @@ const Dashboard = () => {
 
                     {/* CTA: Bilet Al + Haritada Gör */}
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                      {ev.ticketUrl && (
+                      {getSafeExternalUrl(ev.ticketUrl) && (
                         <button
                           onMouseDown={e => e.stopPropagation()}
                           onClick={e => {
                             e.stopPropagation();
-                            window.open(ev.ticketUrl, '_blank', 'noopener,noreferrer');
+                            window.open(getSafeExternalUrl(ev.ticketUrl), '_blank', 'noopener,noreferrer');
                           }}
                           style={{
                             flex: 1, padding: '0.6rem 0.25rem',
@@ -777,7 +785,7 @@ const Dashboard = () => {
                           style={{
                             flex: 1, padding: '0.6rem 0.25rem',
                             borderRadius: '12px', border: 'none',
-                            background: ev.ticketUrl ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)',
+                            background: getSafeExternalUrl(ev.ticketUrl) ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)',
                             backdropFilter: 'blur(4px)',
                             color: 'white', fontSize: '0.8rem', fontWeight: 800,
                             cursor: 'pointer', textAlign: 'center',
@@ -785,12 +793,12 @@ const Dashboard = () => {
                             boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                           }}
                           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(66,133,244,0.8)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = ev.ticketUrl ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = getSafeExternalUrl(ev.ticketUrl) ? 'rgba(66,133,244,0.3)' : 'rgba(66,133,244,0.6)'; }}
                         >
                           Harita
                         </button>
                       )}
-                      {!ev.ticketUrl && !ev.mapsQuery && !ev.location && (
+                      {!getSafeExternalUrl(ev.ticketUrl) && !ev.mapsQuery && !ev.location && (
                         <div style={{
                           flex: 1, padding: '0.45rem',
                           borderRadius: '10px',

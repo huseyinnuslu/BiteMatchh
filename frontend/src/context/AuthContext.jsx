@@ -88,7 +88,6 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post('/auth/verify-email', { email, otp });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success('E-posta doğrulandı. Hesabın hazır!');
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'E-posta doğrulanamadı';
@@ -101,11 +100,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await api.post('/auth/verify-email/resend', { email });
       toast.success(data.message || 'Yeni doğrulama kodu gönderildi.');
-      return { success: true };
+      return { success: true, retryAfterSeconds: 60 };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Kod yeniden gönderilemedi';
       toast.error(msg);
-      return { success: false, message: msg };
+      return {
+        success: false,
+        message: msg,
+        retryAfterSeconds: Number(error.response?.data?.retryAfterSeconds || 0),
+      };
     }
   };
 

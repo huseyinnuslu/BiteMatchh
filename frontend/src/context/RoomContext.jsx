@@ -21,7 +21,12 @@ export const RoomProvider = ({ children }) => {
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Oda kurulamadı';
       toast.error(msg);
-      return { success: false, message: msg, activeRoom: error.response?.data?.activeRoom || null };
+      return {
+        success: false,
+        message: msg,
+        status: error.response?.status || 0,
+        activeRoom: error.response?.data?.activeRoom || null,
+      };
     } finally {
       setLoading(false);
     }
@@ -37,7 +42,12 @@ export const RoomProvider = ({ children }) => {
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Odaya katılınamadı';
       toast.error(msg);
-      return { success: false, message: msg, activeRoom: error.response?.data?.activeRoom || null };
+      return {
+        success: false,
+        message: msg,
+        status: error.response?.status || 0,
+        activeRoom: error.response?.data?.activeRoom || null,
+      };
     } finally {
       setLoading(false);
     }

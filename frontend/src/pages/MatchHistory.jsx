@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Award, CalendarDays, MapPin, Users, Loader, ArrowLeft, ExternalLink, Trash2, History, Ticket } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getSafeExternalUrl } from '../utils/externalUrl';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
 import { preloadImages, resolveAssetUrl } from '../utils/imageCache';
@@ -336,9 +337,9 @@ const MatchHistory = () => {
 
                   {/* Butonlar */}
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {winner?.ticketUrl && (
+                    {getSafeExternalUrl(winner?.ticketUrl) && (
                       <button
-                        onClick={() => window.open(winner.ticketUrl, '_blank', 'noopener,noreferrer')}
+                        onClick={() => window.open(getSafeExternalUrl(winner.ticketUrl), '_blank', 'noopener,noreferrer')}
                         style={{
                           flex: 1, minWidth: '120px', padding: '0.55rem 1rem',
                           borderRadius: '8px',

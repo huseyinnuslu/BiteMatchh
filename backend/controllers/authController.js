@@ -612,7 +612,10 @@ export const resendRegistrationVerification = async (req, res, next) => {
     const lastSentAt = user.emailVerificationLastSentAt?.getTime() || 0;
     const waitMs = 60 * 1000 - (Date.now() - lastSentAt);
     if (waitMs > 0) {
-      return res.status(429).json({ message: `Yeni kod için ${Math.ceil(waitMs / 1000)} saniye bekleyin.` });
+      return res.status(429).json({
+        message: `Yeni kod için ${Math.ceil(waitMs / 1000)} saniye bekleyin. Mevcut kodunuz hâlâ geçerlidir.`,
+        retryAfterSeconds: Math.ceil(waitMs / 1000),
+      });
     }
 
     const otp = generateOTP();
@@ -624,7 +627,7 @@ export const resendRegistrationVerification = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
     await sendRegistrationVerificationEmail(user, otp);
 
-    res.json({ message: 'Yeni doğrulama kodu e-posta adresine gönderildi.' });
+    res.json({ message: 'Yeni doğrulama kodu e-posta adresine gönderildi. Önceki kod artık geçersizdir.', retryAfterSeconds: 60 });
   } catch (error) {
     next(error);
   }

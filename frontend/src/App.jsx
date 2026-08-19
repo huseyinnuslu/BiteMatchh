@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { connectSocket } from './socket/socketClient';
@@ -26,6 +26,16 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+const NotFound = () => (
+  <main className="flex-center" style={{ minHeight: '62vh', padding: '2rem 1rem', textAlign: 'center' }}>
+    <section className="glass-card" style={{ width: '100%', maxWidth: 480 }}>
+      <h1 style={{ margin: '0 0 .75rem', fontSize: '1.45rem' }}>Sayfa bulunamadı</h1>
+      <p style={{ margin: '0 0 1.4rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>Bu bağlantı geçersiz olabilir veya sayfa taşınmış olabilir.</p>
+      <Link className="btn btn-primary" to="/dashboard">Keşfet'e dön</Link>
+    </section>
+  </main>
+);
 
 function App() {
   const { user, updateUser } = useContext(AuthContext);
@@ -184,6 +194,7 @@ function App() {
             path="/messages" 
             element={<ProtectedRoute><Messages /></ProtectedRoute>} 
           />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
       {!isMessagesRoute && !isUsernameOnboardingRoute && <Footer />}
