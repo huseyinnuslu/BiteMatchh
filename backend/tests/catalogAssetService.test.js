@@ -20,6 +20,10 @@ test('statik katalog yolu Türkçe kart adlarında kararlı üretilir', () => {
     getStaticCatalogImageUrl('mekan', 'Döner', 'https://example.com/doner.jpg'),
     null,
   );
+  assert.equal(
+    getStaticCatalogImageUrl('mekan', 'Köfte', 'https://legacy-image.example/kofte.jpg'),
+    '/catalog/mekan/kofte.jpg?v=20260819',
+  );
 });
 
 test('statik olarak işaretlenen her katalog görseli repoda bulunur', async () => {

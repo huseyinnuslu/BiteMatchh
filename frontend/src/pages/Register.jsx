@@ -215,7 +215,7 @@ const Register = () => {
             }}
             disabled={!isFormValid}
           >
-            ✅ Kayıt Ol
+            Kayıt Ol
           </button>
         </form>
 
