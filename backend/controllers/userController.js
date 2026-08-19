@@ -170,7 +170,7 @@ export const getProfile = async (req, res, next) => {
     const friendDocs = userAgg.friendDocs || [];
     const friendIds  = friendDocs.map(f => f._id);
     const scores     = await calculateFriendCompatibilities(userId, friendIds);
-    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s.score]));
+    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s]));
 
     const friendsWithScores = friendDocs.map(f => ({
       _id:      f._id,
@@ -178,7 +178,9 @@ export const getProfile = async (req, res, next) => {
       name:     f.name,
       profilePic: f.profilePic,
       createdAt: f.createdAt,
-      compatibilityScore: scoreMap[f._id.toString()] || 0,
+      compatibilityScore: scoreMap[f._id.toString()]?.score ?? null,
+      compatibilityState: scoreMap[f._id.toString()]?.state || 'building',
+      comparedPreferences: scoreMap[f._id.toString()]?.comparedPreferences || 0,
     }));
 
     res.json({
@@ -531,11 +533,12 @@ export const acceptFriendRequest = async (req, res, next) => {
     getIo()?.to(`user:${toId}`).emit('friendship_updated', { userId: fromId, action: 'accepted' });
     getIo()?.to(`user:${fromId}`).emit('friendship_updated', { userId: toId, action: 'accepted' });
 
-    const score = await calculateCompatibility(toId, fromId);
+    const compatibility = await calculateCompatibility(toId, fromId);
 
     res.json({
       message: 'Arkadaşlık isteği kabul edildi',
-      compatibilityScore: score,
+      compatibilityScore: compatibility.score,
+      compatibilityState: compatibility.state,
     });
   } catch (error) {
     next(error);
@@ -613,7 +616,7 @@ export const getFriends = async (req, res, next) => {
     const friendDocs = userAgg?.friendDocs || [];
     const friendIds  = friendDocs.map(f => f._id);
     const scores     = await calculateFriendCompatibilities(userId, friendIds);
-    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s.score]));
+    const scoreMap   = Object.fromEntries(scores.map(s => [s.friendId, s]));
 
     const friends = friendDocs
       .map(f => ({
@@ -622,7 +625,9 @@ export const getFriends = async (req, res, next) => {
         name:     f.name,
         profilePic: f.profilePic,
         createdAt: f.createdAt,
-        compatibilityScore: scoreMap[f._id.toString()] || 0,
+        compatibilityScore: scoreMap[f._id.toString()]?.score ?? null,
+        compatibilityState: scoreMap[f._id.toString()]?.state || 'building',
+        comparedPreferences: scoreMap[f._id.toString()]?.comparedPreferences || 0,
       }))
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 

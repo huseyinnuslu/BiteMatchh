@@ -75,13 +75,13 @@ const Tab = ({ id, label, icon: Icon, active, onClick, badge }) => (
 
 // ── Uyum skoru rengi ─────────────────────────────────────────────────────────
 const scoreColor = (s) =>
-  s >= 70 ? 'var(--success)' : s >= 40 ? 'gold' : 'var(--text-muted)';
+  s == null ? 'var(--accent)' : s >= 70 ? 'var(--success)' : s >= 40 ? 'gold' : 'var(--text-muted)';
 
 const ScoreBar = ({ score }) => (
   <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.07)', borderRadius: '3px', overflow: 'hidden' }}>
     <motion.div
       initial={{ width: 0 }}
-      animate={{ width: `${score}%` }}
+      animate={{ width: `${score ?? 0}%` }}
       transition={{ duration: 0.8, ease: 'easeOut' }}
       style={{ height: '100%', background: scoreColor(score), borderRadius: '3px' }}
     />
@@ -309,7 +309,9 @@ const Profile = () => {
     setActionId(fromId);
     try {
       const { data } = await api.put(`/users/friends/${fromId}/accept`);
-      toast.success(`Arkadaşlık kabul edildi. Uyum: %${data.compatibilityScore}`);
+      toast.success(data.compatibilityState === 'ready'
+        ? `Arkadaşlık kabul edildi. Uyum: %${data.compatibilityScore}`
+        : 'Arkadaşlık kabul edildi. Uyum puanı tercihler oluşunca görünecek.');
       await loadProfile();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Kabul edilemedi');
@@ -665,10 +667,18 @@ const Profile = () => {
                       </div>
                       <div style={{ marginTop: '0.3rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                          <span>Uyum</span>
-                          <span style={{ color: scoreColor(f.compatibilityScore), fontWeight: 700 }}>%{f.compatibilityScore}</span>
+                          <span>Tercih uyumu</span>
+                          <span style={{ color: scoreColor(f.compatibilityScore), fontWeight: 700 }}>
+                            {f.compatibilityState === 'ready' ? `%${f.compatibilityScore}` : 'Oluşuyor'}
+                          </span>
                         </div>
-                        <ScoreBar score={f.compatibilityScore} />
+                        {f.compatibilityState === 'ready' ? (
+                          <ScoreBar score={f.compatibilityScore} />
+                        ) : (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            En az 3 beğeni sonrası gerçek uyum hesaplanır.
+                          </div>
+                        )}
                       </div>
                     </div>
 

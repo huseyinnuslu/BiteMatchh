@@ -1,77 +1,106 @@
 /**
- * compatibilityHelper.js
- * BiteMatch – İki kullanıcı arasındaki uyum yüzdesini hesaplar.
- *
- * Algoritma:
- *   1. İki kullanıcının da "like" verdiği swipe'ları çek (tek aggregate)
- *   2. Jaccard Similarity: |A ∩ B| / |A ∪ B| * 100
- *      - Hem A hem B'nin beğendiği opsiyonlar → kesişim
- *      - A veya B'nin beğendiği toplam benzersiz opsiyonlar → birleşim
- *   3. Sonucu 0-100 arasında yuvarlayarak döner
+ * BiteMatch – arkadaşlar arası tercih uyumu.
+ * Oda içi optionId geçicidir; farklı odalardaki aynı kartı karşılaştırmak için
+ * kart adı ve kategori kullanılır.
  */
 
 import Swipe from '../models/Swipe.js';
 
-/**
- * İki kullanıcı arasındaki uyum yüzdesini hesaplar.
- * @param {string|ObjectId} userAId
- * @param {string|ObjectId} userBId
- * @returns {Promise<number>} 0-100 arası uyum yüzdesi
- */
-export const calculateCompatibility = async (userAId, userBId) => {
-  // İki kullanıcının "like" swipe'larını tek sorguda çek
-  const swipes = await Swipe.find(
-    {
-      user: { $in: [userAId, userBId] },
-      decision: 'like',
-    },
-    'user optionId'   // sadece 2 alan — hızlı
-  ).lean();
+const MIN_PREFERENCES_FOR_SCORE = 3;
 
-  // Kullanıcı bazlı Set'ler oluştur (beğenilen optionId'ler)
-  const setA = new Set();
-  const setB = new Set();
+const normalizePreference = (value = '') => value
+  .toLocaleLowerCase('tr-TR')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9çğıöşü]+/g, ' ')
+  .trim();
 
-  for (const s of swipes) {
-    const uid = s.user.toString();
-    const oid = s.optionId.toString();
-    if (uid === userAId.toString()) setA.add(oid);
-    else setB.add(oid);
+const emptyProfile = () => ({ items: new Set(), categories: new Map() });
+
+export const buildCompatibilityResult = (profileA, profileB) => {
+  const comparedPreferences = Math.min(profileA.items.size, profileB.items.size);
+  if (comparedPreferences < MIN_PREFERENCES_FOR_SCORE) {
+    return { score: null, state: 'building', comparedPreferences, sharedLikes: 0 };
   }
 
-  // Hiçbiri beğenmemişse uyum 0
-  if (setA.size === 0 && setB.size === 0) return 0;
-
-  // Kesişim: A'da ve B'de de olan opsiyonlar
-  let intersection = 0;
-  for (const id of setA) {
-    if (setB.has(id)) intersection++;
+  let sharedLikes = 0;
+  for (const item of profileA.items) {
+    if (profileB.items.has(item)) sharedLikes += 1;
   }
+  const allItems = new Set([...profileA.items, ...profileB.items]);
+  const itemSimilarity = allItems.size ? sharedLikes / allItems.size : 0;
 
-  // Birleşim: toplam benzersiz beğenilen opsiyon
-  const union = new Set([...setA, ...setB]).size;
+  const allCategories = new Set([...profileA.categories.keys(), ...profileB.categories.keys()]);
+  let categoryMinimum = 0;
+  let categoryMaximum = 0;
+  for (const category of allCategories) {
+    const a = profileA.categories.get(category) || 0;
+    const b = profileB.categories.get(category) || 0;
+    categoryMinimum += Math.min(a, b);
+    categoryMaximum += Math.max(a, b);
+  }
+  const categorySimilarity = categoryMaximum ? categoryMinimum / categoryMaximum : 0;
 
-  if (union === 0) return 0;
-
-  return Math.round((intersection / union) * 100);
+  return {
+    score: Math.round((itemSimilarity * 0.75 + categorySimilarity * 0.25) * 100),
+    state: 'ready',
+    comparedPreferences,
+    sharedLikes,
+  };
 };
 
-/**
- * Bir kullanıcının arkadaşlarıyla uyum skorlarını toplu hesaplar.
- * @param {string|ObjectId} userId
- * @param {Array<string|ObjectId>} friendIds
- * @returns {Promise<Array<{friendId, score}>>}
- */
-export const calculateFriendCompatibilities = async (userId, friendIds) => {
-  if (!friendIds || friendIds.length === 0) return [];
+const getPreferenceProfiles = async (userIds) => {
+  const rows = await Swipe.aggregate([
+    { $match: { user: { $in: userIds }, decision: 'like' } },
+    { $lookup: { from: 'rooms', localField: 'room', foreignField: '_id', as: 'roomInfo' } },
+    { $unwind: '$roomInfo' },
+    {
+      $project: {
+        user: 1,
+        category: { $ifNull: ['$roomInfo.category', 'custom'] },
+        option: {
+          $arrayElemAt: [{
+            $filter: {
+              input: '$roomInfo.options',
+              as: 'option',
+              cond: { $eq: ['$$option._id', '$optionId'] },
+            },
+          }, 0],
+        },
+      },
+    },
+    { $match: { 'option.name': { $type: 'string' } } },
+    { $project: { user: 1, category: 1, optionName: '$option.name' } },
+  ]);
 
-  // Paralel hesaplama
-  const results = await Promise.all(
-    friendIds.map(async (fid) => ({
-      friendId: fid.toString(),
-      score: await calculateCompatibility(userId, fid),
-    }))
+  const profiles = new Map(userIds.map((id) => [id.toString(), emptyProfile()]));
+  for (const row of rows) {
+    const profile = profiles.get(row.user.toString());
+    const itemName = normalizePreference(row.optionName);
+    const category = normalizePreference(row.category) || 'custom';
+    if (!profile || !itemName) continue;
+    profile.items.add(`${category}:${itemName}`);
+    profile.categories.set(category, (profile.categories.get(category) || 0) + 1);
+  }
+  return profiles;
+};
+
+export const calculateCompatibility = async (userAId, userBId) => {
+  const profiles = await getPreferenceProfiles([userAId, userBId]);
+  return buildCompatibilityResult(
+    profiles.get(userAId.toString()) || emptyProfile(),
+    profiles.get(userBId.toString()) || emptyProfile(),
   );
+};
 
-  return results.sort((a, b) => b.score - a.score);
+export const calculateFriendCompatibilities = async (userId, friendIds) => {
+  if (!friendIds?.length) return [];
+  const profiles = await getPreferenceProfiles([userId, ...friendIds]);
+  const myProfile = profiles.get(userId.toString()) || emptyProfile();
+  return friendIds
+    .map((friendId) => ({
+      friendId: friendId.toString(),
+      ...buildCompatibilityResult(myProfile, profiles.get(friendId.toString()) || emptyProfile()),
+    }))
+    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 };
