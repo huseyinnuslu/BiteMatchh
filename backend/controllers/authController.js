@@ -394,15 +394,47 @@ const sendWelcomeEmail = async (user) => {
 };
 
 const sendWelcomeEmailIfNeeded = async (user) => {
-  if (!user || user.welcomeEmailSentAt) {
-    return;
+  if (!user?._id || user.welcomeEmailSentAt) return false;
+
+  // Aynı kullanıcı için iki sekmenin / Google callback'inin paralel gelmesi,
+  // eski akışta her isteğin "henüz gönderilmedi" bilgisini görmesine neden
+  // oluyordu. E-postayı göndermeden önce atomik olarak tek bir istek seçilir.
+  const retryBefore = new Date(Date.now() - 15 * 60 * 1000);
+  const claimedUser = await User.findOneAndUpdate(
+    {
+      _id: user._id,
+      welcomeEmailSentAt: null,
+      $or: [
+        { welcomeEmailSendingAt: null },
+        { welcomeEmailSendingAt: { $lt: retryBefore } },
+      ],
+    },
+    { $set: { welcomeEmailSendingAt: new Date() } },
+    { new: true }
+  );
+
+  // Başka bir istek gönderimi zaten sahiplendi ya da e-posta daha önce gitti.
+  if (!claimedUser) return false;
+
+  const sent = await sendWelcomeEmail(claimedUser);
+  if (sent) {
+    await User.updateOne(
+      { _id: claimedUser._id, welcomeEmailSentAt: null },
+      {
+        $set: { welcomeEmailSentAt: new Date() },
+        $unset: { welcomeEmailSendingAt: 1 },
+      }
+    );
+    return true;
   }
 
-  const sent = await sendWelcomeEmail(user);
-  if (sent) {
-    user.welcomeEmailSentAt = new Date();
-    await user.save({ validateBeforeSave: false });
-  }
+  // Sağlayıcı geçici olarak hata verdiyse kilidi kaldır; sonraki güvenli girişte
+  // tek bir yeniden deneme yapılabilsin.
+  await User.updateOne(
+    { _id: claimedUser._id, welcomeEmailSentAt: null },
+    { $unset: { welcomeEmailSendingAt: 1 } }
+  );
+  return false;
 };
 
 const sendRegistrationVerificationEmail = async (user, otp) => {

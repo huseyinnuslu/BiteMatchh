@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
@@ -15,6 +15,7 @@ const Register = () => {
   const [privacyNoticeAcknowledged, setPrivacyNoticeAcknowledged] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showGoogleConsent, setShowGoogleConsent] = useState(false);
+  const googleRequestInFlightRef = useRef(false);
 
   const [errors, setErrors] = useState({ username: '', email: '', password: '' });
   const [touched, setTouched] = useState({ username: false, email: false, password: false });
@@ -86,6 +87,8 @@ const Register = () => {
   // Google ile hızlı kayıt / giriş
   const startGoogleOAuth = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      if (googleRequestInFlightRef.current) return;
+      googleRequestInFlightRef.current = true;
       setGoogleLoading(true);
       try {
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -105,9 +108,13 @@ const Register = () => {
         // hata AuthContext'te toast ile gösterilir
       } finally {
         setGoogleLoading(false);
+        googleRequestInFlightRef.current = false;
       }
     },
-    onError: () => setGoogleLoading(false),
+    onError: () => {
+      setGoogleLoading(false);
+      googleRequestInFlightRef.current = false;
+    },
   });
 
   const handleGoogleLogin = () => {

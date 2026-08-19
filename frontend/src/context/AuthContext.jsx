@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useRef, useState } from 'react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -19,6 +19,8 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading] = useState(false);
+  const loginInFlightRef = useRef(false);
+  const googleLoginInFlightRef = useRef(false);
 
   // Tarayıcıdaki tüm normal sekmeler aynı localStorage oturumunu paylaşır.
   // Başka bir sekmede farklı Google hesabıyla giriş yapılırsa eski sekmede
@@ -51,11 +53,13 @@ export const AuthProvider = ({ children }) => {
 
   // ── Giriş ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
+    if (loginInFlightRef.current) return { success: false, ignored: true };
+    loginInFlightRef.current = true;
     try {
       const { data } = await api.post('/auth/login', { email, password });
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
-      toast.success('Giriş başarılı!');
+      toast.success('Giriş başarılı!', { toastId: 'auth-login-success' });
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Giriş başarısız';
@@ -66,6 +70,8 @@ export const AuthProvider = ({ children }) => {
         requiresEmailVerification: error.response?.data?.code === 'EMAIL_NOT_VERIFIED',
         email: error.response?.data?.email || (String(email || '').includes('@') ? email : ''),
       };
+    } finally {
+      loginInFlightRef.current = false;
     }
   };
 
@@ -155,6 +161,8 @@ export const AuthProvider = ({ children }) => {
 
   // ── Google OAuth2 ile Giriş / Kayıt ───────────────────────────────────────
   const googleLogin = async (accessToken, userInfo, termsAccepted = false, privacyNoticeAcknowledged = false) => {
+    if (googleLoginInFlightRef.current) return { success: false, ignored: true };
+    googleLoginInFlightRef.current = true;
     try {
       const { data } = await api.post('/auth/google-login', { accessToken, userInfo, termsAccepted, privacyNoticeAcknowledged });
       setUser(data);
@@ -173,6 +181,8 @@ export const AuthProvider = ({ children }) => {
         message: msg,
         requiresRegistrationConsent: error.response?.status === 400 && msg.includes('Yeni hesap oluşturmak için'),
       };
+    } finally {
+      googleLoginInFlightRef.current = false;
     }
   };
 

@@ -31,6 +31,14 @@ const userSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Hoş geldin e-postası gönderimi birden fazla login isteğiyle aynı anda
+    // tetiklense bile yalnızca bir işlem sahiplenebilsin diye kısa süreli kilit.
+    // Gönderim başarısız olursa controller bu alanı temizler ve sonraki girişte
+    // güvenle tekrar deneyebilir.
+    welcomeEmailSendingAt: {
+      type: Date,
+      default: null,
+    },
     // E-posta/şifreyle açılan hesaplar, posta kutusuna gönderilen kod
     // doğrulanmadan aktif kabul edilmez. `default: true` eski kullanıcıları
     // geriye dönük olarak kilitlememek içindir; yeni e-posta kayıtları

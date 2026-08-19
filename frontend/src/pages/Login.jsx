@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
@@ -10,6 +10,7 @@ const Login = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleRequestInFlightRef = useRef(false);
   const { login, guestLogin, googleLogin } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +34,8 @@ const Login = () => {
   // Google ile giriş – access_token alıp Google userinfo endpoint'inden idToken benzeri bilgi çek
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      if (googleRequestInFlightRef.current) return;
+      googleRequestInFlightRef.current = true;
       setGoogleLoading(true);
       try {
         // access_token → Google UserInfo endpoint → kullanıcı bilgileri
@@ -59,10 +62,12 @@ const Login = () => {
         // hata AuthContext'te toast ile gösterilir
       } finally {
         setGoogleLoading(false);
+        googleRequestInFlightRef.current = false;
       }
     },
     onError: () => {
       setGoogleLoading(false);
+      googleRequestInFlightRef.current = false;
     },
   });
 
