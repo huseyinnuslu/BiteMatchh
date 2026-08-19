@@ -578,6 +578,62 @@ const activityGroups = {
 mockOptions.mekan.forEach((item) => {
   item.discoveryGroup ||= foodGroups[item.name] || 'food';
 });
+
+// Her kart birden fazla ana uygun olabilir; örneğin pizza hem öğle hem akşam
+// seçeneğidir. Bu etiketler restoran türü değil, kullanıcının odayı kurarken
+// seçtiği plan bağlamıdır. Böylece Adana kebap gibi bir ana yemek "tatlı"
+// filtresinde asla görünmez.
+const foodMealPeriods = {
+  'Hamburger': ['lunch', 'dinner', 'late-night'],
+  'Pizza': ['lunch', 'dinner', 'late-night'],
+  'Sushi & Japon': ['lunch', 'dinner'],
+  'Adana Kebap': ['lunch', 'dinner'],
+  'Tantuni': ['lunch', 'dinner', 'late-night'],
+  'Döner': ['lunch', 'dinner', 'late-night'],
+  'Lahmacun & Pide': ['lunch', 'dinner', 'late-night'],
+  'Deniz Ürünleri': ['lunch', 'dinner'],
+  'Steakhouse & Et': ['dinner'],
+  'Fine Dining & Şef Mutfağı': ['dinner'],
+  'Ramen & Asya Mutfağı': ['lunch', 'dinner'],
+  'Serpme Kahvaltı': ['breakfast'],
+  'Pasta & Tatlı Kafe': ['dessert-coffee'],
+  'Tost & Sandviç': ['breakfast', 'lunch', 'late-night'],
+  'Meksika & Taco': ['lunch', 'dinner', 'late-night'],
+  'Makarna & İtalyan': ['lunch', 'dinner'],
+  'Köfte': ['lunch', 'dinner'],
+  'Kıymalı Pide': ['lunch', 'dinner'],
+  'Tavuk Kanat & Çıtır Tavuk': ['lunch', 'dinner', 'late-night'],
+  'Vegan & Healthy Bowl': ['breakfast', 'lunch', 'dinner'],
+  'Hint Mutfağı & Köri': ['lunch', 'dinner'],
+  'Wok & Noodle': ['lunch', 'dinner'],
+  'Salata & Akdeniz Mutfağı': ['lunch', 'dinner'],
+  'Brunch & Kafe': ['breakfast'],
+  'Kahve & Pastane': ['breakfast', 'dessert-coffee'],
+  'Falafel & Levanten': ['lunch', 'dinner', 'late-night'],
+  'Tatlı & Waffle': ['dessert-coffee'],
+  'Mantı & Ev Yemekleri': ['lunch', 'dinner'],
+  'İskender & Bursa Kebabı': ['lunch', 'dinner'],
+  'Çiğ Köfte & Dürüm': ['lunch', 'dinner', 'late-night'],
+  'Kumpir': ['lunch', 'dinner', 'late-night'],
+  'Kokoreç & Midye': ['late-night', 'dinner'],
+  'Balık Ekmek': ['lunch', 'dinner'],
+  'Baklava & Katmer': ['dessert-coffee'],
+  'Simit & Çay': ['breakfast', 'dessert-coffee'],
+  'Kore Mutfağı': ['lunch', 'dinner'],
+  'Dondurma & Gelato': ['dessert-coffee'],
+  'Gözleme & Ayran': ['breakfast', 'lunch'],
+  'Menemen & Kahvaltı': ['breakfast'],
+  'Meze & Balık': ['dinner'],
+  'Çorba & Esnaf Lokantası': ['lunch', 'dinner', 'late-night'],
+  'Tavuk Döner & Pilav': ['lunch', 'dinner'],
+  'Pankek & Kahvaltı': ['breakfast'],
+  'Cheesecake & Kahve': ['dessert-coffee'],
+  'Mangal & Izgara': ['dinner'],
+};
+
+mockOptions.mekan.forEach((item) => {
+  item.mealPeriods = foodMealPeriods[item.name] || ['lunch', 'dinner'];
+});
 mockOptions.aktivite.forEach((item) => {
   item.discoveryGroup ||= activityGroups[item.name] || 'activity';
 });

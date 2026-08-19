@@ -234,10 +234,14 @@ const personalizeRestaurantDistances = async (room, userId) => {
 // @access  Private
 export const createRoom = async (req, res, next) => {
   try {
-    const { name, category, options, priceRange, timeLimit, watchMode, streamingPlatforms } = req.body;
+    const { name, category, options, priceRange, timeLimit, watchMode, streamingPlatforms, mealPeriod } = req.body;
 
     let roomOptions = options || [];
     const cleanCategory = category ? category.toLowerCase() : 'custom';
+    const validMealPeriods = new Set(['all', 'breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night']);
+    const selectedMealPeriod = cleanCategory === 'mekan' && validMealPeriods.has(mealPeriod)
+      ? mealPeriod
+      : 'all';
     const activePriceRange = priceRange || [];
     // Canlı ve lisanslı seans verisi olmadan sinema akışı göstermiyoruz.
     // Film odaları yalnızca ortak streaming platformları üzerinden başlar.
@@ -253,6 +257,12 @@ export const createRoom = async (req, res, next) => {
       let sourcePool = cleanCategory === 'film' && normalizedWatchMode === 'streaming'
         ? effectiveCatalog.film.filter((option) => selectedPlatforms.includes(option.platform))
         : effectiveCatalog[cleanCategory];
+
+      // Bu filtre fiyat filtresi gibi "esnememeli". Kullanıcı örneğin
+      // "Tatlı & Kahve" seçtiyse akşam yemeği kartı görmemeli.
+      if (cleanCategory === 'mekan' && selectedMealPeriod !== 'all') {
+        sourcePool = sourcePool.filter((option) => option.mealPeriods?.includes(selectedMealPeriod));
+      }
 
       if (activePriceRange.length > 0 && sourcePool.some(item => item.budget)) {
         const filteredPool = sourcePool.filter(item => {
@@ -293,6 +303,7 @@ export const createRoom = async (req, res, next) => {
         ? [{ user: req.user._id, platforms: selectedPlatforms, submittedAt: new Date() }]
         : [],
       priceRange: activePriceRange,
+      mealPeriod: selectedMealPeriod,
       timeLimit: Number(timeLimit) || 0,
       status: 'waiting',
       });

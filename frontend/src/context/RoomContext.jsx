@@ -9,12 +9,12 @@ export const RoomProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [matchResult, setMatchResult] = useState(null);
 
-  const createRoom = async (name, options, category, priceRange, timeLimit, filmPreferences = {}) => {
+  const createRoom = async (name, options, category, priceRange, timeLimit, filmPreferences = {}, mealPeriod = 'all') => {
     setLoading(true);
     // A match belongs to one room only; never carry it into a newly created room.
     setMatchResult(null);
     try {
-      const { data } = await api.post('/rooms', { name, options, category, priceRange, timeLimit, ...filmPreferences });
+      const { data } = await api.post('/rooms', { name, options, category, priceRange, timeLimit, mealPeriod, ...filmPreferences });
       setCurrentRoom(data);
       toast.success('Oda başarıyla kuruldu!');
       return { success: true, roomId: data._id };

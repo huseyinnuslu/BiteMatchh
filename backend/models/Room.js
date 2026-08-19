@@ -62,6 +62,14 @@ const roomSchema = mongoose.Schema(
         type: String
       }
     ],
+    // "Ne Yiyelim?" odasında seçilen isteğe bağlı öğün/plan filtresi.
+    // Kartların kendisindeki mealPeriods alanı kaynak katalogda kalır;
+    // odada yalnızca kullanıcının seçtiği niyet saklanır.
+    mealPeriod: {
+      type: String,
+      enum: ['all', 'breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night'],
+      default: 'all',
+    },
     status: {
       type: String,
       enum: ['waiting', 'voting', 'finished', 'expired'],

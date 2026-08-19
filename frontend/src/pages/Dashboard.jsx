@@ -27,6 +27,7 @@ const getCachedLiveEvents = () => {
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
   const [category, setCategory] = useState('mekan');
+  const [mealPeriod, setMealPeriod] = useState('all');
   const [options, setOptions] = useState([{ name: '' }, { name: '' }]);
   const [priceRange, setPriceRange] = useState([]);
   const [myRooms, setMyRooms] = useState([]);
@@ -209,12 +210,13 @@ const Dashboard = () => {
       category,
       priceRange,
       timeLimit,
+      mealPeriod: category === 'mekan' ? mealPeriod : 'all',
       filmPreferences: {
       watchMode: category === 'film' ? watchMode : undefined,
       streamingPlatforms: category === 'film' && watchMode === 'streaming' ? streamingPlatforms : [],
       },
     };
-    const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences);
+    const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences, creation.mealPeriod);
     if (result.success) {
       navigate(`/room/${result.roomId}`);
     } else if (result.activeRoom?.id) {
@@ -242,7 +244,7 @@ const Dashboard = () => {
       const creation = pendingRoomCreation;
       setActiveRoomToLeave(null);
       setPendingRoomCreation(null);
-      const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences);
+      const result = await createRoom(creation.name, creation.options, creation.category, creation.priceRange, creation.timeLimit, creation.filmPreferences, creation.mealPeriod);
       if (result.success) navigate(`/room/${result.roomId}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Aktif oda kaydı temizlenemedi.');
@@ -338,6 +340,26 @@ const Dashboard = () => {
             </div>
 
           </div>
+
+          {category === 'mekan' && (
+            <div className="animate-slide-up" style={{ margin: '-.15rem 0 1.5rem', padding: isMobile ? '.85rem' : '1rem', borderRadius: 12, background: 'rgba(99,102,241,.08)', border: '1px solid rgba(129,140,248,.28)' }}>
+              <div style={{ color: 'white', fontWeight: 800, fontSize: '.9rem', marginBottom: '.28rem' }}>Bu plan ne için?</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '.76rem', lineHeight: 1.4, marginBottom: '.72rem' }}>İsteğe bağlı seç: yalnızca o ana uygun yemek kartları gelsin.</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem' }}>
+                {[
+                  ['all', 'Tümü'],
+                  ['breakfast', 'Kahvaltı & brunch'],
+                  ['lunch', 'Hızlı öğle'],
+                  ['dinner', 'Akşam yemeği'],
+                  ['dessert-coffee', 'Tatlı & kahve'],
+                  ['late-night', 'Gece atıştırması'],
+                ].map(([value, label]) => {
+                  const selected = mealPeriod === value;
+                  return <button key={value} type="button" onClick={() => setMealPeriod(value)} style={{ padding: '.48rem .6rem', borderRadius: 20, border: `1px solid ${selected ? 'var(--primary)' : 'rgba(255,255,255,.15)'}`, background: selected ? 'rgba(255,75,75,.17)' : 'transparent', color: selected ? 'white' : 'var(--text-muted)', fontWeight: 700, cursor: 'pointer', fontSize: '.73rem' }}>{label}</button>;
+                })}
+              </div>
+            </div>
+          )}
 
           {category === 'film' && (
             <div className="animate-slide-up" style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 12, background: 'rgba(99,102,241,.09)', border: '1px solid rgba(129,140,248,.32)' }}>

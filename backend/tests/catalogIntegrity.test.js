@@ -22,10 +22,22 @@ test('katalogdaki her temel kategori yeterli, benzersiz ve eksiksiz kart tasir',
 });
 
 test('yemek kartlari restoran aramasi icin niyet bilgisi tasir', () => {
+  const validMealPeriods = new Set(['breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night']);
   mockOptions.mekan.forEach((card) => {
     assert.ok(card.mapsQuery?.trim(), `${card.name} icin mekan arama ifadesi zorunlu`);
     assert.ok(card.discoveryGroup?.trim(), `${card.name} icin kesif grubu zorunlu`);
+    assert.ok(Array.isArray(card.mealPeriods) && card.mealPeriods.length > 0, `${card.name} icin ogun etiketi zorunlu`);
+    card.mealPeriods.forEach((period) => assert.ok(validMealPeriods.has(period), `${card.name} gecersiz ogun etiketi tasiyor`));
   });
+});
+
+test('ogun filtreleri birbirine uygunsuz yemek kartlarini karistirmaz', () => {
+  const dessertCards = mockOptions.mekan.filter((card) => card.mealPeriods.includes('dessert-coffee'));
+  const breakfastCards = mockOptions.mekan.filter((card) => card.mealPeriods.includes('breakfast'));
+  assert.ok(dessertCards.length >= 4, 'tatli ve kahve filtresi yeterli kart tasimali');
+  assert.ok(breakfastCards.length >= 4, 'kahvalti filtresi yeterli kart tasimali');
+  assert.ok(!dessertCards.some((card) => card.name === 'Adana Kebap'), 'Adana kebap tatli filtresinde olmamali');
+  assert.ok(!breakfastCards.some((card) => card.name === 'Mangal & Izgara'), 'mangal kahvalti filtresinde olmamali');
 });
 
 test('ingilizce kategori takma adlari ayni temel kataloglari gosterir', () => {
