@@ -22,7 +22,7 @@ test('katalogdaki her temel kategori yeterli, benzersiz ve eksiksiz kart tasir',
 });
 
 test('yemek kartlari restoran aramasi icin niyet bilgisi tasir', () => {
-  const validMealPeriods = new Set(['breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night']);
+  const validMealPeriods = new Set(['breakfast', 'dinner', 'dessert-coffee']);
   mockOptions.mekan.forEach((card) => {
     assert.ok(card.mapsQuery?.trim(), `${card.name} icin mekan arama ifadesi zorunlu`);
     assert.ok(card.discoveryGroup?.trim(), `${card.name} icin kesif grubu zorunlu`);

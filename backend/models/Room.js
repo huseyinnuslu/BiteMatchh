@@ -67,7 +67,7 @@ const roomSchema = mongoose.Schema(
     // odada yalnızca kullanıcının seçtiği niyet saklanır.
     mealPeriod: {
       type: String,
-      enum: ['all', 'breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night'],
+      enum: ['all', 'breakfast', 'dinner', 'dessert-coffee'],
       default: 'all',
     },
     status: {

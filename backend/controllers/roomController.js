@@ -238,7 +238,7 @@ export const createRoom = async (req, res, next) => {
 
     let roomOptions = options || [];
     const cleanCategory = category ? category.toLowerCase() : 'custom';
-    const validMealPeriods = new Set(['all', 'breakfast', 'lunch', 'dinner', 'dessert-coffee', 'late-night']);
+    const validMealPeriods = new Set(['all', 'breakfast', 'dinner', 'dessert-coffee']);
     const selectedMealPeriod = cleanCategory === 'mekan' && validMealPeriods.has(mealPeriod)
       ? mealPeriod
       : 'all';

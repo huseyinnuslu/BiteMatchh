@@ -348,11 +348,9 @@ const Dashboard = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.45rem' }}>
                 {[
                   ['all', 'Tümü'],
-                  ['breakfast', 'Kahvaltı & brunch'],
-                  ['lunch', 'Hızlı öğle'],
+                  ['breakfast', 'Kahvaltı'],
                   ['dinner', 'Akşam yemeği'],
                   ['dessert-coffee', 'Tatlı & kahve'],
-                  ['late-night', 'Gece atıştırması'],
                 ].map(([value, label]) => {
                   const selected = mealPeriod === value;
                   return <button key={value} type="button" onClick={() => setMealPeriod(value)} style={{ padding: '.48rem .6rem', borderRadius: 20, border: `1px solid ${selected ? 'var(--primary)' : 'rgba(255,255,255,.15)'}`, background: selected ? 'rgba(255,75,75,.17)' : 'transparent', color: selected ? 'white' : 'var(--text-muted)', fontWeight: 700, cursor: 'pointer', fontSize: '.73rem' }}>{label}</button>;

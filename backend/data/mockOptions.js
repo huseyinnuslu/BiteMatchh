@@ -632,7 +632,11 @@ const foodMealPeriods = {
 };
 
 mockOptions.mekan.forEach((item) => {
-  item.mealPeriods = foodMealPeriods[item.name] || ['lunch', 'dinner'];
+  // Arayüzde yalnızca üç net seçim var: Kahvaltı, Akşam Yemeği ve
+  // Tatlı & Kahve. Öğle/gece gibi eski ayrıntılı etiketleri ana yemek
+  // bağlamında "Akşam Yemeği" altında birleştiriyoruz.
+  item.mealPeriods = [...new Set((foodMealPeriods[item.name] || ['dinner'])
+    .map((period) => ['lunch', 'late-night'].includes(period) ? 'dinner' : period))];
 });
 mockOptions.aktivite.forEach((item) => {
   item.discoveryGroup ||= activityGroups[item.name] || 'activity';
