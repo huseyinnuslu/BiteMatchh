@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { TypeAnimation } from 'react-type-animation';
 import { motion } from 'framer-motion';
+import { Flame } from 'lucide-react';
 
 const Home = () => {
   return (
@@ -30,7 +31,15 @@ const Home = () => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Bana Fark Eder
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.18em' }}>
+            Bana Fark Eder
+            <Flame
+              aria-label="BiteMatch"
+              size="0.72em"
+              strokeWidth={2.6}
+              style={{ color: 'var(--primary)', filter: 'drop-shadow(0 4px 10px rgba(255, 75, 75, .3))', flexShrink: 0 }}
+            />
+          </span>
         </h1>
       </motion.div>
 

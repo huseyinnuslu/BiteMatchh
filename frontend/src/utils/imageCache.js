@@ -12,8 +12,16 @@ const PRELOAD_TIMEOUT_MS = 12000;
 export const resolveAssetUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
   if (/^(https?:|data:|blob:)/i.test(url)) return url;
+
+  // Kart fallback'ları ve ileride /catalog altındaki BiteMatch görselleri
+  // frontend'in (Vercel CDN) statik dosyalarıdır. Bunları API sunucusuna
+  // yönlendirmek hem 404'e hem de gereksiz görsel gecikmesine yol açıyordu.
+  // Yalnızca kullanıcı yüklemeleri backend üzerinde tutulur.
+  const localPath = url.startsWith('/') ? url : `/${url}`;
+  if (!localPath.startsWith('/uploads/')) return localPath;
+
   const apiBase = (import.meta.env.VITE_API_URL || 'https://bitematchh.onrender.com').replace(/\/$/, '').replace(/\/api$/, '');
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  return `${apiBase}${localPath}`;
 };
 
 export const getImageStatus = (url) => imageStatus.get(resolveAssetUrl(url));
