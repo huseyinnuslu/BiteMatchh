@@ -26,7 +26,10 @@ const getCachedLiveEvents = () => {
 
 const Dashboard = () => {
   const [roomName, setRoomName] = useState('');
-  const [category, setCategory] = useState('mekan');
+  // Karar türünü kullanıcı seçer. Keşfet açıldığında “Ne Yiyelim?”in seçili
+  // görünmesi hem yanlış yönlendiriyor hem de yemek filtrelerini gereksizce
+  // açıyordu.
+  const [category, setCategory] = useState(null);
   const [mealPeriod, setMealPeriod] = useState('all');
   const [options, setOptions] = useState([{ name: '' }, { name: '' }]);
   const [priceRange, setPriceRange] = useState([]);
@@ -193,6 +196,10 @@ const Dashboard = () => {
     e.preventDefault();
     if (!roomName.trim()) {
       toast.error('Oda adı boş bırakılamaz.');
+      return;
+    }
+    if (!category) {
+      toast.error('Önce ne hakkında karar vereceğinizi seçin.');
       return;
     }
     let validOptions = [];
