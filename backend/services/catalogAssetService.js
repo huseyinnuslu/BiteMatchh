@@ -2,7 +2,7 @@ const STATIC_IMAGE_HOSTS = new Set([
   'images.unsplash.com',
   'images.pexels.com',
 ]);
-const CATALOG_ASSET_VERSION = '20260819';
+const CATALOG_ASSET_VERSION = '20260820';
 
 // Haricî kaynağı güvenilir olmayan bu kartlar için görseli doğrudan ürün
 // kütüphanemizde tutuyoruz. Böylece kart açılırken üçüncü taraf görsel isteği
